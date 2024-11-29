@@ -1,0 +1,14 @@
+{
+  "folders": [
+    {
+      "path": ".."
+    }
+    // {
+    //   // "path": "../api-fake-client"
+    // },
+    // {
+    //   // "path": "../api-fake-server"
+    // }
+  ],
+  "settings": {}
+}
