@@ -1,4 +1,5 @@
-import "dotenv/config";
+import { config } from "dotenv";
+// import "dotenv/config";
 
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
@@ -8,7 +9,9 @@ import {
 } from "./src/server/server-load-envs";
 
 import { startServer } from "./src/server/server";
+import path from "path";
 
+config({ path: path.resolve(__dirname, "./myEndpoints/.env") });
 loadEnvVariables();
 
 // https://vite.dev/config/
