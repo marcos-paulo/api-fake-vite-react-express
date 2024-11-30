@@ -13,7 +13,9 @@ class ServerEndpoints {
 
   endpoints: Endpoints = { listEndpoints: [] };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   globalJsonConfig: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   jsonConfig: any;
 
   listEndpointModule: EndpointObject[] = [];
@@ -68,6 +70,7 @@ class ServerEndpoints {
 
     for (const cur of keys) {
       propriedade = cur;
+
       if (!acc[cur]) {
         const m = `\x1b[31mNão foi possível ler a propriedade (${propriedade}) do arquivo de configuração.\x1b[0m`;
         console.error(m);

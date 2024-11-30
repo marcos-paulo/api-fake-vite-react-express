@@ -36,9 +36,9 @@ export default defineConfig({
     },
   ],
   resolve: {
-    alias: {
-      src: "/src",
-    },
+    // alias: {
+    //   src: "src",
+    // },
   },
   root: "./src/client",
   build: {
