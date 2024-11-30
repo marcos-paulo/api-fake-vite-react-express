@@ -1,3 +1,4 @@
+import e from "express";
 import fs from "fs";
 
 // export const variaveisDeAmbiente.ADDRESS = process.env.ADDRESS || "http://localhost";
@@ -30,10 +31,13 @@ import fs from "fs";
 
 export const environmentVariables = {
   CLIENT_APP_PORT: "3343",
-  SERVER_DYNAMIC_ENDPOINTS_PORT: "3344",
+  CLIENT_API_PORT: "3342",
+  SERVER_DYNAMIC_ENDPOINTS_PORT: "3341",
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: "/api",
   PROXY_CONFIG_FILE: "",
   PROXY_CONFIG_FILE_ADDRESS_KEY: "",
+  BROWSER: "",
+  BRWSER_ARGS: "",
 };
 
 function loadEnvironmentVariables() {
@@ -46,7 +50,9 @@ function loadEnvironmentVariables() {
   for (const key of keys) {
     const env = process.env[key];
 
-    if (env === undefined) listaEnvsNaoEncontradas.push(key);
+    if (env === undefined)
+      listaEnvsNaoEncontradas.push(`${key}=${environmentVariables[key]}\n`);
+
     environmentVariables[key] = env || environmentVariables[key];
   }
 
@@ -60,7 +66,7 @@ function loadEnvironmentVariables() {
   }
 
   if (listaEnvsNaoEncontradas.length > 0) {
-    const listEnvs = listaEnvsNaoEncontradas.map((key) => `${key}=`).join("\n");
+    const listEnvs = listaEnvsNaoEncontradas.join("");
     fs.appendFileSync(".env", listEnvs);
     console.log(
       "Variáveis não encontradas no arquivo .env foram adicionadas com sucesso."

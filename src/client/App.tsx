@@ -37,9 +37,24 @@ export default function App() {
     axios.post("/api/changeStateEndpoint", endpoint).then(toListEndpoints);
   }, []);
 
+  const closeServer = useCallback(async () => {
+    await axios.post("/api/shutdown");
+  }, []);
+
+  useEffect(() => {}, []);
+
   useEffect(() => {
     serverStatus();
     toListEndpoints();
+
+    const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      closeServer();
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, [serverStatus, toListEndpoints]);
 
   return (

@@ -1,7 +1,4 @@
-import "dotenv/config";
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 
 import {
   createServerEndpointsManager,
@@ -9,66 +6,74 @@ import {
 } from "./dynamic-endpoints";
 import { environmentVariables, loadEnvVariables } from "./server-load-envs";
 
-import type { ServerStatus } from "../types/ServerStatus";
 import { Endpoint } from "../types/Endpoints";
+import type { ServerStatus } from "../types/ServerStatus";
 
-loadEnvVariables();
-await createServerEndpointsManager();
+// as variaveis estão sendo inicializadas no arquivo de configuração do vite
+// loadEnvVariables();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+export async function startServer() {
+  await createServerEndpointsManager();
 
-const app = express();
-const CLIENT_APP_PORT = environmentVariables.CLIENT_APP_PORT;
+  const app = express();
+  const CLIENT_APP_PORT = environmentVariables.CLIENT_API_PORT;
 
-app.use(express.json());
+  app.use(express.json());
 
-app.get("/api/status", (req, res) => {
-  const resp: ServerStatus = {
-    activatedServer: !!endpointsServer.server,
-  };
-  res.json(resp);
-});
+  app.get("/api/status", (_req, res) => {
+    const resp: ServerStatus = {
+      activatedServer: !!endpointsServer.server,
+    };
+    res.json(resp);
+  });
 
-app.get("/api/endpoints", (req, res) => {
-  res.json(endpointsServer.endpoints);
-});
+  app.get("/api/endpoints", (_req, res) => {
+    res.json(endpointsServer.endpoints);
+  });
 
-app.post<any, any, "", Endpoint>(
-  "/api/changeStateEndpoint",
-  async (req, res, next) => {
-    try {
-      const endpoint = req.body;
-      await endpointsServer.changeStateEndpoint(endpoint);
-      res.status(200).send("");
-    } catch (error) {
-      next({ error, status: 400 });
+  app.post<any, any, "", Endpoint>(
+    "/api/changeStateEndpoint",
+    async (req, res, next) => {
+      try {
+        const endpoint = req.body;
+        await endpointsServer.changeStateEndpoint(endpoint);
+        res.status(200).send("");
+      } catch (error) {
+        next({ error, status: 400 });
+      }
     }
-  }
-);
+  );
 
-app.post("/api/active", async (req, res) => {
-  await endpointsServer.activeServer();
-  res.status(200).send("");
-});
+  app.post("/api/active", async (_req, res) => {
+    await endpointsServer.activeServer();
+    res.status(200).send("");
+  });
 
-app.post("/api/disable", async (req, res) => {
-  await endpointsServer.closeServer();
-  res.status(200).send("");
-});
+  app.post("/api/disable", async (_req, res) => {
+    await endpointsServer.closeServer();
+    res.status(200).send("");
+  });
 
-app.use(
-  (
-    err: { error: Error; status: number },
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-  ) => {
-    console.error("teste de erro", err);
-    res.status(err.status).send("");
-  }
-);
+  app.post("/api/shutdown", async (_req, res) => {
+    await endpointsServer.closeServer();
+    res.status(200).send("");
+    process.exit(0);
+  });
 
-app.listen(CLIENT_APP_PORT, () => {
-  console.log(`Server is running at http://localhost:${CLIENT_APP_PORT}`);
-});
+  app.use(
+    (
+      err: { error: Error; status: number },
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction
+    ) => {
+      console.error("teste de erro", err);
+      res.status(err.status).send("");
+    }
+  );
+
+  app.listen(CLIENT_APP_PORT, () => {
+    console.log("");
+    console.log(`Server is running at http://localhost:${CLIENT_APP_PORT}`);
+  });
+}

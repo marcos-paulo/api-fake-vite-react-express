@@ -1,21 +1,19 @@
 import { Request, Response } from "express";
 
-export type EndpointModule = {
+export type EndpointObject = {
   endpointServerPrefix?: string;
   localhostEndpoint: string;
   method: "get" | "post" | "put" | "delete";
   handler: (req: Request, res: Response) => void;
 };
 
-export type ListEndpointModule = EndpointModule[];
-
-export function isModuleEndpoints(module: any): module is EndpointModule[] {
+export function isModuleEndpoints(module: any): module is EndpointObject[] {
   return Array.isArray(module) && module.every((e) => isEndpoint(e));
 }
 
 function isEndpoint(
-  endpoint: Partial<EndpointModule>
-): endpoint is EndpointModule {
+  endpoint: Partial<EndpointObject>
+): endpoint is EndpointObject {
   return (
     // typeof endpoint.endpointServerPrefix === "string" &&
     typeof endpoint.localhostEndpoint === "string" &&
@@ -25,4 +23,4 @@ function isEndpoint(
   );
 }
 
-export type PromiseModule = Promise<{ default: ListEndpointModule }>;
+export type ModuleEndpoint = { default: EndpointObject[] };
