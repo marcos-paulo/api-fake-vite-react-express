@@ -7,7 +7,7 @@ export type EndpointObject = {
   handler: (req: Request, res: Response) => void;
 };
 
-export function isModuleEndpoints(module: any): module is EndpointObject[] {
+export function isModuleEndpoints(module: unknown): module is EndpointObject[] {
   return Array.isArray(module) && module.every((e) => isEndpoint(e));
 }
 
