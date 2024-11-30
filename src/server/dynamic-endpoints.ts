@@ -156,7 +156,7 @@ class ServerEndpoints {
 
   private async importEndpointModules() {
     // para usar o fs.readdirSync é necessário usar o caminho absoluto
-    const basePath = "src/endpoints";
+    const basePath = "myEndpoints/endpoints";
     const resolvedDir = path.resolve(basePath);
 
     this.endpoints.listEndpoints = [];
@@ -167,12 +167,17 @@ class ServerEndpoints {
       // prettier-ignore
       console.error(`\x1b[31mDiretório de endpoints não encontrado ${resolvedDir}.\x1b[0m`);
       // prettier-ignore
-      console.log("\x1b[33mCrie o diretório src/server/endpoints e adicione pelo menos um arquivos de endpoint.\x1b[0m");
+      console.log(`\x1b[33mCrie o diretório ${basePath} e adicione pelo menos um arquivos de endpoint.\x1b[0m`);
       process.exit(1);
     }
 
     try {
       files = fs.readdirSync(resolvedDir);
+      files.filter((file) => {
+        const filePath = path.join(resolvedDir, file);
+        // Verifica se é um arquivo e tem extensão .ts ou .js
+        return /\.(ts|js)$/.test(filePath);
+      });
     } catch (error) {
       // prettier-ignore
       console.error(`\x1b[31mErro ao ler os arquivos do diretório de endpoints ${resolvedDir}.\x1b[0m\n `, error);
@@ -183,7 +188,9 @@ class ServerEndpoints {
     for (const fileName of files) {
       try {
         // para usar o import é necessário usar o caminho relativo, limitação do vite
-        const importedModule = await import(`../endpoints/${fileName}`);
+        const importedModule = await import(
+          `../../myEndpoints/endpoints/${fileName}`
+        );
         listImportedModules.push(importedModule);
       } catch (error) {
         console.error(`Erro ao carregar o arquivo ${fileName}:`);
