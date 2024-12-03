@@ -2,11 +2,7 @@ import express from "express";
 import type { Express } from "express-serve-static-core";
 import fs from "fs";
 import path from "path";
-import {
-  isModuleEndpoints,
-  ListEndpointModule,
-  PromiseModule,
-} from "./dynamic-endpoints.types";
+import { EndpointObject, ModuleEndpoint } from "./dynamic-endpoints.types";
 import { environmentVariables } from "./server-load-envs";
 
 import type { Endpoint, Endpoints } from "../types/Endpoints";
@@ -20,7 +16,8 @@ class ServerEndpoints {
   globalJsonConfig: any;
   jsonConfig: any;
 
-  listEndpointModule: ListEndpointModule = [];
+  listEndpointModule: EndpointObject[] = [];
+  listEnabledEndpointModule: EndpointObject[] = [];
 
   private readonly serverDefaultPrefixApi =
     environmentVariables.SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API;
@@ -29,8 +26,27 @@ class ServerEndpoints {
     environmentVariables.SERVER_DYNAMIC_ENDPOINTS_PORT;
 
   constructor() {
+    fs.watchFile(environmentVariables.PROXY_CONFIG_FILE, async () => {
+      // prettier-ignore
+      console.log(`Recarregando arquivo de configuração ${environmentVariables.PROXY_CONFIG_FILE}...`);
+
+      this.loadConfigFile();
+      this.loadSectionJsonConfig();
+      await this.importEndpointModules();
+      this.loadEnabledEndpointModules();
+
+      if (this.server) {
+        await this.closeServer();
+        await this.activeServer();
+      }
+    });
+  }
+
+  async loadEndpoints() {
     this.loadConfigFile();
     this.loadSectionJsonConfig();
+    await this.importEndpointModules();
+    this.loadEnabledEndpointModules();
   }
 
   private loadConfigFile() {
@@ -40,10 +56,8 @@ class ServerEndpoints {
       });
       this.globalJsonConfig = JSON.parse(dados);
     } catch (error) {
-      console.error(
-        `\x1b[31mErro ao ler o arquivo de configuração ${environmentVariables.PROXY_CONFIG_FILE}.\x1b[0m`,
-        error
-      );
+      // prettier-ignore
+      console.error(`\x1b[31mErro ao ler o arquivo de configuração ${environmentVariables.PROXY_CONFIG_FILE}.\x1b[0m\n`, error);
     }
   }
 
@@ -65,6 +79,46 @@ class ServerEndpoints {
     this.jsonConfig = acc;
   }
 
+  private loadEnabledEndpointModules() {
+    this.endpoints.listEndpoints = [];
+    this.listEnabledEndpointModule = [];
+
+    const values = JSON.stringify(this.jsonConfig);
+
+    for (const endpointModule of this.listEndpointModule) {
+      const { localhostEndpoint, method, endpointServerPrefix } =
+        endpointModule;
+
+      // define a chave que será usada para armazenar o endpoint no objeto de configuração
+      let serverAddress = "";
+      if (endpointServerPrefix) {
+        serverAddress = path.join(endpointServerPrefix, localhostEndpoint);
+      } else {
+        serverAddress = path.join(
+          this.serverDefaultPrefixApi,
+          localhostEndpoint
+        );
+      }
+
+      // prettier-ignore
+      const localhostAddress = `http://${path.join(`localhost:${this.endpointServerPort}`,localhostEndpoint)}`;
+
+      const valueObject = `"${serverAddress}":"${localhostAddress}"`;
+      const enabled = values.includes(valueObject);
+
+      if (enabled) {
+        this.listEnabledEndpointModule.push(endpointModule);
+      }
+
+      this.endpoints.listEndpoints.push({
+        serverAddress,
+        localhostAddress,
+        method,
+        enabled,
+      });
+    }
+  }
+
   private saveConfigFile() {
     try {
       fs.writeFileSync(
@@ -72,10 +126,8 @@ class ServerEndpoints {
         JSON.stringify(this.globalJsonConfig, null, 2)
       );
     } catch (error) {
-      console.error(
-        `\x1b[31mErro ao salvar o arquivo de configuração ${environmentVariables.PROXY_CONFIG_FILE}.\x1b[0m`,
-        error
-      );
+      // prettier-ignore
+      console.error(`\x1b[31mErro ao salvar o arquivo de configuração ${environmentVariables.PROXY_CONFIG_FILE}.\x1b[0m`, error);
     }
   }
 
@@ -90,80 +142,61 @@ class ServerEndpoints {
 
     if (!values.includes(value)) {
       this.jsonConfig[serverAddress] = localhostAddress;
-      this.saveConfigFile();
     } else {
       delete this.jsonConfig[serverAddress];
-      this.saveConfigFile();
     }
+    this.saveConfigFile();
 
     await this.closeServer();
     await this.activeServer();
   }
 
-  async importarEndpoints() {
+  private async importEndpointModules() {
+    // para usar o fs.readdirSync é necessário usar o caminho absoluto
+    const basePath = "src/endpoints";
+    const resolvedDir = path.resolve(basePath);
+
     this.endpoints.listEndpoints = [];
-
     this.listEndpointModule = [];
+    let files: string[];
 
-    const listImportedModules: PromiseModule[] = [];
-
-    const dirname = process.cwd();
-    const pathEndpointDirectory = path.join(dirname, "src/server/endpoints");
-    const pathModuleNames = fs.readdirSync(pathEndpointDirectory);
-
-    for (const pathModule of pathModuleNames) {
-      const moduleFile = `./endpoints/${pathModule}`;
-      const importedModule: PromiseModule = import(moduleFile);
-
-      listImportedModules.push(importedModule);
+    if (!fs.existsSync(resolvedDir)) {
+      // prettier-ignore
+      console.error(`\x1b[31mDiretório de endpoints não encontrado ${resolvedDir}.\x1b[0m`);
+      // prettier-ignore
+      console.log("\x1b[33mCrie o diretório src/server/endpoints e adicione pelo menos um arquivos de endpoint.\x1b[0m");
+      process.exit(1);
     }
 
-    const resolvedList = await Promise.all(listImportedModules);
+    try {
+      files = fs.readdirSync(resolvedDir);
+    } catch (error) {
+      // prettier-ignore
+      console.error(`\x1b[31mErro ao ler os arquivos do diretório de endpoints ${resolvedDir}.\x1b[0m\n `, error);
+      process.exit(1);
+    }
 
-    for (const resolved of resolvedList) {
-      this.listEndpointModule.push(...resolved.default);
+    const listImportedModules: ModuleEndpoint[] = [];
+    for (const fileName of files) {
+      try {
+        // para usar o import é necessário usar o caminho relativo, limitação do vite
+        const importedModule = await import(`../endpoints/${fileName}`);
+        listImportedModules.push(importedModule);
+      } catch (error) {
+        console.error(`Erro ao carregar o arquivo ${fileName}:`);
+        console.error(error);
+      }
+    }
+
+    for (const importedModule of listImportedModules) {
+      this.listEndpointModule.push(...importedModule.default);
     }
   }
 
-  loadEndpointsOnServer(app: Express) {
-    this.endpoints.listEndpoints = [];
-
-    const values = JSON.stringify(this.jsonConfig);
-
-    for (const EndpointModule of this.listEndpointModule) {
-      const { localhostEndpoint, handler, method, endpointServerPrefix } =
-        EndpointModule;
-
-      // define a chave que será usada para armazenar o endpoint no objeto de configuração
-      let serverAddress = "";
-      if (endpointServerPrefix) {
-        serverAddress = path.join(endpointServerPrefix, localhostEndpoint);
-      } else {
-        serverAddress = path.join(
-          this.serverDefaultPrefixApi,
-          localhostEndpoint
-        );
-      }
-
-      const localhostAddress = `http://${path.join(
-        `localhost:${this.endpointServerPort}`,
-        localhostEndpoint
-      )}`;
-
-      const valueObject = `"${serverAddress}":"${localhostAddress}"`;
-      const enabled = values.includes(valueObject);
-
-      if (enabled) {
-        app[method](localhostEndpoint, handler);
-      }
-
-      console.log("valueObject", valueObject);
-      this.endpoints.listEndpoints.push({
-        serverAddress,
-        localhostAddress,
-        method,
-        enabled,
-      });
+  private setEnabledEndpointsOnServer(app: Express) {
+    for (const endpointModule of this.listEnabledEndpointModule) {
+      const { localhostEndpoint, handler, method } = endpointModule;
+      app[method](localhostEndpoint, handler);
     }
   }
 
@@ -179,12 +212,15 @@ class ServerEndpoints {
 
       this.app = express();
 
-      this.loadEndpointsOnServer(this.app);
+      this.loadEnabledEndpointModules();
+      this.setEnabledEndpointsOnServer(this.app);
 
       this.server = this.app.listen(
         environmentVariables.SERVER_DYNAMIC_ENDPOINTS_PORT,
         () => {
-          console.log("\x1b[32mServer is running on port 3001\x1b[0m");
+          console.log(
+            `\x1b[32mServer is running on port ${environmentVariables.SERVER_DYNAMIC_ENDPOINTS_PORT}\x1b[0m`
+          );
           setTimeout(() => {
             resolve();
           }, 0);
@@ -235,7 +271,7 @@ let endpointsServer: ServerEndpoints;
 
 export async function createServerEndpointsManager() {
   endpointsServer = new ServerEndpoints();
-  await endpointsServer.importarEndpoints();
+  await endpointsServer.loadEndpoints();
 }
 
 export { endpointsServer };
