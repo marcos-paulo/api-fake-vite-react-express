@@ -1,0 +1,23 @@
+{
+"Endpoint api-fake": {
+    "scope": "javascript,typescript",
+    "prefix": "api-fake",
+    "body": [
+      "import { EndpointObject } from \"src/server/dynamic-endpoints.types\";",
+      "",
+      "const endpoint: EndpointObject = {",
+      "  endpointServerPrefix: \"/api\",",
+      "  localhostEndpoint: \"/exempoEndpoint\",",
+      "  method: \"get\",",
+      "  handler: (request, response) => {",
+      "    const req = request.body;",
+      "    setTimeout(() => {",
+      "      response.send(req);",
+      "    }, 1000);",
+      "  }",
+      "};",
+      "",
+      "export default [endpoint];",
+    ]
+  }
+}
