@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 
 export type EndpointObject = {
+  description: string;
   endpointServerPrefix?: string;
   localhostEndpoint: string;
   method: "get" | "post" | "put" | "delete";
