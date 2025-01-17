@@ -55,6 +55,16 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+.active {
+  /* green */
+  background-color: rgba(0, 255, 0, 0.53);
+}
+
+.inactive {
+  /* red */
+  background-color: rgba(255, 0, 0, 0.53);
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

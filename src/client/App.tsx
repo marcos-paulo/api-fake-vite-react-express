@@ -47,18 +47,38 @@ export default function App() {
     serverStatus();
     toListEndpoints();
 
-    const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      closeServer();
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    // const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
+    //   event.preventDefault();
+    //   closeServer();
+    //   return "";
+    // };
+    // window.addEventListener("beforeunload", handleBeforeUnload);
+    // return () => {
+    //   window.removeEventListener("beforeunload", handleBeforeUnload);
+    // };
   }, [serverStatus, toListEndpoints]);
 
   return (
     <>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "end",
+          padding: "20px",
+        }}
+      >
+        <button
+          onClick={async () => {
+            closeServer();
+            console.log("fechar servidor");
+            window.close();
+          }}
+        >
+          Fechar servidor
+        </button>
+      </div>
+
       <DynamicSeverActiveDesactive
         serverStatus={status}
         onChangeStateServer={() => {
