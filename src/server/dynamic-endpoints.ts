@@ -89,7 +89,7 @@ class ServerEndpoints {
     const values = JSON.stringify(this.jsonConfig);
 
     for (const endpointModule of this.listEndpointModule) {
-      const { localhostEndpoint, method, endpointServerPrefix } =
+      const { description, localhostEndpoint, method, endpointServerPrefix } =
         endpointModule;
 
       // define a chave que será usada para armazenar o endpoint no objeto de configuração
@@ -114,6 +114,7 @@ class ServerEndpoints {
       }
 
       this.endpoints.listEndpoints.push({
+        description,
         serverAddress,
         localhostAddress,
         method,
