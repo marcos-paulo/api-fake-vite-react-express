@@ -3,6 +3,7 @@ export type Endpoints = {
 };
 
 export type Endpoint = {
+  description: string;
   serverAddress: string;
   localhostAddress: string;
   method: string;
