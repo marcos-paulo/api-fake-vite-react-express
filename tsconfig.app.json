@@ -27,5 +27,5 @@
     //   "src/*": ["./src/*"],
     // }
   },
-  "include": ["src", "myEndpoints"]
+  "include": ["src", "root-endpoints"]
 }

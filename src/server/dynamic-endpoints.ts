@@ -3,7 +3,10 @@ import type { Express } from "express-serve-static-core";
 import fs from "fs";
 import path from "path";
 import { EndpointObject, ModuleEndpoint } from "./dynamic-endpoints.types";
-import { environmentVariables } from "./server-load-envs";
+import {
+  environmentValidate,
+  getEnvironmentVariables,
+} from "./server-load-envs";
 
 import type { Endpoint, Endpoints } from "../types/Endpoints";
 
@@ -24,18 +27,20 @@ class ServerEndpoints {
   listEnabledEndpointModule: EndpointObject[] = [];
 
   private readonly serverDefaultPrefixApi =
-    environmentVariables.SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API;
+    getEnvironmentVariables().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API;
 
   private readonly endpointServerPort =
-    environmentVariables.SERVER_DYNAMIC_ENDPOINTS_PORT;
+    getEnvironmentVariables().SERVER_DYNAMIC_ENDPOINTS_PORT;
 
-  initialEnabledEndpointsfilePath =
-    "./myEndpoints/initailEnabledEndpoints.json";
+  private readonly endpointsWorkspaceDirectory =
+    getEnvironmentVariables().WORKSPACE_ENDPOINTS_DIRECTORY;
+
+  private readonly initialEnabledEndpointsfilePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/initailEnabledEndpoints.json`;
 
   constructor() {
-    fs.watchFile(environmentVariables.PROXY_CONFIG_FILE, async () => {
+    fs.watchFile(getEnvironmentVariables().PROXY_CONFIG_FILE, async () => {
       // prettier-ignore
-      console.log(`Recarregando arquivo de configuração ${environmentVariables.PROXY_CONFIG_FILE}...`);
+      console.info(`Recarregando arquivo de configuração ${getEnvironmentVariables().PROXY_CONFIG_FILE}...`);
 
       try {
         const endpointsLoaded = await this.loadEndpoints();
@@ -51,7 +56,7 @@ class ServerEndpoints {
   }
 
   async loadEndpoints() {
-    console.log("Inicializando endpoints");
+    console.info("Inicializando endpoints");
 
     this.loadInitialEnabledEndpointsFile();
     const configFileChanged = this.loadConfigFile();
@@ -68,7 +73,7 @@ class ServerEndpoints {
   }
 
   private loadInitialEnabledEndpointsFile() {
-    console.log("Carregando arquivo de endpoints habilitados");
+    console.info("Carregando arquivo de endpoints habilitados");
 
     if (!fs.existsSync(this.initialEnabledEndpointsfilePath)) {
       fs.writeFileSync(this.initialEnabledEndpointsfilePath, "[]");
@@ -92,17 +97,20 @@ class ServerEndpoints {
    * @returns {boolean} Retorna true se houve alguma alteração no arquivo em relação aos dados que foram lidos anteriormente, e retorna false se não houve alteração ou se houve algum erro ao ler o arquivo.
    */
   private loadConfigFile(): boolean {
-    console.log("Carregando arquivo de configuração do proxy");
+    console.info("Carregando arquivo de configuração do proxy");
 
     try {
-      const dados = fs.readFileSync(environmentVariables.PROXY_CONFIG_FILE, {
-        encoding: "utf-8",
-      });
+      const dados = fs.readFileSync(
+        getEnvironmentVariables().PROXY_CONFIG_FILE,
+        {
+          encoding: "utf-8",
+        }
+      );
 
       const dadosString = JSON.stringify(this.globalJsonConfig, null, 2);
 
       if (dadosString === dados) {
-        console.log("Arquivo de configuração não foi alterado");
+        console.info("Arquivo de configuração não foi alterado");
         return false;
       }
 
@@ -111,26 +119,29 @@ class ServerEndpoints {
       return true;
     } catch (error) {
       // prettier-ignore
-      console.error(`\x1b[31mErro ao ler o arquivo de configuração ${environmentVariables.PROXY_CONFIG_FILE}.\x1b[0m\n`, error);
+      console.error(`\x1b[31mErro ao ler o arquivo de configuração ${getEnvironmentVariables().PROXY_CONFIG_FILE}.\x1b[0m\n`, error);
 
       return false;
     }
   }
 
   private loadSectionJsonConfig() {
-    console.log("Carregando seção do arquivo de configuração de proxy");
+    console.info("Carregando seção do arquivo de configuração de proxy");
 
     let propriedade = "";
-    const keys = environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY.split(",");
+    const keys =
+      getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY.split(",");
     let acc = this.globalJsonConfig;
 
     for (const cur of keys) {
       propriedade = cur;
 
       if (!acc[cur]) {
-        const m = `\x1b[31mNão foi possível ler a propriedade (${propriedade}) do arquivo de configuração.\x1b[0m`;
-        console.error(m);
-        process.exit(1);
+        environmentValidate
+          .PROXY_CONFIG_FILE_ADDRESS_KEY()
+          .fail(
+            `Não foi possível ler a propriedade (${propriedade}) do arquivo de configuração.`
+          );
       }
       acc = acc[cur];
     }
@@ -139,7 +150,7 @@ class ServerEndpoints {
   }
 
   private creatingListEnabledEndpointModules() {
-    console.log("Criando lista de módulos endpoints habilitados");
+    console.info("Criando lista de módulos endpoints habilitados");
 
     this.endpoints.listEndpoints = [];
     this.listEnabledEndpointModule = [];
@@ -190,25 +201,25 @@ class ServerEndpoints {
 
   private saveConfigFile() {
     try {
-      console.log(`\x1b[33mSalvando arquivo de configuração de proxy\x1b[0m`);
+      console.info(`\x1b[33mSalvando arquivo de configuração de proxy\x1b[0m`);
       fs.writeFileSync(
-        environmentVariables.PROXY_CONFIG_FILE,
+        getEnvironmentVariables().PROXY_CONFIG_FILE,
         JSON.stringify(this.globalJsonConfig, null, 2)
       );
 
-      console.log(`\x1b[33mSalvando arquivo de endpoints habilitados\x1b[0m`);
+      console.info(`\x1b[33mSalvando arquivo de endpoints habilitados\x1b[0m`);
       fs.writeFileSync(
         this.initialEnabledEndpointsfilePath,
         JSON.stringify(this.enabledInitialEndpoints, null, 2)
       );
     } catch (error) {
       // prettier-ignore
-      console.error(`\x1b[31mErro ao salvar os arquivos de configuração ${environmentVariables.PROXY_CONFIG_FILE}.\x1b[0m`, error);
+      console.error(`\x1b[31mErro ao salvar os arquivos de configuração ${getEnvironmentVariables().PROXY_CONFIG_FILE}.\x1b[0m`, error);
     }
   }
 
   async changeStateEndpoint(endpoint: Endpoint) {
-    console.log("Alterando estado do endpoint", endpoint.serverAddress);
+    console.info("Alterando estado do endpoint", endpoint.serverAddress);
 
     const values = JSON.stringify(this.jsonConfig);
 
@@ -233,7 +244,7 @@ class ServerEndpoints {
   }
 
   disableAllEndpoints() {
-    console.log("Desabilitando todos os endpoints");
+    console.info("Desabilitando todos os endpoints");
 
     for (const endpoint of this.endpoints.listEndpoints) {
       if (endpoint.enabled) {
@@ -245,12 +256,11 @@ class ServerEndpoints {
   }
 
   private async importEndpointModules() {
-    console.log(
-      "Importando módulos de endpoints dos arquivos do diretório de endpoints."
-    );
+    // prettier-ignore
+    console.info("Importando módulos de endpoints dos arquivos do diretório de endpoints.");
 
     // para usar o fs.readdirSync é necessário usar o caminho absoluto
-    const basePath = "myEndpoints/endpoints";
+    const basePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/endpoints`;
     const resolvedDir = path.resolve(basePath);
 
     this.endpoints.listEndpoints = [];
@@ -259,10 +269,9 @@ class ServerEndpoints {
 
     if (!fs.existsSync(resolvedDir)) {
       // prettier-ignore
-      console.error(`\x1b[31mDiretório de endpoints não encontrado ${resolvedDir}.\x1b[0m`);
-      // prettier-ignore
-      console.log(`\x1b[33mCrie o diretório ${basePath} e adicione pelo menos um arquivos de endpoint.\x1b[0m`);
-      process.exit(1);
+      console.warn(`\x1b[33mDiretório de endpoints não encontrado ${resolvedDir}.\x1b[0m`);
+      console.info(`\x1b[33mCriando diretório ${basePath}...\x1b[0m`);
+      fs.mkdirSync(resolvedDir, { recursive: true });
     }
 
     try {
@@ -281,9 +290,12 @@ class ServerEndpoints {
     const listImportedModules: ModuleEndpoint[] = [];
     for (const fileName of files) {
       try {
-        // para usar o import é necessário usar o caminho relativo, limitação do vite
+        // para usar o import é necessário usar o caminho relativo ao diretório root definido no vite.config, limitação do vite
+
+        const [, file, ext] = fileName.match(/(.*)\.(t|j)(s)$/) || [];
+
         const importedModule = await import(
-          `../../myEndpoints/endpoints/${fileName}`
+          `../../root-endpoints/${this.endpointsWorkspaceDirectory}/endpoints/${file}.${ext}s`
         );
         listImportedModules.push(importedModule);
       } catch (error) {
@@ -298,7 +310,7 @@ class ServerEndpoints {
   }
 
   private setEnabledEndpointsOnServer(app: Express) {
-    console.log("Habilitando endpoints no servidor");
+    console.info("Habilitando endpoints no servidor");
 
     for (const endpointModule of this.listEnabledEndpointModule) {
       const { localhostEndpoint, handler, method } = endpointModule;
@@ -308,10 +320,10 @@ class ServerEndpoints {
 
   async activeServer() {
     await new Promise<void>((resolve) => {
-      console.log("Ativando servidor");
+      console.info("Ativando servidor");
 
       if (this.app || this.server) {
-        console.log("\x1b[33mServer already running\x1b[0m");
+        console.info("\x1b[33mServer already running\x1b[0m");
         setTimeout(() => {
           resolve();
         }, 0);
@@ -323,22 +335,18 @@ class ServerEndpoints {
       this.creatingListEnabledEndpointModules();
       this.setEnabledEndpointsOnServer(this.app);
 
-      this.server = this.app.listen(
-        environmentVariables.SERVER_DYNAMIC_ENDPOINTS_PORT,
-        () => {
-          console.log(
-            `\x1b[32mServer is running on port ${environmentVariables.SERVER_DYNAMIC_ENDPOINTS_PORT}\x1b[0m`
-          );
-          setTimeout(() => {
-            resolve();
-          }, 0);
-        }
-      );
+      const port = getEnvironmentVariables().SERVER_DYNAMIC_ENDPOINTS_PORT;
+      this.server = this.app.listen(port, () => {
+        console.info(`\x1b[32mServer is running on port ${port}\x1b[0m`);
+        setTimeout(() => {
+          resolve();
+        }, 0);
+      });
     });
   }
 
   async closeServer() {
-    console.log("Fechando servidor");
+    console.info("Fechando servidor");
     type StatusServer = "error" | "closed" | "ok";
     await new Promise<StatusServer>((resolve) => {
       if (!this.server) {
@@ -356,16 +364,16 @@ class ServerEndpoints {
     }).then((value) => {
       switch (value) {
         case "error":
-          console.log("\x1b[31mError on close server\x1b[0m");
+          console.info("\x1b[31mError on close server\x1b[0m");
           break;
         case "closed":
-          console.log("\x1b[31mServer not running\x1b[0m");
+          console.info("\x1b[31mServer not running\x1b[0m");
           break;
         case "ok":
-          console.log("\x1b[32mServer closed\x1b[0m");
+          console.info("\x1b[32mServer closed\x1b[0m");
           break;
         default:
-          console.log("\x1b[33mServer not running\x1b[0m");
+          console.info("\x1b[33mServer not running\x1b[0m");
           break;
       }
 
