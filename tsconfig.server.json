@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "outDir": "dist/server",
+    "rootDir": "src/server",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "esModuleInterop": true
+  },
+  "include": ["src/server"]
+}
