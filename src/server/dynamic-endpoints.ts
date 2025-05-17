@@ -331,6 +331,8 @@ class ServerEndpoints {
       }
 
       this.app = express();
+      this.app.use(express.json());
+      this.app.use(express.urlencoded({ extended: true }));
 
       this.creatingListEnabledEndpointModules();
       this.setEnabledEndpointsOnServer(this.app);
