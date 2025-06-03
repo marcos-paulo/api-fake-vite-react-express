@@ -53,8 +53,6 @@ class ServerEndpoints {
         if (this.server && endpointsLoaded) {
           await this.closeServer();
           await this.activeServer();
-        } else {
-          await this.activeServer();
         }
 
         this.resolveCaregando();
