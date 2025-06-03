@@ -37,6 +37,11 @@ class ServerEndpoints {
 
   private readonly initialEnabledEndpointsfilePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/initailEnabledEndpoints.json`;
 
+  resolveCaregando: () => void = () => {};
+  caregando = new Promise<void>((resolve) => {
+    this.resolveCaregando = resolve;
+  });
+
   constructor() {
     fs.watchFile(getEnvironmentVariables().PROXY_CONFIG_FILE, async () => {
       // prettier-ignore
@@ -48,7 +53,12 @@ class ServerEndpoints {
         if (this.server && endpointsLoaded) {
           await this.closeServer();
           await this.activeServer();
+        } else {
+          await this.activeServer();
         }
+
+        this.resolveCaregando();
+        this.resolveCaregando = () => {};
       } catch (error) {
         console.error(error);
       }

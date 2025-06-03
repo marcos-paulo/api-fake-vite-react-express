@@ -18,10 +18,12 @@ await createServerEndpointsManager();
 app.use(express.json());
 
 app.get("/api/status", (_req, res) => {
-  const resp: ServerStatus = {
-    activatedServer: !!endpointsServer.server,
-  };
-  res.json(resp);
+  endpointsServer.caregando.then(() => {
+    const resp: ServerStatus = {
+      activatedServer: !!endpointsServer.server,
+    };
+    res.json(resp);
+  });
 });
 
 app.get("/api/endpoints", (_req, res) => {
