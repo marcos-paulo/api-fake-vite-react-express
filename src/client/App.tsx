@@ -1,4 +1,3 @@
-import { DynamicSeverActiveDesactive } from "./components/DynamicSeverActiveDesactive";
 import axios from "axios";
 import { useCallback, useEffect, useState } from "react";
 import type { Endpoint, Endpoints } from "../types/Endpoints";
@@ -6,21 +5,22 @@ import { ServerStatus } from "../types/ServerStatus";
 import { ListEndpoints } from "./components/ListEndpoints";
 
 export default function App() {
-  const [status, setStatus] = useState<ServerStatus | null>(null);
-  const [endpoints, setEndpoints] = useState<Endpoints | null>(null);
+  const [status, setStatus] = useState<ServerStatus | null>({
+    activatedServer: false,
+  });
+  const [endpoints, setEndpoints] = useState<Endpoints | null>({
+    listEndpoints: [],
+  });
 
   const serverStatus = useCallback(async () => {
-    setStatus((await axios.get<ServerStatus>("/api/status")).data);
+    setStatus(
+      (await axios.get<ServerStatus>("/api/status")).data ?? {
+        activatedServer: false,
+      }
+    );
   }, []);
 
-  const activeServer = useCallback(async () => {
-    await axios.post("/api/active").then(() => {
-      serverStatus();
-      toListEndpoints();
-    });
-  }, []);
-
-  const disableServer = useCallback(async () => {
+  const desableApis = useCallback(async () => {
     await axios.post("/api/disable").then(() => {
       serverStatus();
       toListEndpoints();
@@ -28,13 +28,24 @@ export default function App() {
   }, []);
 
   const toListEndpoints = useCallback(async () => {
-    const fetchResult = axios.get<Endpoints>("/api/endpoints");
-    fetchResult.then(serverStatus);
-    setEndpoints((await fetchResult).data);
+    try {
+      const response = await axios.get<Endpoints>("/api/endpoints");
+      response.status === 200 && setEndpoints(response.data);
+    } catch (error) {
+      console.error("Erro ao buscar endpoints:", error);
+      setEndpoints({ listEndpoints: [] });
+    }
   }, []);
 
   const toggleStateEndpoint = useCallback((endpoint: Endpoint) => {
-    axios.post("/api/changeStateEndpoint", endpoint).then(toListEndpoints);
+    axios
+      .post("/api/changeStateEndpoint", endpoint)
+      .then(async () => {
+        await toListEndpoints();
+      })
+      .catch((error) => {
+        console.error("Erro ao alterar estado do endpoint:", error);
+      });
   }, []);
 
   const closeServer = useCallback(async () => {
@@ -44,9 +55,8 @@ export default function App() {
   useEffect(() => {}, []);
 
   useEffect(() => {
-    serverStatus();
-    toListEndpoints();
-
+    // serverStatus();
+    toListEndpoints().catch(console.error);
     // const handleBeforeUnload = async (event: BeforeUnloadEvent) => {
     //   event.preventDefault();
     //   closeServer();
@@ -78,15 +88,6 @@ export default function App() {
           Fechar servidor
         </button>
       </div>
-
-      <DynamicSeverActiveDesactive
-        serverStatus={status}
-        onChangeStateServer={() => {
-          if (!status) return;
-          else if (status.activatedServer) disableServer();
-          else activeServer();
-        }}
-      />
 
       <ListEndpoints
         endpoints={endpoints}
