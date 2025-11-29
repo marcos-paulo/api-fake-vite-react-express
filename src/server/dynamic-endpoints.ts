@@ -13,9 +13,8 @@ class ServerEndpoints {
 
   enabledInitialEndpoints: string[] = [];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lastLoadedGlobalJsonConfig: string = "";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   lastLoadedJsonConfig: string = "";
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   globalJsonConfig: any;
@@ -160,7 +159,6 @@ class ServerEndpoints {
   private loadSectionJsonConfig() {
     console.info("\x1b[36m[loadSectionJsonConfig]\x1b[0m");
 
-    let propriedade = "";
     const keys =
       getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY.split(",");
 
@@ -176,7 +174,9 @@ class ServerEndpoints {
       environmentValidate
         .PROXY_CONFIG_FILE_ADDRESS_KEY()
         .fail(
-          `\n\x1b[31mNão foi possível ler a propriedade (${propriedade}) do arquivo de configuração.\x1b[0m\n`
+          `\n\x1b[31mNão foi possível ler a propriedade (${
+            getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY
+          }) do arquivo de configuração.\x1b[0m\n`
         );
     }
 
@@ -228,6 +228,7 @@ class ServerEndpoints {
   }
 
   private saveConfigFile(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jsonConfigData?: any,
     initialEnabledEndpoints?: string[]
   ) {
