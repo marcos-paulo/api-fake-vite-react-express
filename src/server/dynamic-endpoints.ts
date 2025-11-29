@@ -1,5 +1,3 @@
-import express from "express";
-import type { Express } from "express-serve-static-core";
 import fs from "fs";
 import path from "path";
 import { EndpointObject, ModuleEndpoint } from "./dynamic-endpoints.types";
@@ -165,22 +163,24 @@ class ServerEndpoints {
     let propriedade = "";
     const keys =
       getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY.split(",");
-    let acc = this.globalJsonConfig;
 
-    for (const cur of keys) {
-      propriedade = cur;
-
-      if (!acc[cur]) {
-        environmentValidate
-          .PROXY_CONFIG_FILE_ADDRESS_KEY()
-          .fail(
-            `Não foi possível ler a propriedade (${propriedade}) do arquivo de configuração.`
-          );
+    const objectConfig = keys.reduce((obj, key) => {
+      if (obj && key in obj && typeof obj === "object") {
+        return obj[key];
+      } else {
+        return undefined;
       }
-      acc = acc[cur];
+    }, this.globalJsonConfig);
+
+    if (!objectConfig) {
+      environmentValidate
+        .PROXY_CONFIG_FILE_ADDRESS_KEY()
+        .fail(
+          `\n\x1b[31mNão foi possível ler a propriedade (${propriedade}) do arquivo de configuração.\x1b[0m\n`
+        );
     }
 
-    this.jsonConfig = acc;
+    this.jsonConfig = objectConfig;
   }
 
   private creatingListEnabledEndpointModules() {
