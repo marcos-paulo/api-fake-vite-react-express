@@ -7,33 +7,25 @@ import {
 import { getEnvironmentVariables } from "./server-load-envs";
 
 import { Endpoint } from "../types/Endpoints";
-import type { ServerStatus } from "../types/ServerStatus";
 
 export const app = express();
 
-const CLIENT_APP_PORT = getEnvironmentVariables().CLIENT_API_PORT;
+const CLIENT_APP_PORT = getEnvironmentVariables().CLIENT_API_PORT ?? 3000;
 
 await createServerEndpointsManager();
 
 app.use(express.json());
 
-app.get("/api/status", (_req, res) => {
-  endpointsServer.caregando.then(() => {
-    const resp: ServerStatus = {
-      activatedServer: !!endpointsServer.server,
-    };
-    res.json(resp);
-  });
-});
-
-app.get("/api/endpoints", (_req, res) => {
-  res.json(endpointsServer.endpoints);
+app.get("/api/endpoints", async (_req, res) => {
+  const endpoints = await endpointsServer.getEndpoints();
+  res.json(endpoints);
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 app.post<any, any, "", Endpoint>(
   "/api/changeStateEndpoint",
   async (req, res, next) => {
+    console.log("REQUEST: /api/changeStateEndpoint", req.body);
     try {
       const endpoint = req.body;
       await endpointsServer.changeStateEndpoint(endpoint);
@@ -44,21 +36,39 @@ app.post<any, any, "", Endpoint>(
   }
 );
 
-app.post("/api/active", async (_req, res) => {
-  await endpointsServer.activeServer();
-  res.status(200).send("");
-});
-
 app.post("/api/disable", async (_req, res) => {
-  await endpointsServer.closeServer();
   endpointsServer.disableAllEndpoints();
   res.status(200).send("");
 });
 
 app.post("/api/shutdown", async (_req, res) => {
-  await endpointsServer.closeServer();
   res.status(200).send("");
   process.exit(0);
+});
+
+// REDIRECIONA PARA OS ENDPOINTS DINÂMICOS
+app.use((req, res) => {
+  console.info("\x1b[36mFAKE API REQUEST: %s\x1b[0m", req.path);
+
+  const enabledEndpoint = endpointsServer.listEnabledEndpointModule.find(
+    (endpointModule) => endpointModule.localhostEndpoint === req.path
+  );
+
+  if (enabledEndpoint) {
+    console.log(
+      `Encaminhando requisição para endpoint dinâmico em: %s`,
+      enabledEndpoint.localhostEndpoint
+    );
+    return enabledEndpoint.handler(req, res);
+  }
+
+  console.warn("\x1b[33mEndpoint não encontrado: %s\x1b[0m", req.path);
+  console.warn("Endpoints habilitados:");
+  endpointsServer.listEnabledEndpointModule.forEach((endpointModule) => {
+    console.log(" - %s", endpointModule.localhostEndpoint);
+  });
+
+  return res.status(404).send("");
 });
 
 app.use(
@@ -76,15 +86,13 @@ app.use(
 
 if (!process.env["VITE"]) {
   const frontendFiles = process.cwd() + "/dist";
-
   app.use(express.static(frontendFiles));
-
-  app.listen(CLIENT_APP_PORT ?? 3000, (error) => {
-    if (error) {
-      console.error("Error to start server express", error);
-      throw error;
-    }
-
-    console.log(`Server is running at http://localhost:${CLIENT_APP_PORT}`);
-  });
 }
+
+app.listen(CLIENT_APP_PORT, (error) => {
+  if (error) {
+    console.error("Error to start server express", error);
+    throw error;
+  }
+  console.log(`Server is running at http://localhost:${CLIENT_APP_PORT}`);
+});
