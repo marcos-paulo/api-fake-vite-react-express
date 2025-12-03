@@ -1,18 +1,9 @@
 import fs from "fs";
 import "dotenv/config";
 
-// import { config } from "dotenv";
-// import path from "path";
-
-// const __dirname = path.resolve();
-// const pathEnv = path.resolve(__dirname, "./myEndpoints/.env");
-
-// config({ path: pathEnv });
-
 const environmentVariables = {
   CLIENT_APP_PORT: "3343",
   CLIENT_API_PORT: "3342",
-  SERVER_DYNAMIC_ENDPOINTS_PORT: "3341",
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: "/api",
   WORKSPACE_ENDPOINTS_DIRECTORY: "my-endpoints",
   PROXY_CONFIG_FILE: "",
@@ -124,7 +115,6 @@ function defaultValidateReturn() {
 export const environmentValidate: ObjectValidate = {
   CLIENT_APP_PORT: defaultValidateReturn,
   CLIENT_API_PORT: defaultValidateReturn,
-  SERVER_DYNAMIC_ENDPOINTS_PORT: defaultValidateReturn,
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: defaultValidateReturn,
   WORKSPACE_ENDPOINTS_DIRECTORY: () => {
     const help = [
@@ -157,9 +147,12 @@ export const environmentValidate: ObjectValidate = {
   },
   PROXY_CONFIG_FILE: () => {
     const help = [
+      "",
       "Esta variável deve fornecer o caminho do arquivo de configuração do proxy.",
       "Exemplo:",
       "PROXY_CONFIG_FILE=./proxy-config.json",
+      "Este arquivo deve conter um JSON válido.",
+      "",
     ].join("\n");
 
     const error = new ValidationError({ help });
@@ -173,10 +166,24 @@ export const environmentValidate: ObjectValidate = {
       error.throw(message);
     }
 
+    // checar se o arquivo é um JSON válido
+    try {
+      const fileContent = fs.readFileSync(
+        environmentVariables.PROXY_CONFIG_FILE,
+        "utf-8"
+      );
+      JSON.parse(fileContent);
+    } catch (e) {
+      const message =
+        "\n\x1b[31mArquivo de configuração do proxy não contém um JSON válido.\x1b[0m";
+      error.throw(message);
+    }
+
     return defaultValidateReturn();
   },
   PROXY_CONFIG_FILE_ADDRESS_KEY: () => {
     const help = [
+      "",
       "Esta variável deve fornecer o endereço do objeto de configuração do proxy.",
       "Exemplo:",
       "Se o objeto de configuração definido no arquivo apontado pela variável PROXY_CONFIG_FILE for:",
@@ -187,12 +194,39 @@ export const environmentValidate: ObjectValidate = {
       ),
       'onde o valor que deve ser alcançado é { item1: "valor1" }, então a variável deve ser definida da seguinte forma:',
       "ADDRESS_KEY_PROXY_CONFIG_FILE=key,key1,itens",
+      "",
     ].join("\n");
 
     const error = new ValidationError({ help });
 
     if (!environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY) {
       error.throw("");
+    }
+
+    const proxyConfigFileContent = fs.readFileSync(
+      environmentVariables.PROXY_CONFIG_FILE,
+      "utf-8"
+    );
+    const proxyConfig = JSON.parse(proxyConfigFileContent);
+    const addressKeys =
+      environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY.split(",");
+
+    const objectConfig = addressKeys.reduce((obj, key) => {
+      if (obj && key in obj && typeof obj === "object") {
+        return obj[key];
+      } else {
+        return undefined;
+      }
+    }, proxyConfig);
+
+    console.log(objectConfig);
+
+    if (!objectConfig) {
+      let message = "\n";
+      message += `\x1b[31mChave de endereço '${environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY}' não encontrada no arquivo de configuração do proxy.\x1b[0m`;
+      message += "\nObjeto de configuração atual:\n";
+      message += JSON.stringify(proxyConfig, null, 2);
+      error.throw(message);
     }
 
     return {

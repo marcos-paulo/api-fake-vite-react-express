@@ -3,11 +3,13 @@ import type { Endpoint, Endpoints } from "../../types/Endpoints";
 type ListEndpointsProps = {
   onToggleEndpoint: (endpoint: Endpoint) => void;
   endpoints: Endpoints | null;
+  isLoading?: boolean;
 };
 
 export const ListEndpoints = ({
   endpoints,
   onToggleEndpoint,
+  isLoading = false,
 }: ListEndpointsProps) => {
   return (
     <ul
@@ -15,6 +17,9 @@ export const ListEndpoints = ({
         border: "1px solid green",
         padding: "5px 5px 0 5px",
         textDecoration: "none",
+        opacity: isLoading ? 0.6 : 1,
+        pointerEvents: isLoading ? "none" : "auto",
+        transition: "opacity 0.3s ease",
       }}
     >
       {endpoints?.listEndpoints.map((endpoint) => (
@@ -36,6 +41,7 @@ export const ListEndpoints = ({
             type="checkbox"
             checked={endpoint.enabled}
             onChange={() => onToggleEndpoint(endpoint)}
+            disabled={isLoading}
           />
           <span>{endpoint.serverAddress}</span>
           <span> - </span>
