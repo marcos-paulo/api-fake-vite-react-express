@@ -173,6 +173,7 @@ export const environmentValidate: ObjectValidate = {
         "utf-8"
       );
       JSON.parse(fileContent);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       const message =
         "\n\x1b[31mArquivo de configuração do proxy não contém um JSON válido.\x1b[0m";
@@ -218,8 +219,6 @@ export const environmentValidate: ObjectValidate = {
         return undefined;
       }
     }, proxyConfig);
-
-    console.log(objectConfig);
 
     if (!objectConfig) {
       let message = "\n";

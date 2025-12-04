@@ -17,6 +17,7 @@ await createServerEndpointsManager();
 app.use(express.json());
 
 app.get("/api/endpoints", async (_req, res) => {
+  "REQUEST: /api/endpoints";
   const endpoints = await endpointsServer.getEndpoints();
   res.json(endpoints);
 });
@@ -37,17 +38,19 @@ app.post<any, any, "", Endpoint>(
 );
 
 app.post("/api/disable", async (_req, res) => {
+  console.log("REQUEST: /api/disable");
   endpointsServer.disableAllEndpoints();
   res.status(200).send("");
 });
 
 app.post("/api/shutdown", async (_req, res) => {
+  console.log("REQUEST: /api/shutdown");
   res.status(200).send("");
   process.exit(0);
 });
 
 // REDIRECIONA PARA OS ENDPOINTS DINÂMICOS
-app.use((req, res) => {
+app.use((req, res, next) => {
   console.info("\x1b[36mFAKE API REQUEST: %s\x1b[0m", req.path);
 
   const enabledEndpoint = endpointsServer.listEnabledEndpointModule.find(
@@ -62,13 +65,17 @@ app.use((req, res) => {
     return enabledEndpoint.handler(req, res);
   }
 
-  console.warn("\x1b[33mEndpoint não encontrado: %s\x1b[0m", req.path);
-  console.warn("Endpoints habilitados:");
-  endpointsServer.listEnabledEndpointModule.forEach((endpointModule) => {
-    console.log(" - %s", endpointModule.localhostEndpoint);
-  });
+  if (req.path.startsWith("/api/")) {
+    console.warn("\x1b[33mEndpoint não encontrado: %s\x1b[0m", req.path);
+    console.warn("Endpoints habilitados:");
+    endpointsServer.listEnabledEndpointModule.forEach((endpointModule) => {
+      console.log(" - %s", endpointModule.localhostEndpoint);
+    });
 
-  return res.status(404).send("");
+    return res.status(404).send("");
+  }
+
+  next();
 });
 
 app.use(
