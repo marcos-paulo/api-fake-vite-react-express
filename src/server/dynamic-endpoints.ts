@@ -1,21 +1,18 @@
-import fs from "fs";
-import path from "path";
-import { EndpointObject, ModuleEndpoint } from "./dynamic-endpoints.types";
-import {
-  environmentValidate,
-  getEnvironmentVariables,
-} from "./server-load-envs";
+import fs from 'fs';
+import path from 'path';
+import { EndpointObject, ModuleEndpoint } from './dynamic-endpoints.types';
+import { environmentValidate, getEnvironmentVariables } from './server-load-envs';
 
-import type { Endpoint, Endpoints } from "../types/Endpoints";
+import type { Endpoint, Endpoints } from '../types/Endpoints';
 
 class ServerEndpoints {
   endpoints: Endpoints = { listEndpoints: [] };
 
   enabledInitialEndpoints: string[] = [];
 
-  lastLoadedGlobalJsonConfig: string = "";
+  lastLoadedGlobalJsonConfig: string = '';
 
-  lastLoadedJsonConfig: string = "";
+  lastLoadedJsonConfig: string = '';
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   globalJsonConfig: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,47 +25,42 @@ class ServerEndpoints {
   private readonly serverDefaultPrefixApi =
     getEnvironmentVariables().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API;
 
-  private readonly endpointServerPort =
-    getEnvironmentVariables().CLIENT_API_PORT;
+  private readonly endpointServerPort = getEnvironmentVariables().CLIENT_API_PORT;
 
   private readonly endpointsWorkspaceDirectory =
     getEnvironmentVariables().WORKSPACE_ENDPOINTS_DIRECTORY;
 
-  private readonly initialEnabledEndpointsfilePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/initailEnabledEndpoints.json`;
+  private readonly initialEnabledEndpointsFilePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/initialEnabledEndpoints.json`;
 
-  private _resolveLoading: () => void = () => {};
+  private static _resolveLoading: () => void = () => {};
 
-  private loading: Promise<void> | undefined;
+  private static loading: Promise<void> | undefined;
 
   private enableLoading() {
-    console.info("\x1b[36m[enableLoading]\x1b[0m");
-    this.loading = new Promise<void>((resolve) => {
-      this._resolveLoading = resolve;
+    console.info('\x1b[36m[enableLoading]\x1b[0m');
+    ServerEndpoints.loading = new Promise<void>((resolve) => {
+      ServerEndpoints._resolveLoading = resolve;
     });
   }
 
   async getEndpoints() {
-    console.info("\x1b[36m[getEndpoints]\x1b[0m");
-    await this.loading;
+    console.info('\x1b[36m[getEndpoints]\x1b[0m');
+    await ServerEndpoints.loading;
     return this.endpoints;
   }
 
   resolveLoading() {
-    console.info("\x1b[36m[resolveLoading]\x1b[0m");
-    this._resolveLoading();
-    this._resolveLoading = () => {};
-    this.loading = undefined;
+    console.info('\x1b[36m[resolveLoading]\x1b[0m');
+    ServerEndpoints._resolveLoading();
+    ServerEndpoints._resolveLoading = () => {};
+    ServerEndpoints.loading = undefined;
   }
 
   constructor() {
     this.enableLoading();
 
     fs.watchFile(getEnvironmentVariables().PROXY_CONFIG_FILE, async () => {
-      console.info(
-        `\x1b[36m[watchFile] ${
-          getEnvironmentVariables().PROXY_CONFIG_FILE
-        }...\x1b[0m`
-      );
+      console.info(`\x1b[36m[watchFile] ${getEnvironmentVariables().PROXY_CONFIG_FILE}...\x1b[0m`);
 
       try {
         await this.loadEndpoints();
@@ -80,7 +72,7 @@ class ServerEndpoints {
   }
 
   async loadEndpoints() {
-    console.info("\x1b[36m[loadEndpoints]\x1b[0m");
+    console.info('\x1b[36m[loadEndpoints]\x1b[0m');
 
     const configFileChanged = this.readConfigFile();
 
@@ -100,14 +92,14 @@ class ServerEndpoints {
   }
 
   private readInitialEnabledEndpointsFile() {
-    console.info("\x1b[36m[readInitialEnabledEndpointsFile]\x1b[0m");
+    console.info('\x1b[36m[readInitialEnabledEndpointsFile]\x1b[0m');
 
-    if (!fs.existsSync(this.initialEnabledEndpointsfilePath)) {
-      fs.writeFileSync(this.initialEnabledEndpointsfilePath, "[]");
+    if (!fs.existsSync(this.initialEnabledEndpointsFilePath)) {
+      fs.writeFileSync(this.initialEnabledEndpointsFilePath, '[]');
     }
 
-    const initial = fs.readFileSync(this.initialEnabledEndpointsfilePath, {
-      encoding: "utf-8",
+    const initial = fs.readFileSync(this.initialEnabledEndpointsFilePath, {
+      encoding: 'utf-8',
     });
 
     const initialEndpoints = JSON.parse(initial) as string[];
@@ -124,25 +116,20 @@ class ServerEndpoints {
    * @returns {boolean} Retorna true se houve alguma alteração no arquivo em relação aos dados que foram lidos anteriormente, e retorna false se não houve alteração ou se houve algum erro ao ler o arquivo.
    */
   private readConfigFile(): boolean {
-    console.info("\x1b[36m[readConfigFile]\x1b[0m");
+    console.info('\x1b[36m[readConfigFile]\x1b[0m');
 
     try {
-      const jsonConfigString = fs.readFileSync(
-        getEnvironmentVariables().PROXY_CONFIG_FILE,
-        { encoding: "utf-8" }
-      );
+      const jsonConfigString = fs.readFileSync(getEnvironmentVariables().PROXY_CONFIG_FILE, {
+        encoding: 'utf-8',
+      });
 
-      const currentGlobalJsonConfig = JSON.stringify(
-        this.globalJsonConfig,
-        null,
-        2
-      );
+      const currentGlobalJsonConfig = JSON.stringify(this.globalJsonConfig, null, 2);
 
       if (currentGlobalJsonConfig === jsonConfigString) {
-        console.info(" - Arquivo de configuração não foi alterado");
+        console.info(' - Arquivo de configuração não foi alterado');
         return false;
       } else {
-        console.info("\x1b[33m - Arquivo de configuração foi alterado\x1b[0m");
+        console.info('\x1b[33m - Arquivo de configuração foi alterado\x1b[0m');
       }
 
       this.globalJsonConfig = JSON.parse(jsonConfigString);
@@ -157,13 +144,12 @@ class ServerEndpoints {
   }
 
   private loadSectionJsonConfig() {
-    console.info("\x1b[36m[loadSectionJsonConfig]\x1b[0m");
+    console.info('\x1b[36m[loadSectionJsonConfig]\x1b[0m');
 
-    const keys =
-      getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY.split(",");
+    const keys = getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY.split(',');
 
     const objectConfig = keys.reduce((obj, key) => {
-      if (obj && key in obj && typeof obj === "object") {
+      if (obj && key in obj && typeof obj === 'object') {
         return obj[key];
       } else {
         return undefined;
@@ -176,7 +162,7 @@ class ServerEndpoints {
         .fail(
           `\n\x1b[31mNão foi possível ler a propriedade (${
             getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY
-          }) do arquivo de configuração.\x1b[0m\n`
+          }) do arquivo de configuração.\x1b[0m\n`,
         );
     }
 
@@ -184,7 +170,7 @@ class ServerEndpoints {
   }
 
   private creatingListEnabledEndpointModules() {
-    console.info("\x1b[36m[creatingListEnabledEndpointModules]\x1b[0m");
+    console.info('\x1b[36m[creatingListEnabledEndpointModules]\x1b[0m');
 
     this.endpoints.listEndpoints = [];
     this.listEnabledEndpointModule = [];
@@ -192,8 +178,7 @@ class ServerEndpoints {
     const newInitialEnabledEndpoints: string[] = [];
 
     for (const endpointModule of this.listEndpointModule) {
-      const { description, localhostEndpoint, method, endpointServerPrefix } =
-        endpointModule;
+      const { description, localhostEndpoint, method, endpointServerPrefix } = endpointModule;
 
       const serverPrefixApi = endpointServerPrefix
         ? endpointServerPrefix
@@ -230,30 +215,25 @@ class ServerEndpoints {
   private saveConfigFile(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     jsonConfigData?: any,
-    initialEnabledEndpoints?: string[]
+    initialEnabledEndpoints?: string[],
   ) {
-    console.info("\x1b[36m[saveConfigFile]\x1b[0m");
+    console.info('\x1b[36m[saveConfigFile]\x1b[0m');
 
     try {
-      console.info(
-        `\x1b[33m - Salvando arquivo de configuração de proxy\x1b[0m`
-      );
+      console.info(`\x1b[33m - Salvando arquivo de configuração de proxy\x1b[0m`);
 
       const jsonConfig = jsonConfigData || this.globalJsonConfig;
       fs.writeFileSync(
         getEnvironmentVariables().PROXY_CONFIG_FILE,
-        JSON.stringify(jsonConfig, null, 2)
+        JSON.stringify(jsonConfig, null, 2),
       );
 
-      console.info(
-        `\x1b[33m - Salvando arquivo de endpoints habilitados\x1b[0m`
-      );
+      console.info(`\x1b[33m - Salvando arquivo de endpoints habilitados\x1b[0m`);
 
-      const initialEnabledEndpointsData =
-        initialEnabledEndpoints || this.enabledInitialEndpoints;
+      const initialEnabledEndpointsData = initialEnabledEndpoints || this.enabledInitialEndpoints;
       fs.writeFileSync(
-        this.initialEnabledEndpointsfilePath,
-        JSON.stringify(initialEnabledEndpointsData, null, 2)
+        this.initialEnabledEndpointsFilePath,
+        JSON.stringify(initialEnabledEndpointsData, null, 2),
       );
     } catch (error) {
       // prettier-ignore
@@ -261,23 +241,20 @@ class ServerEndpoints {
     }
   }
 
-  async changeStateEndpoint(endpoint: Endpoint) {
-    console.info(
-      "\x1b[36m[changeStateEndpoint]\x1b[0m",
-      endpoint.serverAddress
-    );
+  changeStateEndpoint(endpoints: Endpoint[]) {
+    for (const endpoint of endpoints) {
+      console.info('\x1b[36m[changeStateEndpoint]\x1b[0m', endpoint.serverAddress);
 
-    this.enableLoading();
+      const values = JSON.stringify(this.jsonConfig);
 
-    const values = JSON.stringify(this.jsonConfig);
+      const { serverAddress, localhostAddress } = endpoint;
+      const value = `"${serverAddress}":"${localhostAddress}"`;
 
-    const { serverAddress, localhostAddress } = endpoint;
-    const value = `"${serverAddress}":"${localhostAddress}"`;
-
-    if (!values.includes(value)) {
-      this.enableEndpoint(serverAddress, localhostAddress);
-    } else {
-      this.disableEndpoint(serverAddress);
+      if (!values.includes(value)) {
+        this.enableEndpoint(serverAddress, localhostAddress);
+      } else {
+        this.disableEndpoint(serverAddress);
+      }
     }
 
     this.creatingListEnabledEndpointModules();
@@ -301,7 +278,7 @@ class ServerEndpoints {
   }
 
   disableAllEndpoints() {
-    console.info("\x1b[36m[disableAllEndpoints]\x1b[0m");
+    console.info('\x1b[36m[disableAllEndpoints]\x1b[0m');
 
     for (const endpoint of this.endpoints.listEndpoints) {
       if (endpoint.enabled) {
@@ -313,7 +290,7 @@ class ServerEndpoints {
   }
 
   private async importEndpointModules() {
-    console.info("\x1b[36m[importEndpointModules]\x1b[0m");
+    console.info('\x1b[36m[importEndpointModules]\x1b[0m');
 
     // para usar o fs.readdirSync é necessário usar o caminho absoluto
     const basePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/endpoints`;

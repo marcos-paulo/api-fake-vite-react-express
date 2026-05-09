@@ -1,25 +1,25 @@
-import fs from "fs";
-import "dotenv/config";
+import fs from 'fs';
+import 'dotenv/config';
 
 const environmentVariables = {
-  CLIENT_APP_PORT: "3343",
-  CLIENT_API_PORT: "3342",
-  SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: "/api",
-  WORKSPACE_ENDPOINTS_DIRECTORY: "my-endpoints",
-  PROXY_CONFIG_FILE: "",
-  PROXY_CONFIG_FILE_ADDRESS_KEY: "",
-  BROWSER: "",
-  BROWSER_ARGS: "",
+  CLIENT_APP_PORT: '3343',
+  CLIENT_API_PORT: '3342',
+  SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: '/api',
+  WORKSPACE_ENDPOINTS_DIRECTORY: 'my-endpoints',
+  PROXY_CONFIG_FILE: '',
+  PROXY_CONFIG_FILE_ADDRESS_KEY: '',
+  BROWSER: '',
+  BROWSER_ARGS: '',
 };
 
 export function getEnvironmentVariables() {
   return environmentVariables;
 }
 
-const dotEnvFile = ".env";
+const dotEnvFile = '.env';
 
 function isKeyOfEnvironmentVariables(
-  key: string | undefined
+  key: string | undefined,
 ): key is keyof typeof environmentVariables {
   if (!key) return false;
   const retorno = key in environmentVariables;
@@ -27,9 +27,7 @@ function isKeyOfEnvironmentVariables(
 }
 
 function loadEnvironmentVariables() {
-  const keys = Object.keys(
-    environmentVariables
-  ) as (keyof typeof environmentVariables)[];
+  const keys = Object.keys(environmentVariables) as (keyof typeof environmentVariables)[];
 
   let variaveisNaoEncontradas = false;
 
@@ -46,17 +44,17 @@ function loadEnvironmentVariables() {
   if (variaveisNaoEncontradas) {
     const listKeys = Object.keys(environmentVariables)
       .map((key) => {
-        if (!isKeyOfEnvironmentVariables(key)) return "";
+        if (!isKeyOfEnvironmentVariables(key)) return '';
         return `${key}=${environmentVariables[key]}`;
       })
-      .join("\n");
+      .join('\n');
 
     fs.writeFileSync(dotEnvFile, listKeys);
 
     if (!fs.existsSync(dotEnvFile)) {
-      console.log("Arquivo .env criado com sucesso.");
+      console.log('Arquivo .env criado com sucesso.');
     } else {
-      console.log("Arquivo .env atualizado com sucesso.");
+      console.log('Arquivo .env atualizado com sucesso.');
     }
 
     return;
@@ -68,7 +66,7 @@ class ValidationError {
   constructor(
     private args: {
       help: string;
-    }
+    },
   ) {
     // capturar dinamicamente o nome da função que instanciou a classe
     const stack = new Error().stack;
@@ -77,10 +75,7 @@ class ValidationError {
     if (isKeyOfEnvironmentVariables(k)) {
       this.key = k;
     } else {
-      console.error(
-        `\u001b[31mErro ao capturar a chave do erro: ${k}\u001b[0m`,
-        stack
-      );
+      console.error(`\u001b[31mErro ao capturar a chave do erro: ${k}\u001b[0m`, stack);
     }
   }
 
@@ -89,15 +84,11 @@ class ValidationError {
 
     const msg = [
       `\nVerifique o arquivo .env ou as variáveis de ambiente do sistema operacional.\n`,
-      `A variável ${this.key || "invalid_key"} não é válida.`,
-      `Valor atual: '${
-        this.key ? environmentVariables[this.key] : "invalid_key"
-      }'`,
-    ].join("\n");
+      `A variável ${this.key || 'invalid_key'} não é válida.`,
+      `Valor atual: '${this.key ? environmentVariables[this.key] : 'invalid_key'}'`,
+    ].join('\n');
 
-    console.error(
-      `\u001b[31m${msg}${message ? "\n" + message : ""}\n${help}\u001b[0m`
-    );
+    console.error(`\u001b[31m${msg}${message ? '\n' + message : ''}\n${help}\u001b[0m`);
 
     process.exit(1);
   }
@@ -118,28 +109,24 @@ export const environmentValidate: ObjectValidate = {
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: defaultValidateReturn,
   WORKSPACE_ENDPOINTS_DIRECTORY: () => {
     const help = [
-      "Esta variável deve fornecer o nome do diretório de trabalho dos endpoints.",
+      'Esta variável deve fornecer o nome do diretório de trabalho dos endpoints.',
       "O diretóriop deve estar dentro de um diretório chamado 'root-endpoints'.",
-      "Exemplo:",
-      "WORKSPACE_ENDPOINTS_DIRECTORY=my-endpoints",
-      "o caminho relativo seria algo como:",
-      "./root-endpoints/my-endpoints",
-    ].join("\n");
+      'Exemplo:',
+      'WORKSPACE_ENDPOINTS_DIRECTORY=my-endpoints',
+      'o caminho relativo seria algo como:',
+      './root-endpoints/my-endpoints',
+    ].join('\n');
 
     const error = new ValidationError({ help });
 
     if (!environmentVariables.WORKSPACE_ENDPOINTS_DIRECTORY) {
-      error.throw("");
+      error.throw('Teste');
     }
 
-    fs.mkdirSync("root-endpoints", { recursive: true });
+    fs.mkdirSync('root-endpoints', { recursive: true });
 
-    if (
-      !fs.existsSync(
-        `root-endpoints/${environmentVariables.WORKSPACE_ENDPOINTS_DIRECTORY}`
-      )
-    ) {
-      const message = "Diretório de trabalho dos endpoints não encontrado.";
+    if (!fs.existsSync(`root-endpoints/${environmentVariables.WORKSPACE_ENDPOINTS_DIRECTORY}`)) {
+      const message = 'Diretório de trabalho dos endpoints não encontrado.';
       error.throw(message);
     }
 
@@ -147,36 +134,33 @@ export const environmentValidate: ObjectValidate = {
   },
   PROXY_CONFIG_FILE: () => {
     const help = [
-      "",
-      "Esta variável deve fornecer o caminho do arquivo de configuração do proxy.",
-      "Exemplo:",
-      "PROXY_CONFIG_FILE=./proxy-config.json",
-      "Este arquivo deve conter um JSON válido.",
-      "",
-    ].join("\n");
+      '',
+      'Esta variável deve fornecer o caminho do arquivo de configuração do proxy.',
+      'Exemplo:',
+      'PROXY_CONFIG_FILE=./proxy-config.json',
+      'Este arquivo deve conter um JSON válido.',
+      '',
+    ].join('\n');
 
     const error = new ValidationError({ help });
 
     if (!environmentVariables.PROXY_CONFIG_FILE) {
-      error.throw("");
+      error.throw('');
     }
 
     if (!fs.existsSync(environmentVariables.PROXY_CONFIG_FILE)) {
-      const message = "Arquivo de configuração do proxy não encontrado.";
+      const message = 'Arquivo de configuração do proxy não encontrado.';
       error.throw(message);
     }
 
     // checar se o arquivo é um JSON válido
     try {
-      const fileContent = fs.readFileSync(
-        environmentVariables.PROXY_CONFIG_FILE,
-        "utf-8"
-      );
+      const fileContent = fs.readFileSync(environmentVariables.PROXY_CONFIG_FILE, 'utf-8');
       JSON.parse(fileContent);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       const message =
-        "\n\x1b[31mArquivo de configuração do proxy não contém um JSON válido.\x1b[0m";
+        '\n\x1b[31mArquivo de configuração do proxy não contém um JSON válido.\x1b[0m';
       error.throw(message);
     }
 
@@ -184,36 +168,28 @@ export const environmentValidate: ObjectValidate = {
   },
   PROXY_CONFIG_FILE_ADDRESS_KEY: () => {
     const help = [
-      "",
-      "Esta variável deve fornecer o endereço do objeto de configuração do proxy.",
-      "Exemplo:",
-      "Se o objeto de configuração definido no arquivo apontado pela variável PROXY_CONFIG_FILE for:",
-      JSON.stringify(
-        { key: { key1: { itens: { item1: "valor1" } } } },
-        null,
-        2
-      ),
+      '',
+      'Esta variável deve fornecer o endereço do objeto de configuração do proxy.',
+      'Exemplo:',
+      'Se o objeto de configuração definido no arquivo apontado pela variável PROXY_CONFIG_FILE for:',
+      JSON.stringify({ key: { key1: { itens: { item1: 'valor1' } } } }, null, 2),
       'onde o valor que deve ser alcançado é { item1: "valor1" }, então a variável deve ser definida da seguinte forma:',
-      "ADDRESS_KEY_PROXY_CONFIG_FILE=key,key1,itens",
-      "",
-    ].join("\n");
+      'ADDRESS_KEY_PROXY_CONFIG_FILE=key,key1,itens',
+      '',
+    ].join('\n');
 
     const error = new ValidationError({ help });
 
     if (!environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY) {
-      error.throw("");
+      error.throw('');
     }
 
-    const proxyConfigFileContent = fs.readFileSync(
-      environmentVariables.PROXY_CONFIG_FILE,
-      "utf-8"
-    );
+    const proxyConfigFileContent = fs.readFileSync(environmentVariables.PROXY_CONFIG_FILE, 'utf-8');
     const proxyConfig = JSON.parse(proxyConfigFileContent);
-    const addressKeys =
-      environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY.split(",");
+    const addressKeys = environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY.split(',');
 
     const objectConfig = addressKeys.reduce((obj, key) => {
-      if (obj && key in obj && typeof obj === "object") {
+      if (obj && key in obj && typeof obj === 'object') {
         return obj[key];
       } else {
         return undefined;
@@ -221,9 +197,9 @@ export const environmentValidate: ObjectValidate = {
     }, proxyConfig);
 
     if (!objectConfig) {
-      let message = "\n";
+      let message = '\n';
       message += `\x1b[31mChave de endereço '${environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY}' não encontrada no arquivo de configuração do proxy.\x1b[0m`;
-      message += "\nObjeto de configuração atual:\n";
+      message += '\nObjeto de configuração atual:\n';
       message += JSON.stringify(proxyConfig, null, 2);
       error.throw(message);
     }
