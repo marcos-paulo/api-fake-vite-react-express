@@ -30,7 +30,7 @@ body {
   place-items: center;
   padding: 16px;
   min-width: 320px;
-  min-height: calc(100vh - 32px);
+  height: calc(100vh - 32px);
 
   > :nth-child(1) {
     width: 1366px;
@@ -103,4 +103,30 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+.flex-scroll-column-hidden {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+  min-height: 0;
+}
+
+.flex-scroll-row-hidden {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  overflow-y: hidden;
+  min-height: 0;
+  gap: 16px;
+  /* align-items: flex-start; */
+}
+
+.flex-scroll-column-auto {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 0;
 }

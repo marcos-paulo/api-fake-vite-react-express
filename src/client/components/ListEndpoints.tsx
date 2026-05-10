@@ -48,21 +48,19 @@ const S = {
     borderBottom: '2px solid #888',
   } satisfies CSSProperties,
 
-  sectionEnabledList: {
+  sectionEnabledUnorderedList: {
     border: '1px solid #4caf50',
     padding: '5px 5px 0 5px',
     listStyle: 'none',
     margin: 0,
-    minHeight: '40px',
     borderRadius: '4px',
   } satisfies CSSProperties,
 
-  sectionDisabledList: {
+  sectionDisabledUnorderedList: {
     border: '1px solid rgba(128,128,128,0.4)',
     padding: '5px 5px 0 5px',
     listStyle: 'none',
     margin: 0,
-    minHeight: '40px',
     borderRadius: '4px',
   } satisfies CSSProperties,
 
@@ -100,10 +98,6 @@ const S = {
     opacity: isLoading ? 0.6 : 1,
     pointerEvents: isLoading ? 'none' : 'auto',
     transition: 'opacity 0.3s ease',
-    display: 'flex',
-    flexDirection: 'row',
-    gap: '16px',
-    alignItems: 'flex-start',
     width: '100%',
     boxSizing: 'border-box',
   }),
@@ -151,7 +145,7 @@ export const ListEndpoints = ({
   });
 
   return (
-    <div style={S.listEndpointsContainerStyle(isLoading)}>
+    <div className="flex-scroll-row-hidden" style={S.listEndpointsContainerStyle(isLoading)}>
       <EndpointSection variant="enabled" count={enabled.length}>
         <EmptyMessage show={enabled.length === 0} message="Nenhum endpoint habilitado" />
         {enabled.map((endpoint) => (
@@ -243,26 +237,28 @@ const sectionConfig = {
   enabled: {
     title: 'Habilitados',
     headerStyle: S.sectionEnabledHeader,
-    listStyle: S.sectionEnabledList,
+    unorderedListStyle: S.sectionEnabledUnorderedList,
   },
   disabled: {
     title: 'Desabilitados',
     headerStyle: S.sectionDisabledHeader,
-    listStyle: S.sectionDisabledList,
+    unorderedListStyle: S.sectionDisabledUnorderedList,
   },
 } satisfies Record<
   'enabled' | 'disabled',
-  { title: string; headerStyle: CSSProperties; listStyle: CSSProperties }
+  { title: string; headerStyle: CSSProperties; unorderedListStyle: CSSProperties }
 >;
 
 const EndpointSection = ({ variant, count, children }: EndpointSectionProps) => {
-  const { title, headerStyle, listStyle } = sectionConfig[variant];
+  const { title, headerStyle, unorderedListStyle } = sectionConfig[variant];
   return (
-    <div style={S.section}>
+    <div className="flex-scroll-column-hidden" style={S.section}>
       <h3 style={headerStyle}>
         {title} ({count})
       </h3>
-      <ul style={listStyle}>{children}</ul>
+      <ul className="flex-scroll-column-auto" style={unorderedListStyle}>
+        {children}
+      </ul>
     </div>
   );
 };
