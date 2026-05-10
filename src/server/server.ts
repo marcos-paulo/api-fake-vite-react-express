@@ -23,7 +23,7 @@ app.post<Endpoint[], string>('/api/changeStateEndpoint', (req, res, next) => {
   console.log('REQUEST: /api/changeStateEndpoint', req.body);
   try {
     const endpoint = req.body;
-    endpointsServer.changeStateEndpoint(endpoint);
+    endpointsServer.toggleEndpoints(endpoint);
     res.status(200).send('');
   } catch (error) {
     next({ error, status: 400 });
@@ -46,7 +46,7 @@ app.post('/api/shutdown', async (_req, res) => {
 app.use((req, res, next) => {
   console.info(`\x1b[36mFAKE API REQUEST: ${req.path}\x1b[0m`);
 
-  const enabledEndpoint = endpointsServer.listEnabledEndpointModule.find(
+  const enabledEndpoint = endpointsServer.enabledEndpointModules.find(
     (endpointModule) => endpointModule.localhostEndpoint === req.path,
   );
 
@@ -60,7 +60,7 @@ app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     console.warn(`\x1b[33mEndpoint não encontrado: ${req.path}\x1b[0m`);
     console.warn('Endpoints habilitados:');
-    endpointsServer.listEnabledEndpointModule.forEach((endpointModule) => {
+    endpointsServer.enabledEndpointModules.forEach((endpointModule) => {
       console.log(` - ${endpointModule.localhostEndpoint}`);
     });
 
