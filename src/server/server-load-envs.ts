@@ -1,12 +1,14 @@
 import 'dotenv/config';
 
 import fs from 'fs';
+import path from 'path';
 
 const environmentVariables = {
   CLIENT_APP_PORT: '3343',
   CLIENT_API_PORT: '3342',
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: '/api',
-  WORKSPACE_ENDPOINTS_DIRECTORY: '',
+  WORKSPACES_ROOT_PATH: 'root-endpoints',
+  ACTIVE_WORKSPACE: '',
   PROXY_CONFIG_FILE: '',
   PROXY_CONFIG_FILE_ADDRESS_KEY: '',
   BROWSER: '',
@@ -111,33 +113,53 @@ export const envValidators: ObjectValidate = {
   CLIENT_APP_PORT: noopValidator,
   CLIENT_API_PORT: noopValidator,
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: noopValidator,
-  WORKSPACE_ENDPOINTS_DIRECTORY: () => {
+  WORKSPACES_ROOT_PATH: () => {
     const help = [
-      'WORKSPACE_ENDPOINTS_DIRECTORY deve conter o nome da pasta com os endpoints.',
-      '',
-      'Essa pasta precisa existir dentro do diretório "root-endpoints", que fica na',
-      'raiz do projeto.',
+      'WORKSPACES_ROOT_PATH deve conter o caminho para a pasta raiz dos workspaces de endpoints.',
       '',
       'Exemplo:',
-      'Se o valor da variável WORKSPACE_ENDPOINTS_DIRECTORY for:',
       '',
-      `  WORKSPACE_ENDPOINTS_DIRECTORY=${ValidationError.highlight('my-endpoints')}`,
-      '',
-      'Deverá existir um caminho:',
-      '',
-      `  ./root-endpoints/${ValidationError.highlight('my-endpoints')}`,
+      `  WORKSPACES_ROOT_PATH=${ValidationError.highlight('root-endpoints')}`,
       '',
     ].join('\n');
 
-    const error = new ValidationError({ help, key: 'WORKSPACE_ENDPOINTS_DIRECTORY' });
+    const error = new ValidationError({ help, key: 'WORKSPACES_ROOT_PATH' });
 
-    if (!environmentVariables.WORKSPACE_ENDPOINTS_DIRECTORY) {
+    if (!environmentVariables.WORKSPACES_ROOT_PATH) {
       error.exit('');
     }
 
-    fs.mkdirSync('root-endpoints', { recursive: true });
+    fs.mkdirSync(environmentVariables.WORKSPACES_ROOT_PATH, { recursive: true });
 
-    if (!fs.existsSync(`root-endpoints/${environmentVariables.WORKSPACE_ENDPOINTS_DIRECTORY}`)) {
+    return noopValidator();
+  },
+  ACTIVE_WORKSPACE: () => {
+    const rootPath = environmentVariables.WORKSPACES_ROOT_PATH;
+
+    const help = [
+      'ACTIVE_WORKSPACE deve conter o nome da pasta com os endpoints.',
+      '',
+      `Essa pasta precisa existir dentro do diretório "${rootPath}", que fica na`,
+      'raiz do projeto.',
+      '',
+      'Exemplo:',
+      'Se o valor da variável ACTIVE_WORKSPACE for:',
+      '',
+      `  ACTIVE_WORKSPACE=${ValidationError.highlight('my-endpoints')}`,
+      '',
+      'Deverá existir um caminho:',
+      '',
+      `  ./${rootPath}/${ValidationError.highlight('my-endpoints')}`,
+      '',
+    ].join('\n');
+
+    const error = new ValidationError({ help, key: 'ACTIVE_WORKSPACE' });
+
+    if (!environmentVariables.ACTIVE_WORKSPACE) {
+      error.exit('');
+    }
+
+    if (!fs.existsSync(path.resolve(rootPath, environmentVariables.ACTIVE_WORKSPACE))) {
       const message = 'Diretório de trabalho dos endpoints não encontrado.';
       error.exit(message);
     }
