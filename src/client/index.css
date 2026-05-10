@@ -72,7 +72,7 @@ body {
 
   > :nth-child(1) {
     width: calc(100vw - 32px);
-    min-width: 1366px;
+    min-width: calc(1366px - 32px);
   }
 }
 
