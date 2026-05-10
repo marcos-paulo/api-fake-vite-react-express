@@ -11,22 +11,55 @@ const CYAN = '\x1b[36m';
 const MAGENTA = '\x1b[35m';
 const RESET = '\x1b[0m';
 
-function createLogger(methodName: string, level: number) {
-  const spaces = ' '.repeat(level * 2);
+class Logger {
+  level: number = -1;
 
-  const header = (context?: string) => {
-    const ctx = context ? ` ${context}` : '';
-    console.info(`${spaces}${CYAN}[${methodName}]${ctx}${RESET}`);
-  };
+  constructor() {}
 
-  return {
-    header,
-    step: (message: string) => console.info(`${spaces}  ${MAGENTA}◆ ${message}${RESET}`),
-    info: (message: string) => console.info(`${spaces}  → ${message}`),
-    warn: (message: string) => console.warn(`${spaces}  → ${message}`),
-    error: (message: string, cause?: unknown) =>
-      console.error(`${spaces}  → ${message}`, ...(cause !== undefined ? [cause] : [])),
-  };
+  private stack: string[] = [];
+
+  addToStack(context: string) {
+    this.stack.push(context);
+  }
+
+  removeFromStack() {
+    this.stack.pop();
+  }
+
+  startSection(context: string, isRoot = false) {
+    this.addToStack(context);
+    const log = this.createLogger(context, isRoot ? 0 : this.stack.length - 1);
+    log.header(context);
+    return log;
+  }
+
+  endSection() {
+    this.removeFromStack();
+  }
+
+  logToSection(context: string) {
+    const log = this.createLogger(context, this.stack.length);
+    log.header(context);
+    return log;
+  }
+
+  createLogger(methodName: string, level: number) {
+    const spaces = ' '.repeat(level * 2);
+
+    const header = (context?: string) => {
+      console.info(`${spaces}${CYAN}[${methodName}]${RESET}`);
+    };
+
+    return {
+      header,
+      step: (message: string) => console.info(`${spaces} ${MAGENTA}◆ ${message}${RESET}`),
+      info: (message: string) => console.info(`${spaces} → ${message}`),
+      warn: (message: string) => console.warn(`${spaces} → ${message}`),
+      error: (message: string, cause?: unknown) =>
+        console.error(`${spaces} → ${message}`, ...(cause !== undefined ? [cause] : [])),
+      endSection: () => this.endSection(),
+    };
+  }
 }
 
 class ServerEndpoints {
@@ -41,72 +74,93 @@ class ServerEndpoints {
 
   enabledEndpointModules: EndpointObject[] = [];
 
-  private readonly serverDefaultPrefixApi =
-    getEnvironmentVariables().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API;
+  private readonly envs = {
+    serverDefaultPrefixApi: getEnvironmentVariables().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API,
+    endpointServerPort: getEnvironmentVariables().CLIENT_API_PORT,
+    endpointsWorkspaceDirectory: getEnvironmentVariables().WORKSPACE_ENDPOINTS_DIRECTORY,
+    proxyConfigFile: getEnvironmentVariables().PROXY_CONFIG_FILE,
+    proxyConfigFileAddressKey: getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY,
+  };
 
-  private readonly endpointServerPort = getEnvironmentVariables().CLIENT_API_PORT;
-
-  private readonly endpointsWorkspaceDirectory =
-    getEnvironmentVariables().WORKSPACE_ENDPOINTS_DIRECTORY;
-
-  private readonly proxyConfigFile = getEnvironmentVariables().PROXY_CONFIG_FILE;
-
-  private readonly proxyConfigFileAddressKey =
-    getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY;
-
-  private readonly initialEnabledEndpointsFilePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/initialEnabledEndpoints.json`;
-
-  private static _resolveLoading: () => void = () => {};
+  private readonly initialEnabledEndpointsFilePath = `./root-endpoints/${this.envs.endpointsWorkspaceDirectory}/initialEnabledEndpoints.json`;
 
   private static loading: Promise<void> | undefined;
 
-  constructor() {
-    this.enableLoading();
+  private static _resolveLoading: () => void = () => {};
 
-    fs.watchFile(this.proxyConfigFile, async () => {
-      const log = createLogger('onProxyFileChange', 1);
-      log.header(this.proxyConfigFile);
+  private logger = new Logger();
+
+  constructor() {
+    const log = this.logger.startSection('ServerEndpoints - constructor', true);
+
+    log.step('Observando arquivo de configuração do proxy para alterações');
+    log.info('Arquivo de configuração do proxy: ' + this.envs.proxyConfigFile);
+    fs.watchFile(this.envs.proxyConfigFile, async () => {
+      const log = this.logger.startSection('ServerEndpoints - onProxyFileChange');
+      log.step('Arquivo de configuração do proxy foi modificado, recarregando endpoints');
+      log.info(this.envs.proxyConfigFile);
 
       try {
+        log.step('Recarregando endpoints');
         await this.loadEndpoints();
+        log.step('Resolvendo carregamento para liberar respostas dos endpoints');
         this.resolveLoading();
       } catch (error) {
         log.error('Falha ao recarregar endpoints', error);
+      } finally {
+        log.endSection();
       }
     });
+
+    log.endSection();
   }
 
   private enableLoading() {
-    const log = createLogger('enableLoading', 1);
-    log.header();
+    const log = this.logger.startSection('enableLoading');
     ServerEndpoints.loading = new Promise<void>((resolve) => {
       ServerEndpoints._resolveLoading = resolve;
     });
-  }
-
-  async getEndpoints() {
-    const log = createLogger('getEndpoints', 1);
-    log.header();
-    await ServerEndpoints.loading;
-    return this.endpoints;
+    log.endSection();
   }
 
   resolveLoading() {
-    const log = createLogger('resolveLoading', 1);
-    log.header();
+    const log = this.logger.startSection('resolveLoading');
     ServerEndpoints._resolveLoading();
     ServerEndpoints._resolveLoading = () => {};
     ServerEndpoints.loading = undefined;
+    log.endSection();
   }
 
-  async loadEndpoints() {
-    const log = createLogger('loadEndpoints', 0);
-    log.header();
+  async getEndpoints() {
+    const log = this.logger.startSection('ServerEndpoints - getEndpoints', true);
+    const id = Date.now();
+    log.step(`Aguardando carregamento dos endpoints (id: ${id})`);
+    await ServerEndpoints.loading;
+    log.info(`Carregamento dos endpoints concluído (id: ${id})`);
+    log.endSection();
+    return this.endpoints;
+  }
+
+  async beginLoading() {
+    const log = this.logger.startSection('ServerEndpoints - beginLoading', true);
+    log.step('Habilitando trava de resposta de endpoints enquanto estão sendo carregados');
+    this.enableLoading();
+    log.step('Carregando endpoints');
+    await this.loadEndpoints();
+    log.step('Carregamento dos endpoints concluído');
+    log.endSection();
+  }
+
+  private async loadEndpoints() {
+    const log = this.logger.startSection('loadEndpoints');
 
     log.step('Carregando configuração do proxy');
     const configFileChanged = this.loadProxyConfig();
 
-    if (!configFileChanged) return false;
+    if (!configFileChanged) {
+      log.endSection();
+      return false;
+    }
 
     log.step('Carregando endereços habilitados');
     this.loadEnabledEndpointsFile();
@@ -120,15 +174,15 @@ class ServerEndpoints {
     log.step('Construindo lista de endpoints habilitados');
     this.buildEnabledEndpointList();
 
-    log.step('Salvando configuração');
+    log.step('Atualizando arquivos de configuração do proxy e endpoints habilitados');
     this.saveConfigFile();
 
+    log.endSection();
     return true;
   }
 
   private loadEnabledEndpointsFile() {
-    const log = createLogger('loadEnabledEndpointsFile', 1);
-    log.header();
+    const log = this.logger.startSection('loadEnabledEndpointsFile');
 
     if (!fs.existsSync(this.initialEnabledEndpointsFilePath)) {
       fs.writeFileSync(this.initialEnabledEndpointsFilePath, '[]');
@@ -145,6 +199,8 @@ class ServerEndpoints {
     } else {
       this.enabledAddresses = [];
     }
+
+    log.endSection();
   }
 
   /**
@@ -152,38 +208,45 @@ class ServerEndpoints {
    * foram lidos anteriormente, e retorna false se não houve alteração ou se houve algum erro ao ler o arquivo.
    */
   private loadProxyConfig(): boolean {
-    const log = createLogger('loadProxyConfig', 1);
-    log.header();
+    const log = this.logger.startSection('loadProxyConfig');
 
     try {
-      const jsonConfigString = fs.readFileSync(this.proxyConfigFile, {
+      const jsonConfigString = fs.readFileSync(this.envs.proxyConfigFile, {
         encoding: 'utf-8',
       });
+
+      if (Object.keys(this.globalJsonConfig).length === 0) {
+        log.info('Arquivo de configuração carregado pela primeira vez');
+        this.globalJsonConfig = JSON.parse(jsonConfigString);
+        log.endSection();
+        return true;
+      }
 
       const currentGlobalJsonConfig = JSON.stringify(this.globalJsonConfig, null, 2);
 
       if (currentGlobalJsonConfig === jsonConfigString) {
-        log.info('Arquivo de configuração não foi alterado');
+        log.info('Nenhuma configuração foi alterada no arquivo de configuração do proxy');
+        log.endSection();
         return false;
-      } else {
-        log.warn('Arquivo de configuração foi alterado');
       }
 
+      log.warn('Arquivo de configuração do proxy foi alterado');
       this.globalJsonConfig = JSON.parse(jsonConfigString);
 
+      log.endSection();
       return true;
     } catch (error) {
-      log.error(`Erro ao ler o arquivo de configuração: ${this.proxyConfigFile}`, error);
+      log.error(`Erro ao ler o arquivo de configuração: ${this.envs.proxyConfigFile}`, error);
 
+      log.endSection();
       return false;
     }
   }
 
   private resolveProxyRoutes() {
-    const log = createLogger('resolveProxyRoutes', 1);
-    log.header();
+    const log = this.logger.startSection('resolveProxyRoutes');
 
-    const keys = this.proxyConfigFileAddressKey.split(',');
+    const keys = this.envs.proxyConfigFileAddressKey.split(',');
 
     const objectConfig = keys.reduce<unknown>((obj, key) => {
       if (obj && typeof obj === 'object' && key in obj) {
@@ -197,16 +260,16 @@ class ServerEndpoints {
       envValidators
         .PROXY_CONFIG_FILE_ADDRESS_KEY()
         .fail(
-          `\n\x1b[31mNão foi possível ler a propriedade (${this.proxyConfigFileAddressKey}) do arquivo de configuração.\x1b[0m\n`,
+          `\n\x1b[31mNão foi possível ler a propriedade (${this.envs.proxyConfigFileAddressKey}) do arquivo de configuração.\x1b[0m\n`,
         );
     }
 
     this.jsonConfig = objectConfig as Record<string, unknown>;
+    log.endSection();
   }
 
   private buildEnabledEndpointList() {
-    const log = createLogger('buildEnabledEndpointList', 1);
-    log.header();
+    const log = this.logger.startSection('buildEnabledEndpointList');
 
     this.endpoints.listEndpoints = [];
     this.enabledEndpointModules = [];
@@ -218,13 +281,13 @@ class ServerEndpoints {
 
       const serverPrefixApi = endpointServerPrefix
         ? endpointServerPrefix
-        : this.serverDefaultPrefixApi;
+        : this.envs.serverDefaultPrefixApi;
 
       // define a chave que será usada para armazenar o endpoint no objeto de configuração
       const serverAddress = path.join(serverPrefixApi, localhostEndpoint);
 
       // prettier-ignore
-      const localhostAddress = `http://${path.join(`localhost:${this.endpointServerPort}`,localhostEndpoint)}`;
+      const localhostAddress = `http://${path.join(`localhost:${this.envs.endpointServerPort}`,localhostEndpoint)}`;
 
       delete this.jsonConfig[serverAddress];
 
@@ -246,20 +309,20 @@ class ServerEndpoints {
     }
 
     this.enabledAddresses = newEnabledAddresses;
+    log.endSection();
   }
 
   private saveConfigFile(
     jsonConfigData?: Record<string, unknown>,
     initialEnabledEndpoints?: string[],
   ) {
-    const log = createLogger('saveConfigFile', 1);
-    log.header();
+    const log = this.logger.startSection('saveConfigFile');
 
     try {
       log.info('Salvando arquivo de configuração do proxy');
 
       const jsonConfig = jsonConfigData || this.globalJsonConfig;
-      fs.writeFileSync(this.proxyConfigFile, JSON.stringify(jsonConfig, null, 2));
+      fs.writeFileSync(this.envs.proxyConfigFile, JSON.stringify(jsonConfig, null, 2));
 
       log.info('Salvando arquivo de endpoints habilitados');
 
@@ -269,14 +332,17 @@ class ServerEndpoints {
         JSON.stringify(initialEnabledEndpointsData, null, 2),
       );
     } catch (error) {
-      log.error(`Erro ao salvar os arquivos de configuração: ${this.proxyConfigFile}`, error);
+      log.error(`Erro ao salvar os arquivos de configuração: ${this.envs.proxyConfigFile}`, error);
     }
+
+    log.endSection();
   }
 
   toggleEndpoints(endpoints: Endpoint[]) {
+    const log = this.logger.startSection('toggleEndpoints');
+
     for (const endpoint of endpoints) {
-      const log = createLogger('toggleEndpoints', 1);
-      log.header(endpoint.serverAddress);
+      log.step(`Toggle endpoint: ${endpoint.serverAddress}`);
 
       const { serverAddress, localhostAddress } = endpoint;
 
@@ -290,25 +356,31 @@ class ServerEndpoints {
     this.buildEnabledEndpointList();
 
     this.saveConfigFile();
+
+    log.endSection();
   }
 
   private enableEndpoint(serverAddress: string, localhostAddress: string) {
-    createLogger('enableEndpoint', 1).header(serverAddress);
+    const log = this.logger.startSection('enableEndpoint');
+    log.info(serverAddress);
     this.jsonConfig[serverAddress] = localhostAddress;
     this.enabledAddresses.push(serverAddress);
+    log.endSection();
   }
 
   private disableEndpoint(serverAddress: string) {
-    createLogger('disableEndpoint', 1).header(serverAddress);
+    const log = this.logger.startSection('disableEndpoint');
+    log.info(serverAddress);
     delete this.jsonConfig[serverAddress];
     const index = this.enabledAddresses.indexOf(serverAddress);
     if (index > -1) {
       this.enabledAddresses.splice(index, 1);
     }
+    log.endSection();
   }
 
   disableAllEndpoints() {
-    createLogger('disableAllEndpoints', 1).header();
+    const log = this.logger.startSection('disableAllEndpoints');
 
     for (const endpoint of this.endpoints.listEndpoints) {
       delete this.jsonConfig[endpoint.serverAddress];
@@ -316,14 +388,15 @@ class ServerEndpoints {
 
     this.buildEnabledEndpointList();
     this.saveConfigFile();
+
+    log.endSection();
   }
 
   private async importEndpointModules() {
-    const log = createLogger('importEndpointModules', 1);
-    log.header();
+    const log = this.logger.startSection('importEndpointModules');
 
     // para usar o fs.readdirSync é necessário usar o caminho absoluto
-    const basePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/endpoints`;
+    const basePath = `./root-endpoints/${this.envs.endpointsWorkspaceDirectory}/endpoints`;
     const resolvedDir = path.resolve(basePath);
 
     this.endpointModules = [];
@@ -354,7 +427,7 @@ class ServerEndpoints {
         const [, file, ext] = fileName.match(/(.*)\.(t|j)(s)$/) || [];
 
         const importedModule = await import(
-          `../../root-endpoints/${this.endpointsWorkspaceDirectory}/endpoints/${file}.${ext}s`
+          `../../root-endpoints/${this.envs.endpointsWorkspaceDirectory}/endpoints/${file}.${ext}s`
         );
         listImportedModules.push(importedModule);
       } catch (error) {
@@ -365,6 +438,8 @@ class ServerEndpoints {
     for (const importedModule of listImportedModules) {
       this.endpointModules.push(...importedModule.default);
     }
+
+    this.logger.endSection();
   }
 }
 
@@ -372,7 +447,7 @@ let endpointsServer: ServerEndpoints;
 
 export async function createServerEndpointsManager() {
   endpointsServer = new ServerEndpoints();
-  await endpointsServer.loadEndpoints();
+  await endpointsServer.beginLoading();
 }
 
 export { endpointsServer };
