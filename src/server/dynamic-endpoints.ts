@@ -80,12 +80,21 @@ class ServerEndpoints {
   private readonly envs = {
     serverDefaultPrefixApi: getEnvironmentVariables().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API,
     endpointServerPort: getEnvironmentVariables().CLIENT_API_PORT,
-    endpointsWorkspaceDirectory: getEnvironmentVariables().WORKSPACE_ENDPOINTS_DIRECTORY,
+    workspacesRootPath: getEnvironmentVariables().WORKSPACES_ROOT_PATH,
+    activeWorkspace: getEnvironmentVariables().ACTIVE_WORKSPACE,
     proxyConfigFile: getEnvironmentVariables().PROXY_CONFIG_FILE,
     proxyConfigFileAddressKey: getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY,
   };
 
-  private readonly initialEnabledEndpointsFilePath = `./root-endpoints/${this.envs.endpointsWorkspaceDirectory}/initialEnabledEndpoints.json`;
+  private readonly workspacePath = path.resolve(
+    this.envs.workspacesRootPath,
+    this.envs.activeWorkspace,
+  );
+
+  private readonly initialEnabledEndpointsFilePath = path.join(
+    this.workspacePath,
+    'initialEnabledEndpoints.json',
+  );
 
   private static loading: Promise<void> | undefined;
 
@@ -399,7 +408,7 @@ class ServerEndpoints {
     const log = this.logger.startSection('importEndpointModules');
 
     // para usar o fs.readdirSync é necessário usar o caminho absoluto
-    const basePath = `./root-endpoints/${this.envs.endpointsWorkspaceDirectory}/endpoints`;
+    const basePath = path.join(this.workspacePath, 'endpoints');
     const resolvedDir = path.resolve(basePath);
 
     log.step('Lendo arquivos do diretório de endpoints');
@@ -433,10 +442,7 @@ class ServerEndpoints {
       try {
         const [, file, ext] = fileName.match(/(.*)\.(t|j)(s)$/) || [];
 
-        const uri = path.join(
-          process.cwd(),
-          `root-endpoints/${this.envs.endpointsWorkspaceDirectory}/endpoints/${file}.${ext}s`,
-        );
+        const uri = path.join(this.workspacePath, `endpoints/${file}.${ext}s`);
 
         const importedModule = await import(uri);
 
