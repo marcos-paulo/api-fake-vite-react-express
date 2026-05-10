@@ -18,7 +18,7 @@ export default defineConfig({
     emptyOutDir: true, // Limpa o diretório de saída antes de cada build
   },
   server: {
-    open: true, // Abre o navegador automaticamente
+    open: false, // Electron exibe o cliente
     port: Number(getEnvironmentVariables().CLIENT_APP_PORT), // Define a porta do frontend
     proxy: {
       '/api': `http://localhost:${getEnvironmentVariables().CLIENT_API_PORT}`, // Define o proxy para a API

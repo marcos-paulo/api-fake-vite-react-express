@@ -46,16 +46,14 @@ const S = {
   } satisfies CSSProperties,
 
   filterBar: {
-    padding: '12px 16px',
     display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '8px',
+    alignItems: 'stretch',
+    gap: '12px',
   } satisfies CSSProperties,
 
   filterInput: {
     flex: 1,
-    padding: '8px 12px',
+    padding: '8px 8px',
     borderRadius: '6px',
     border: '1px solid #555',
     backgroundColor: '#1e1e1e',
@@ -65,7 +63,7 @@ const S = {
   } satisfies CSSProperties,
 
   filterClearButton: {
-    padding: '8px 12px',
+    padding: '6px 12px',
     borderRadius: '6px',
     border: '1px solid #555',
     backgroundColor: '#3a3a3a',
