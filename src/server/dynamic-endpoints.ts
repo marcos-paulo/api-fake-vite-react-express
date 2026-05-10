@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { EndpointObject, ModuleEndpoint } from './dynamic-endpoints.types';
-import { environmentValidate, getEnvironmentVariables } from './server-load-envs';
+import { envValidators, getEnvironmentVariables } from './server-load-envs';
 
 import type { Endpoint, Endpoints } from '../types/Endpoints';
 
@@ -13,10 +13,8 @@ class ServerEndpoints {
   lastLoadedGlobalJsonConfig: string = '';
 
   lastLoadedJsonConfig: string = '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  globalJsonConfig: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  jsonConfig: any;
+  globalJsonConfig: Record<string, unknown> = {};
+  jsonConfig: Record<string, unknown> = {};
 
   listEndpointModule: EndpointObject[] = [];
 
@@ -148,16 +146,16 @@ class ServerEndpoints {
 
     const keys = getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY.split(',');
 
-    const objectConfig = keys.reduce((obj, key) => {
-      if (obj && key in obj && typeof obj === 'object') {
-        return obj[key];
+    const objectConfig = keys.reduce<unknown>((obj, key) => {
+      if (obj && typeof obj === 'object' && key in obj) {
+        return (obj as Record<string, unknown>)[key];
       } else {
         return undefined;
       }
     }, this.globalJsonConfig);
 
     if (!objectConfig) {
-      environmentValidate
+      envValidators
         .PROXY_CONFIG_FILE_ADDRESS_KEY()
         .fail(
           `\n\x1b[31mNão foi possível ler a propriedade (${
@@ -166,7 +164,7 @@ class ServerEndpoints {
         );
     }
 
-    this.jsonConfig = objectConfig;
+    this.jsonConfig = objectConfig as Record<string, unknown>;
   }
 
   private creatingListEnabledEndpointModules() {

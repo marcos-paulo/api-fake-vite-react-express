@@ -18,15 +18,12 @@ export function getEnvironmentVariables() {
 
 const dotEnvFile = '.env';
 
-function isKeyOfEnvironmentVariables(
-  key: string | undefined,
-): key is keyof typeof environmentVariables {
+function isValidEnvKey(key: string | undefined): key is keyof typeof environmentVariables {
   if (!key) return false;
-  const retorno = key in environmentVariables;
-  return retorno;
+  return key in environmentVariables;
 }
 
-function loadEnvironmentVariables() {
+function syncEnvFile() {
   const keys = Object.keys(environmentVariables) as (keyof typeof environmentVariables)[];
 
   let variaveisNaoEncontradas = false;
@@ -44,7 +41,7 @@ function loadEnvironmentVariables() {
   if (variaveisNaoEncontradas) {
     const listKeys = Object.keys(environmentVariables)
       .map((key) => {
-        if (!isKeyOfEnvironmentVariables(key)) return '';
+        if (!isValidEnvKey(key)) return '';
         return `${key}=${environmentVariables[key]}`;
       })
       .join('\n');
@@ -81,7 +78,7 @@ class ValidationError {
     },
   ) {}
 
-  throw(message: string) {
+  exit(message: string) {
     const { red, reset } = ValidationError.colors;
     const { help, key } = this._args;
 
@@ -105,14 +102,14 @@ type ObjectValidate = Record<
   () => { fail: (message: string) => void }
 >;
 
-function defaultValidateReturn() {
+function noopValidator() {
   return { fail: () => {} };
 }
 
-export const environmentValidate: ObjectValidate = {
-  CLIENT_APP_PORT: defaultValidateReturn,
-  CLIENT_API_PORT: defaultValidateReturn,
-  SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: defaultValidateReturn,
+export const envValidators: ObjectValidate = {
+  CLIENT_APP_PORT: noopValidator,
+  CLIENT_API_PORT: noopValidator,
+  SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: noopValidator,
   WORKSPACE_ENDPOINTS_DIRECTORY: () => {
     const help = [
       'WORKSPACE_ENDPOINTS_DIRECTORY deve conter o nome da pasta com os endpoints.',
@@ -134,17 +131,17 @@ export const environmentValidate: ObjectValidate = {
     const error = new ValidationError({ help, key: 'WORKSPACE_ENDPOINTS_DIRECTORY' });
 
     if (!environmentVariables.WORKSPACE_ENDPOINTS_DIRECTORY) {
-      error.throw('');
+      error.exit('');
     }
 
     fs.mkdirSync('root-endpoints', { recursive: true });
 
     if (!fs.existsSync(`root-endpoints/${environmentVariables.WORKSPACE_ENDPOINTS_DIRECTORY}`)) {
       const message = 'Diretório de trabalho dos endpoints não encontrado.';
-      error.throw(message);
+      error.exit(message);
     }
 
-    return defaultValidateReturn();
+    return noopValidator();
   },
   PROXY_CONFIG_FILE: () => {
     const help = [
@@ -161,12 +158,12 @@ export const environmentValidate: ObjectValidate = {
     const error = new ValidationError({ help, key: 'PROXY_CONFIG_FILE' });
 
     if (!environmentVariables.PROXY_CONFIG_FILE) {
-      error.throw('');
+      error.exit('');
     }
 
     if (!fs.existsSync(environmentVariables.PROXY_CONFIG_FILE)) {
       const message = 'Arquivo de configuração do proxy não encontrado.';
-      error.throw(message);
+      error.exit(message);
     }
 
     // checar se o arquivo é um JSON válido
@@ -176,10 +173,10 @@ export const environmentValidate: ObjectValidate = {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       const message = 'Arquivo de configuração do proxy não contém um JSON válido.';
-      error.throw(message);
+      error.exit(message);
     }
 
-    return defaultValidateReturn();
+    return noopValidator();
   },
   PROXY_CONFIG_FILE_ADDRESS_KEY: () => {
     const exampleConfig = { key: { key1: { itens: { item1: 'valor1' } } } };
@@ -202,7 +199,7 @@ export const environmentValidate: ObjectValidate = {
     const error = new ValidationError({ help, key: 'PROXY_CONFIG_FILE_ADDRESS_KEY' });
 
     if (!environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY) {
-      error.throw('');
+      error.exit('');
     }
 
     const proxyConfigFileContent = fs.readFileSync(environmentVariables.PROXY_CONFIG_FILE, 'utf-8');
@@ -223,28 +220,28 @@ export const environmentValidate: ObjectValidate = {
         'Objeto de configuração atual:',
         JSON.stringify(proxyConfig, null, 2),
       ].join('\n');
-      error.throw(message);
+      error.exit(message);
     }
 
     return {
-      fail: (message) => error.throw(message),
+      fail: (message) => error.exit(message),
     };
   },
-  BROWSER: defaultValidateReturn,
-  BROWSER_ARGS: defaultValidateReturn,
+  BROWSER: noopValidator,
+  BROWSER_ARGS: noopValidator,
 };
 
-function validateEnvironmentVariables() {
-  Object.keys(environmentValidate).forEach((key) => {
-    if (isKeyOfEnvironmentVariables(key)) {
-      environmentValidate[key]();
+function validateEnv() {
+  Object.keys(envValidators).forEach((key) => {
+    if (isValidEnvKey(key)) {
+      envValidators[key]();
     }
   });
 }
 
-export function loadEnvVariables() {
-  loadEnvironmentVariables();
-  validateEnvironmentVariables();
+export function loadEnv() {
+  syncEnvFile();
+  validateEnv();
 }
 
-loadEnvVariables();
+loadEnv();
