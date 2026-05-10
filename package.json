@@ -13,7 +13,7 @@
     "server": "tsx ./src/server/server.ts",
     "server:watch": "tsx --watch ./src/server/server.ts",
     "dev-vite": "wait-on tcp:3342 && vite",
-    "dev": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm:server:watch\" \"npm:dev-vite\"",
+    "dev": "concurrently --handle-input --default-input-target 0 --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm:server:watch\" \"npm:dev-vite\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
