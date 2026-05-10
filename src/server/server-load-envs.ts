@@ -1,5 +1,6 @@
-import fs from 'fs';
 import 'dotenv/config';
+
+import fs from 'fs';
 
 const environmentVariables = {
   CLIENT_APP_PORT: '3343',

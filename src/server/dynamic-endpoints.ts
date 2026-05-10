@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { EndpointObject, ModuleEndpoint } from './dynamic-endpoints.types';
-import { envValidators, getEnvironmentVariables } from './server-load-envs';
 
 import type { Endpoint, Endpoints } from '../types/Endpoints';
+import { type EndpointObject, type ModuleEndpoint } from './dynamic-endpoints.types';
+import { envValidators, getEnvironmentVariables } from './server-load-envs';
 
 // ─── Logger ──────────────────────────────────────────────────────────────────
 

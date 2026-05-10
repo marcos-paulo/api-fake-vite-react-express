@@ -1,5 +1,7 @@
-import axios, { AxiosResponse } from 'axios';
+import type { AxiosResponse } from 'axios';
+import axios from 'axios';
 import { type CSSProperties, useCallback, useEffect, useState } from 'react';
+
 import type { Endpoint, Endpoints } from '../types/Endpoints';
 import { ListEndpoints } from './components/ListEndpoints';
 
@@ -139,7 +141,7 @@ export default function App() {
     setFeedbackMessage({ text: 'Carregando endpoints...', type: 'info' });
   }, []);
 
-  const handleFetchSuccess = useCallback((response: AxiosResponse<Endpoints, any, {}>) => {
+  const handleFetchSuccess = useCallback((response: AxiosResponse<Endpoints>) => {
     if (response.status === 200) {
       setEndpoints(response.data);
       setFeedbackMessage({ text: 'Endpoints carregados com sucesso!', type: 'success' });
@@ -167,13 +169,12 @@ export default function App() {
 
   const onAddPendingEndpoint = useCallback((endpoint: Endpoint) => {
     setPendingChanges((prev) => {
-      const updated = { ...prev };
-      if (endpoint.localhostAddress in updated) {
-        delete updated[endpoint.localhostAddress];
-      } else {
-        updated[endpoint.localhostAddress] = endpoint;
+      // Se o endpoint já estiver pendente, remove das pendências (toggle)
+      if (endpoint.localhostAddress in prev) {
+        const { [endpoint.localhostAddress]: _, ...rest } = prev;
+        return rest;
       }
-      return updated;
+      return { ...prev, [endpoint.localhostAddress]: endpoint };
     });
   }, []);
 
