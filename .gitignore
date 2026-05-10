@@ -19,7 +19,7 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-!.vscode/*.code-workspace
+# !.vscode/*.code-workspace
 !.vscode/generate-module-endpoint.code-snippets
 !.vscode/settings.json
 .idea
