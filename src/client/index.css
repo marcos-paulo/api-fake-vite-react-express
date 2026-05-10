@@ -33,7 +33,8 @@ body {
   height: calc(100vh - 32px);
 
   > :nth-child(1) {
-    width: 1366px;
+    width: calc(100vw - 32px);
+    min-width: 1366px;
   }
 }
 
@@ -111,6 +112,7 @@ button:focus-visible {
   flex-direction: column;
   overflow-y: hidden;
   min-height: 0;
+  gap: 16px;
 }
 
 .flex-scroll-row-hidden {
@@ -129,4 +131,5 @@ button:focus-visible {
   flex-direction: column;
   overflow-y: auto;
   min-height: 0;
+  gap: 16px;
 }
