@@ -1,9 +1,8 @@
 import express from 'express';
 
+import { type Endpoint } from '../types/Endpoints';
 import { createServerEndpointsManager, endpointsServer } from './dynamic-endpoints';
 import { getEnvironmentVariables } from './server-load-envs';
-
-import { Endpoint } from '../types/Endpoints';
 
 export const app = express();
 
@@ -30,13 +29,13 @@ app.post<Endpoint[], string>('/api/changeStateEndpoint', (req, res, next) => {
   }
 });
 
-app.post('/api/disable', async (_req, res) => {
+app.post('/api/disable', (_req, res) => {
   console.log('REQUEST: /api/disable');
   endpointsServer.disableAllEndpoints();
   res.status(200).send('');
 });
 
-app.post('/api/shutdown', async (_req, res) => {
+app.post('/api/shutdown', (_req, res) => {
   console.log('REQUEST: /api/shutdown');
   res.status(200).send('');
   process.exit(0);
@@ -75,7 +74,7 @@ app.use(
     err: { error: Error; status: number },
     _req: express.Request,
     res: express.Response,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     _next: express.NextFunction,
   ) => {
     console.error('teste de erro', err);

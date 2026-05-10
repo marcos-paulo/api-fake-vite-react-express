@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+
 import type { Endpoint, Endpoints } from '../../types/Endpoints';
 
 // ---------------------------------------------------------------------------

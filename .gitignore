@@ -1,3 +1,7 @@
+root-endpoints
+endpoints
+initailEnabledEndpoints.json
+
 # Logs
 logs
 *.log
@@ -28,7 +32,4 @@ dist-ssr
 
 .env
 
-root-endpoints
 
-endpoints
-initailEnabledEndpoints.json
