@@ -33,8 +33,8 @@ const S = {
     fontWeight: 'bold',
     letterSpacing: '0.05em',
     textTransform: 'uppercase',
-    color: '#4caf50',
-    borderBottom: '2px solid #4caf50',
+    color: 'var(--color-success)',
+    borderBottom: '2px solid var(--color-success)',
   } satisfies CSSProperties,
 
   sectionDisabledHeader: {
@@ -44,12 +44,12 @@ const S = {
     fontWeight: 'bold',
     letterSpacing: '0.05em',
     textTransform: 'uppercase',
-    color: '#888',
-    borderBottom: '2px solid #888',
+    color: 'var(--color-text-dim)',
+    borderBottom: '2px solid var(--color-text-dim)',
   } satisfies CSSProperties,
 
   sectionEnabledUnorderedList: {
-    border: '1px solid #4caf50',
+    border: '1px solid var(--color-success)',
     padding: '5px 5px 0 5px',
     listStyle: 'none',
     margin: 0,
@@ -57,7 +57,7 @@ const S = {
   } satisfies CSSProperties,
 
   sectionDisabledUnorderedList: {
-    border: '1px solid rgba(128,128,128,0.4)',
+    border: '1px solid var(--color-border-muted)',
     padding: '5px 5px 0 5px',
     listStyle: 'none',
     margin: 0,
@@ -66,10 +66,10 @@ const S = {
 
   pendingBadge: {
     marginLeft: '8px',
-    color: '#e6a800',
+    color: 'var(--color-warning)',
     fontStyle: 'italic',
     fontSize: '0.8em',
-    border: '1px solid #e6a800',
+    border: '1px solid var(--color-warning)',
     borderRadius: '4px',
     padding: '1px 6px',
   } satisfies CSSProperties,
@@ -82,15 +82,15 @@ const S = {
     gap: '4px',
     padding: '5px',
     marginBottom: '5px',
-    border: isPending ? '1px solid #e6a800' : '1px solid rgba(128,128,128,0.4)',
-    backgroundColor: isPending ? 'rgba(230, 168, 0, 0.15)' : 'transparent',
+    border: isPending ? '1px solid var(--color-warning)' : '1px solid var(--color-border-muted)',
+    backgroundColor: isPending ? 'var(--color-warning-bg)' : 'transparent',
     borderRadius: '4px',
     transition: 'background-color 0.2s ease, border-color 0.2s ease',
   }),
 
   endpointItemDescriptionStyle: (isPending: boolean): CSSProperties => ({
     flex: '1 100%',
-    color: isPending ? '#e6a800' : 'inherit',
+    color: isPending ? 'var(--color-warning)' : 'inherit',
     fontWeight: isPending ? 'bold' : 'normal',
   }),
 

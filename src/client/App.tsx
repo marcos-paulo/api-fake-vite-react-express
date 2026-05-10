@@ -13,7 +13,7 @@ const S = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'var(--color-overlay-backdrop)',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -21,28 +21,28 @@ const S = {
   } satisfies CSSProperties,
 
   overlayCard: {
-    backgroundColor: '#2d2d2d',
+    backgroundColor: 'var(--color-surface)',
     padding: '30px',
     borderRadius: '10px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     gap: '15px',
-    border: '1px solid #444',
+    border: '1px solid var(--color-border-subtle)',
   } satisfies CSSProperties,
 
   overlaySpinner: {
     width: '50px',
     height: '50px',
-    border: '5px solid #444',
-    borderTop: '5px solid #3498db',
+    border: '5px solid var(--color-border)',
+    borderTop: '5px solid var(--color-accent-spinner)',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   } satisfies CSSProperties,
 
   loadingText: {
     fontSize: '16px',
-    color: '#eee',
+    color: 'var(--color-text)',
   } satisfies CSSProperties,
 
   filterBar: {
@@ -55,9 +55,9 @@ const S = {
     flex: 1,
     padding: '8px 8px',
     borderRadius: '6px',
-    border: '1px solid #555',
-    backgroundColor: '#1e1e1e',
-    color: '#eee',
+    border: '1px solid var(--color-border)',
+    backgroundColor: 'var(--color-bg)',
+    color: 'var(--color-text-secondary)',
     fontSize: '14px',
     outline: 'none',
   } satisfies CSSProperties,
@@ -65,9 +65,9 @@ const S = {
   filterClearButton: {
     padding: '6px 12px',
     borderRadius: '6px',
-    border: '1px solid #555',
-    backgroundColor: '#3a3a3a',
-    color: '#aaa',
+    border: '1px solid var(--color-border)',
+    backgroundColor: 'var(--color-surface-raised)',
+    color: 'var(--color-text-muted)',
     cursor: 'pointer',
     fontSize: '14px',
   } satisfies CSSProperties,
@@ -87,7 +87,12 @@ const S = {
     right: '20px',
     padding: '15px 20px',
     borderRadius: '8px',
-    backgroundColor: type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3',
+    backgroundColor:
+      type === 'success'
+        ? 'var(--color-success)'
+        : type === 'error'
+          ? 'var(--color-error)'
+          : 'var(--color-info)',
     color: 'white',
     fontWeight: 'bold',
     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
@@ -98,9 +103,9 @@ const S = {
   actionBarDiscardButton: (isDisabled: boolean): CSSProperties => ({
     padding: '12px 20px',
     borderRadius: '8px',
-    border: '1px solid #555',
-    backgroundColor: '#3a3a3a',
-    color: '#eee',
+    border: '1px solid var(--color-border)',
+    backgroundColor: 'var(--color-surface-raised)',
+    color: isDisabled ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)',
     cursor: isDisabled ? 'not-allowed' : 'pointer',
     fontWeight: 'bold',
     fontSize: '14px',
@@ -111,8 +116,8 @@ const S = {
     padding: '12px 24px',
     borderRadius: '8px',
     border: 'none',
-    backgroundColor: isDisabled ? '#aaa' : '#e6a800',
-    color: 'white',
+    backgroundColor: isDisabled ? 'var(--color-disabled-bg)' : 'var(--color-warning)',
+    color: isDisabled ? 'var(--color-text-disabled)' : 'white',
     cursor: isDisabled ? 'not-allowed' : 'pointer',
     fontWeight: 'bold',
     fontSize: '14px',
