@@ -10,9 +10,6 @@ class ServerEndpoints {
 
   enabledInitialEndpoints: string[] = [];
 
-  lastLoadedGlobalJsonConfig: string = '';
-
-  lastLoadedJsonConfig: string = '';
   globalJsonConfig: Record<string, unknown> = {};
   jsonConfig: Record<string, unknown> = {};
 
@@ -27,6 +24,11 @@ class ServerEndpoints {
 
   private readonly endpointsWorkspaceDirectory =
     getEnvironmentVariables().WORKSPACE_ENDPOINTS_DIRECTORY;
+
+  private readonly proxyConfigFile = getEnvironmentVariables().PROXY_CONFIG_FILE;
+
+  private readonly proxyConfigFileAddressKey =
+    getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY;
 
   private readonly initialEnabledEndpointsFilePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/initialEnabledEndpoints.json`;
 
@@ -57,8 +59,8 @@ class ServerEndpoints {
   constructor() {
     this.enableLoading();
 
-    fs.watchFile(getEnvironmentVariables().PROXY_CONFIG_FILE, async () => {
-      console.info(`\x1b[36m[watchFile] ${getEnvironmentVariables().PROXY_CONFIG_FILE}...\x1b[0m`);
+    fs.watchFile(this.proxyConfigFile, async () => {
+      console.info(`\x1b[36m[watchFile] ${this.proxyConfigFile}...\x1b[0m`);
 
       try {
         await this.loadEndpoints();
@@ -82,7 +84,7 @@ class ServerEndpoints {
 
     await this.importEndpointModules();
 
-    this.creatingListEnabledEndpointModules();
+    this.buildEnabledEndpointList();
 
     this.saveConfigFile();
 
@@ -117,7 +119,7 @@ class ServerEndpoints {
     console.info('\x1b[36m[readConfigFile]\x1b[0m');
 
     try {
-      const jsonConfigString = fs.readFileSync(getEnvironmentVariables().PROXY_CONFIG_FILE, {
+      const jsonConfigString = fs.readFileSync(this.proxyConfigFile, {
         encoding: 'utf-8',
       });
 
@@ -135,7 +137,7 @@ class ServerEndpoints {
       return true;
     } catch (error) {
       // prettier-ignore
-      console.error(`\x1b[31m - Erro ao ler o arquivo de configuração ${getEnvironmentVariables().PROXY_CONFIG_FILE}.\x1b[0m\n`, error);
+      console.error(`\x1b[31m - Erro ao ler o arquivo de configuração ${this.proxyConfigFile}.\x1b[0m\n`, error);
 
       return false;
     }
@@ -144,7 +146,7 @@ class ServerEndpoints {
   private loadSectionJsonConfig() {
     console.info('\x1b[36m[loadSectionJsonConfig]\x1b[0m');
 
-    const keys = getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY.split(',');
+    const keys = this.proxyConfigFileAddressKey.split(',');
 
     const objectConfig = keys.reduce<unknown>((obj, key) => {
       if (obj && typeof obj === 'object' && key in obj) {
@@ -158,17 +160,15 @@ class ServerEndpoints {
       envValidators
         .PROXY_CONFIG_FILE_ADDRESS_KEY()
         .fail(
-          `\n\x1b[31mNão foi possível ler a propriedade (${
-            getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY
-          }) do arquivo de configuração.\x1b[0m\n`,
+          `\n\x1b[31mNão foi possível ler a propriedade (${this.proxyConfigFileAddressKey}) do arquivo de configuração.\x1b[0m\n`,
         );
     }
 
     this.jsonConfig = objectConfig as Record<string, unknown>;
   }
 
-  private creatingListEnabledEndpointModules() {
-    console.info('\x1b[36m[creatingListEnabledEndpointModules]\x1b[0m');
+  private buildEnabledEndpointList() {
+    console.info('\x1b[36m[buildEnabledEndpointList]\x1b[0m');
 
     this.endpoints.listEndpoints = [];
     this.listEnabledEndpointModule = [];
@@ -211,8 +211,7 @@ class ServerEndpoints {
   }
 
   private saveConfigFile(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    jsonConfigData?: any,
+    jsonConfigData?: Record<string, unknown>,
     initialEnabledEndpoints?: string[],
   ) {
     console.info('\x1b[36m[saveConfigFile]\x1b[0m');
@@ -221,10 +220,7 @@ class ServerEndpoints {
       console.info(`\x1b[33m - Salvando arquivo de configuração de proxy\x1b[0m`);
 
       const jsonConfig = jsonConfigData || this.globalJsonConfig;
-      fs.writeFileSync(
-        getEnvironmentVariables().PROXY_CONFIG_FILE,
-        JSON.stringify(jsonConfig, null, 2),
-      );
+      fs.writeFileSync(this.proxyConfigFile, JSON.stringify(jsonConfig, null, 2));
 
       console.info(`\x1b[33m - Salvando arquivo de endpoints habilitados\x1b[0m`);
 
@@ -235,7 +231,7 @@ class ServerEndpoints {
       );
     } catch (error) {
       // prettier-ignore
-      console.error(`\x1b[31mErro ao salvar os arquivos de configuração ${getEnvironmentVariables().PROXY_CONFIG_FILE}.\x1b[0m`, error);
+      console.error(`\x1b[31mErro ao salvar os arquivos de configuração ${this.proxyConfigFile}.\x1b[0m`, error);
     }
   }
 
@@ -243,19 +239,16 @@ class ServerEndpoints {
     for (const endpoint of endpoints) {
       console.info('\x1b[36m[changeStateEndpoint]\x1b[0m', endpoint.serverAddress);
 
-      const values = JSON.stringify(this.jsonConfig);
-
       const { serverAddress, localhostAddress } = endpoint;
-      const value = `"${serverAddress}":"${localhostAddress}"`;
 
-      if (!values.includes(value)) {
+      if (this.jsonConfig[serverAddress] === undefined) {
         this.enableEndpoint(serverAddress, localhostAddress);
       } else {
         this.disableEndpoint(serverAddress);
       }
     }
 
-    this.creatingListEnabledEndpointModules();
+    this.buildEnabledEndpointList();
 
     this.saveConfigFile();
   }
@@ -279,11 +272,10 @@ class ServerEndpoints {
     console.info('\x1b[36m[disableAllEndpoints]\x1b[0m');
 
     for (const endpoint of this.endpoints.listEndpoints) {
-      if (endpoint.enabled) {
-        endpoint.enabled = false;
-        delete this.jsonConfig[endpoint.serverAddress];
-      }
+      delete this.jsonConfig[endpoint.serverAddress];
     }
+
+    this.buildEnabledEndpointList();
     this.saveConfigFile();
   }
 
@@ -294,7 +286,6 @@ class ServerEndpoints {
     const basePath = `./root-endpoints/${this.endpointsWorkspaceDirectory}/endpoints`;
     const resolvedDir = path.resolve(basePath);
 
-    this.endpoints.listEndpoints = [];
     this.listEndpointModule = [];
     let files: string[];
 
