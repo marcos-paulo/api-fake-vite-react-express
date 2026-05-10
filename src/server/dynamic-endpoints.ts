@@ -8,6 +8,8 @@ import { envValidators, getEnvironmentVariables } from './server-load-envs';
 // ─── Logger ──────────────────────────────────────────────────────────────────
 
 const CYAN = '\x1b[36m';
+// VERDE CLARO
+const LIGHT_GREEN = '\x1b[92m';
 const MAGENTA = '\x1b[35m';
 const RESET = '\x1b[0m';
 
@@ -55,6 +57,7 @@ class Logger {
       step: (message: string) => console.info(`${spaces} ${MAGENTA}◆ ${message}${RESET}`),
       info: (message: string) => console.info(`${spaces} → ${message}`),
       warn: (message: string) => console.warn(`${spaces} → ${message}`),
+      success: (message: string) => console.info(`${spaces} ${LIGHT_GREEN}✔ ${message}${RESET}`),
       error: (message: string, cause?: unknown) =>
         console.error(`${spaces} → ${message}`, ...(cause !== undefined ? [cause] : [])),
       endSection: () => this.endSection(),
@@ -399,6 +402,9 @@ class ServerEndpoints {
     const basePath = `./root-endpoints/${this.envs.endpointsWorkspaceDirectory}/endpoints`;
     const resolvedDir = path.resolve(basePath);
 
+    log.step('Lendo arquivos do diretório de endpoints');
+    log.info(`Diretório de endpoints: ${resolvedDir}`);
+
     this.endpointModules = [];
     let files: string[];
 
@@ -420,15 +426,22 @@ class ServerEndpoints {
       process.exit(1);
     }
 
+    files.sort();
+
     const listImportedModules: ModuleEndpoint[] = [];
     for (const fileName of files) {
       try {
-        // para usar o import é necessário usar o caminho relativo ao diretório root definido no vite.config, limitação do vite
         const [, file, ext] = fileName.match(/(.*)\.(t|j)(s)$/) || [];
 
-        const importedModule = await import(
-          `../../root-endpoints/${this.envs.endpointsWorkspaceDirectory}/endpoints/${file}.${ext}s`
+        const uri = path.join(
+          process.cwd(),
+          `root-endpoints/${this.envs.endpointsWorkspaceDirectory}/endpoints/${file}.${ext}s`,
         );
+
+        const importedModule = await import(uri);
+
+        log.success(uri);
+
         listImportedModules.push(importedModule);
       } catch (error) {
         log.error(`Erro ao carregar o módulo de endpoint: ${fileName}`, error);

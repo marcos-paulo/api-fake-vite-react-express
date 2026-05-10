@@ -27,5 +27,5 @@
     //   "src/*": ["./src/*"],
     // }
   },
-  "include": ["src", "root-endpoints"]
+  "include": ["src", "../dist-target/root-endpoints/root-endpoints"]
 }

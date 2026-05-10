@@ -1,7 +1,7 @@
-import react from "@vitejs/plugin-react-swc";
-import { defineConfig } from "vite";
+import react from '@vitejs/plugin-react-swc';
+import { defineConfig } from 'vite';
 
-import { getEnvironmentVariables } from "./src/server/server-load-envs";
+import { getEnvironmentVariables } from './src/server/server-load-envs';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -12,15 +12,16 @@ export default defineConfig({
     //   src: "src",
     // },
   },
-  root: "./src/client",
+  root: './src/client',
   build: {
-    outDir: "./dist/client", // Define o diretório de saída do frontend
+    outDir: '../../dist/client', // Define o diretório de saída do frontend
+    emptyOutDir: true, // Limpa o diretório de saída antes de cada build
   },
   server: {
     open: true, // Abre o navegador automaticamente
     port: Number(getEnvironmentVariables().CLIENT_APP_PORT), // Define a porta do frontend
     proxy: {
-      "/api": `http://localhost:${getEnvironmentVariables().CLIENT_API_PORT}`, // Define o proxy para a API
+      '/api': `http://localhost:${getEnvironmentVariables().CLIENT_API_PORT}`, // Define o proxy para a API
     },
   },
 });
