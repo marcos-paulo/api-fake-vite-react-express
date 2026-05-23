@@ -153,21 +153,18 @@ class ServerEndpoints {
       fs.mkdirSync(endpointsDir, { recursive: true });
     }
     fs.watch(endpointsDir, (_eventType, filename) => {
-      console.log(`[WATCHER] Evento detectado: ${_eventType} — ${filename}`);
       if (!filename || !/\.(ts|js)$/.test(filename)) {
-        console.log(`[WATCHER] Ignorado (não é .ts/.js): ${filename}`);
+        log.info(`[WATCHER] Ignorado (não é .ts/.js): ${filename}`);
         return;
       }
       clearTimeout(this.endpointsDirWatchDebounce);
       this.endpointsDirWatchDebounce = setTimeout(async () => {
-        console.log(`[WATCHER] Recarregando módulos após mudança em: ${filename}`);
         const log = this.logger.startSection('ServerEndpoints - onEndpointFileChange');
         log.step(`Arquivo de endpoint modificado: ${filename}`);
         try {
           await this.reloadEndpointModules();
-          console.log(`[WATCHER] Reload concluído com sucesso`);
+          log.success(`Reload concluído com sucesso`);
         } catch (error) {
-          console.error(`[WATCHER] Erro no reload:`, error);
           log.error('Falha ao recarregar módulos de endpoint', error);
         } finally {
           log.endSection();
@@ -179,7 +176,6 @@ class ServerEndpoints {
   }
 
   private async reloadEndpointModules() {
-    console.log('[RELOAD] Iniciando reloadEndpointModules');
     const log = this.logger.startSection('reloadEndpointModules');
 
     const previousEnabledAddresses = [...this.enabledAddresses];
@@ -197,7 +193,6 @@ class ServerEndpoints {
     this.saveConfigFile();
 
     log.step('Notificando clientes SSE');
-    console.log(`[RELOAD] Chamando notifyReload — listeners: ${this.reloadListeners.size}`);
     this.resolveLoading();
     this.notifyReload();
 
@@ -573,7 +568,7 @@ class ServerEndpoints {
         const uri = path.join(this.workspacePath, `endpoints/${file}.${ext}s`);
         const importUri = bustCache ? `${uri}?t=${Date.now()}` : uri;
 
-        const importedModule = await import(importUri) as ModuleEndpoint;
+        const importedModule = (await import(importUri)) as ModuleEndpoint;
 
         log.success(uri);
 

@@ -41,7 +41,7 @@ function createWindow() {
     console.log('🚀 Carregando aplicação em modo desenvolvimento...');
     console.log(`🔌 Porta do cliente: ${clientPort}`);
     mainWindow.loadURL(`http://localhost:${clientPort}`);
-    mainWindow.webContents.openDevTools();
+    // mainWindow.webContents.openDevTools();
   } else {
     console.log('📦 Carregando aplicação em modo produção...');
     mainWindow.loadFile(path.join(__dirname, '../client/index.html'));
