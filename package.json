@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "bin": {
+    "api-fake": "./bin/api-fake.cjs"
+  },
   "scripts": {
     "BUN-SCRIPTS": "-------------------------------------------------------------------------------",
     "bun": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"bun run server:watch\" \"bun run dev-vite\"",

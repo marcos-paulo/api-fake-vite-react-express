@@ -2,11 +2,11 @@ import express from 'express';
 
 import { type Endpoint } from '../types/Endpoints';
 import { createServerEndpointsManager, endpointsServer } from './dynamic-endpoints';
-import { getEnvironmentVariables } from './server-load-envs';
+import { getConfig } from './server-load-envs';
 
 export const app = express();
 
-const CLIENT_APP_PORT = getEnvironmentVariables().CLIENT_API_PORT ?? 3000;
+const CLIENT_APP_PORT = getConfig().CLIENT_API_PORT ?? 3000;
 
 await createServerEndpointsManager();
 
