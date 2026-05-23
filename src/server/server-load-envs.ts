@@ -1,9 +1,10 @@
-import 'dotenv/config';
-
 import fs from 'fs';
 import path from 'path';
 
-const environmentVariables = {
+const workDir = process.env.API_FAKE_WORKDIR ?? process.cwd();
+const configFile = path.join(workDir, 'api-fake.config.json');
+
+const defaultConfig = {
   CLIENT_APP_PORT: '3343',
   CLIENT_API_PORT: '3342',
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: '/api',
@@ -15,55 +16,64 @@ const environmentVariables = {
   BROWSER_ARGS: '',
 };
 
-export function getEnvironmentVariables() {
-  return environmentVariables;
+type ConfigKey = keyof typeof defaultConfig;
+
+const config = { ...defaultConfig };
+
+export function getConfig() {
+  return config;
 }
 
-const dotEnvFile = '.env';
-
-function isValidEnvKey(key: string | undefined): key is keyof typeof environmentVariables {
+function isValidConfigKey(key: string | undefined): key is ConfigKey {
   if (!key) return false;
-  return key in environmentVariables;
+  return key in defaultConfig;
 }
 
-function syncEnvFile() {
-  const keys = Object.keys(environmentVariables) as (keyof typeof environmentVariables)[];
+const pathKeys: ConfigKey[] = ['WORKSPACES_ROOT_PATH', 'PROXY_CONFIG_FILE'];
 
-  let variaveisNaoEncontradas = false;
-
-  for (const key of keys) {
-    const env = process.env[key];
-
-    if (env === undefined) {
-      variaveisNaoEncontradas = true;
+function resolvePaths(cfg: typeof defaultConfig): typeof defaultConfig {
+  const resolved = { ...cfg };
+  for (const key of pathKeys) {
+    if (resolved[key]) {
+      resolved[key] = path.resolve(workDir, resolved[key]);
     }
+  }
+  return resolved;
+}
 
-    environmentVariables[key] = env || environmentVariables[key];
+function syncConfigFile() {
+  let fileConfig: Partial<typeof defaultConfig> = {};
+
+  if (fs.existsSync(configFile)) {
+    try {
+      fileConfig = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+    } catch {
+      console.warn('Erro ao ler api-fake.config.json, usando valores padrão.');
+    }
   }
 
-  if (variaveisNaoEncontradas) {
-    const listKeys = Object.keys(environmentVariables)
-      .map((key) => {
-        if (!isValidEnvKey(key)) return '';
-        return `${key}=${environmentVariables[key]}`;
-      })
-      .join('\n');
+  const keys = Object.keys(defaultConfig) as ConfigKey[];
+  const hasMissingKeys = keys.some((key) => !(key in fileConfig));
 
-    const arquivoExiste = fs.existsSync(dotEnvFile);
+  const merged = { ...defaultConfig, ...fileConfig } as typeof defaultConfig;
+  const arquivoExiste = fs.existsSync(configFile);
 
-    fs.writeFileSync(dotEnvFile, listKeys);
-
+  if (hasMissingKeys) {
+    fs.writeFileSync(configFile, JSON.stringify(merged, null, 2));
     if (!arquivoExiste) {
-      console.log('Arquivo .env criado com sucesso.');
+      console.log(`Arquivo api-fake.config.json criado em: ${configFile}`);
     } else {
-      console.log('Arquivo .env atualizado com sucesso.');
+      console.log(`Arquivo api-fake.config.json atualizado em: ${configFile}`);
     }
-
-    return;
   }
+
+  const resolved = resolvePaths(merged);
+  keys.forEach((key) => {
+    config[key] = resolved[key];
+  });
 }
 
-class ValidationError {
+class ConfigValidationError {
   static readonly colors = {
     red: '\u001b[31m',
     green: '\u001b[32m',
@@ -71,24 +81,24 @@ class ValidationError {
   };
 
   static highlight(text: string): string {
-    return `${ValidationError.colors.green}${text}${ValidationError.colors.red}`;
+    return `${ConfigValidationError.colors.green}${text}${ConfigValidationError.colors.red}`;
   }
 
   constructor(
     private readonly _args: {
       help: string;
-      key: keyof typeof environmentVariables;
+      key: ConfigKey;
     },
   ) {}
 
   exit(message: string) {
-    const { red, reset } = ValidationError.colors;
+    const { red, reset } = ConfigValidationError.colors;
     const { help, key } = this._args;
 
     const msg = [
-      `\nVerifique o arquivo .env ou as variáveis de ambiente do sistema operacional.\n`,
-      `A variável ${key} não é válida.`,
-      `${key}='${environmentVariables[key]}'`,
+      `\nVerifique o arquivo api-fake.config.json em: ${configFile}\n`,
+      `A chave "${key}" não é válida.`,
+      `${key}: "${config[key]}"`,
       ``,
       ...(message ? [message, ''] : []),
       ...(help ? [help] : []),
@@ -100,16 +110,13 @@ class ValidationError {
   }
 }
 
-type ObjectValidate = Record<
-  keyof typeof environmentVariables,
-  () => { fail: (message: string) => void }
->;
+type ConfigValidators = Record<ConfigKey, () => { fail: (message: string) => void }>;
 
 function noopValidator() {
   return { fail: () => {} };
 }
 
-export const envValidators: ObjectValidate = {
+export const configValidators: ConfigValidators = {
   CLIENT_APP_PORT: noopValidator,
   CLIENT_API_PORT: noopValidator,
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: noopValidator,
@@ -119,49 +126,47 @@ export const envValidators: ObjectValidate = {
       '',
       'Exemplo:',
       '',
-      `  WORKSPACES_ROOT_PATH=${ValidationError.highlight('root-endpoints')}`,
+      `  "WORKSPACES_ROOT_PATH": ${ConfigValidationError.highlight('"root-endpoints"')}`,
       '',
     ].join('\n');
 
-    const error = new ValidationError({ help, key: 'WORKSPACES_ROOT_PATH' });
+    const error = new ConfigValidationError({ help, key: 'WORKSPACES_ROOT_PATH' });
 
-    if (!environmentVariables.WORKSPACES_ROOT_PATH) {
+    if (!config.WORKSPACES_ROOT_PATH) {
       error.exit('');
     }
 
-    fs.mkdirSync(environmentVariables.WORKSPACES_ROOT_PATH, { recursive: true });
+    const resolvedPath = config.WORKSPACES_ROOT_PATH; // já resolvido em syncConfigFile
+    fs.mkdirSync(resolvedPath, { recursive: true });
 
     return noopValidator();
   },
   ACTIVE_WORKSPACE: () => {
-    const rootPath = environmentVariables.WORKSPACES_ROOT_PATH;
+    const rootPath = config.WORKSPACES_ROOT_PATH; // já resolvido em syncConfigFile
 
     const help = [
       'ACTIVE_WORKSPACE deve conter o nome da pasta com os endpoints.',
       '',
-      `Essa pasta precisa existir dentro do diretório "${rootPath}", que fica na`,
-      'raiz do projeto.',
+      `Essa pasta precisa existir dentro do diretório "${rootPath}".`,
       '',
       'Exemplo:',
-      'Se o valor da variável ACTIVE_WORKSPACE for:',
       '',
-      `  ACTIVE_WORKSPACE=${ValidationError.highlight('my-endpoints')}`,
+      `  "ACTIVE_WORKSPACE": ${ConfigValidationError.highlight('"my-endpoints"')}`,
       '',
       'Deverá existir um caminho:',
       '',
-      `  ./${rootPath}/${ValidationError.highlight('my-endpoints')}`,
+      `  ${rootPath}/${ConfigValidationError.highlight('my-endpoints')}`,
       '',
     ].join('\n');
 
-    const error = new ValidationError({ help, key: 'ACTIVE_WORKSPACE' });
+    const error = new ConfigValidationError({ help, key: 'ACTIVE_WORKSPACE' });
 
-    if (!environmentVariables.ACTIVE_WORKSPACE) {
+    if (!config.ACTIVE_WORKSPACE) {
       error.exit('');
     }
 
-    if (!fs.existsSync(path.resolve(rootPath, environmentVariables.ACTIVE_WORKSPACE))) {
-      const message = 'Diretório de trabalho dos endpoints não encontrado.';
-      error.exit(message);
+    if (!fs.existsSync(path.resolve(rootPath, config.ACTIVE_WORKSPACE))) {
+      error.exit('Diretório de trabalho dos endpoints não encontrado.');
     }
 
     return noopValidator();
@@ -174,29 +179,28 @@ export const envValidators: ObjectValidate = {
       '',
       'Exemplo:',
       '',
-      `  PROXY_CONFIG_FILE=${ValidationError.highlight('./proxy-config.json')}`,
+      `  "PROXY_CONFIG_FILE": ${ConfigValidationError.highlight('"./proxy-config.json"')}`,
       '',
     ].join('\n');
 
-    const error = new ValidationError({ help, key: 'PROXY_CONFIG_FILE' });
+    const error = new ConfigValidationError({ help, key: 'PROXY_CONFIG_FILE' });
 
-    if (!environmentVariables.PROXY_CONFIG_FILE) {
+    if (!config.PROXY_CONFIG_FILE) {
       error.exit('');
     }
 
-    if (!fs.existsSync(environmentVariables.PROXY_CONFIG_FILE)) {
-      const message = 'Arquivo de configuração do proxy não encontrado.';
-      error.exit(message);
+    const resolvedProxyFile = config.PROXY_CONFIG_FILE; // já resolvido em syncConfigFile
+
+    if (!fs.existsSync(resolvedProxyFile)) {
+      error.exit('Arquivo de configuração do proxy não encontrado.');
     }
 
-    // checar se o arquivo é um JSON válido
     try {
-      const fileContent = fs.readFileSync(environmentVariables.PROXY_CONFIG_FILE, 'utf-8');
+      const fileContent = fs.readFileSync(resolvedProxyFile, 'utf-8');
       JSON.parse(fileContent);
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
-      const message = 'Arquivo de configuração do proxy não contém um JSON válido.';
-      error.exit(message);
+      error.exit('Arquivo de configuração do proxy não contém um JSON válido.');
     }
 
     return noopValidator();
@@ -213,21 +217,22 @@ export const envValidators: ObjectValidate = {
       '',
       JSON.stringify(exampleConfig, null, 2),
       '',
-      `e o objeto desejado for ${ValidationError.highlight('{ item1: "valor1" }')}, defina:`,
+      `e o objeto desejado for ${ConfigValidationError.highlight('{ item1: "valor1" }')}, defina:`,
       '',
-      `  PROXY_CONFIG_FILE_ADDRESS_KEY=${ValidationError.highlight('key,key1,itens')}`,
+      `  "PROXY_CONFIG_FILE_ADDRESS_KEY": ${ConfigValidationError.highlight('"key,key1,itens"')}`,
       '',
     ].join('\n');
 
-    const error = new ValidationError({ help, key: 'PROXY_CONFIG_FILE_ADDRESS_KEY' });
+    const error = new ConfigValidationError({ help, key: 'PROXY_CONFIG_FILE_ADDRESS_KEY' });
 
-    if (!environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY) {
+    if (!config.PROXY_CONFIG_FILE_ADDRESS_KEY) {
       error.exit('');
     }
 
-    const proxyConfigFileContent = fs.readFileSync(environmentVariables.PROXY_CONFIG_FILE, 'utf-8');
+    const resolvedProxyFile = config.PROXY_CONFIG_FILE; // já resolvido em syncConfigFile
+    const proxyConfigFileContent = fs.readFileSync(resolvedProxyFile, 'utf-8');
     const proxyConfig = JSON.parse(proxyConfigFileContent);
-    const addressKeys = environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY.split(',');
+    const addressKeys = config.PROXY_CONFIG_FILE_ADDRESS_KEY.split(',');
 
     const objectConfig = addressKeys.reduce((obj, key) => {
       if (obj && key in obj && typeof obj === 'object') {
@@ -239,7 +244,7 @@ export const envValidators: ObjectValidate = {
 
     if (!objectConfig) {
       const message = [
-        `Chave de endereço '${environmentVariables.PROXY_CONFIG_FILE_ADDRESS_KEY}' não encontrada no arquivo de configuração do proxy.`,
+        `Chave de endereço '${config.PROXY_CONFIG_FILE_ADDRESS_KEY}' não encontrada no arquivo de configuração do proxy.`,
         'Objeto de configuração atual:',
         JSON.stringify(proxyConfig, null, 2),
       ].join('\n');
@@ -254,17 +259,18 @@ export const envValidators: ObjectValidate = {
   BROWSER_ARGS: noopValidator,
 };
 
-function validateEnv() {
-  Object.keys(envValidators).forEach((key) => {
-    if (isValidEnvKey(key)) {
-      envValidators[key]();
+function validateConfig() {
+  Object.keys(configValidators).forEach((key) => {
+    if (isValidConfigKey(key)) {
+      configValidators[key]();
     }
   });
 }
 
-export function loadEnv() {
-  syncEnvFile();
-  validateEnv();
+export function loadConfig() {
+  syncConfigFile();
+  validateConfig();
 }
 
-loadEnv();
+loadConfig();
+

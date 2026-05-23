@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 
-import { getEnvironmentVariables } from './src/server/server-load-envs';
+import { getConfig } from './src/server/server-load-envs';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -19,9 +19,9 @@ export default defineConfig({
   },
   server: {
     open: false, // Electron exibe o cliente
-    port: Number(getEnvironmentVariables().CLIENT_APP_PORT), // Define a porta do frontend
+    port: Number(getConfig().CLIENT_APP_PORT), // Define a porta do frontend
     proxy: {
-      '/api': `http://localhost:${getEnvironmentVariables().CLIENT_API_PORT}`, // Define o proxy para a API
+      '/api': `http://localhost:${getConfig().CLIENT_API_PORT}`, // Define o proxy para a API
     },
   },
 });

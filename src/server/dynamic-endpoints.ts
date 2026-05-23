@@ -3,7 +3,7 @@ import path from 'path';
 
 import type { Endpoint, Endpoints } from '../types/Endpoints';
 import { type EndpointObject, type ModuleEndpoint } from './dynamic-endpoints.types';
-import { envValidators, getEnvironmentVariables } from './server-load-envs';
+import { configValidators, getConfig } from './server-load-envs';
 
 // ─── Logger ──────────────────────────────────────────────────────────────────
 
@@ -78,12 +78,12 @@ class ServerEndpoints {
   enabledEndpointModules: EndpointObject[] = [];
 
   private readonly envs = {
-    serverDefaultPrefixApi: getEnvironmentVariables().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API,
-    endpointServerPort: getEnvironmentVariables().CLIENT_API_PORT,
-    workspacesRootPath: getEnvironmentVariables().WORKSPACES_ROOT_PATH,
-    activeWorkspace: getEnvironmentVariables().ACTIVE_WORKSPACE,
-    proxyConfigFile: getEnvironmentVariables().PROXY_CONFIG_FILE,
-    proxyConfigFileAddressKey: getEnvironmentVariables().PROXY_CONFIG_FILE_ADDRESS_KEY,
+    serverDefaultPrefixApi: getConfig().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API,
+    endpointServerPort: getConfig().CLIENT_API_PORT,
+    workspacesRootPath: getConfig().WORKSPACES_ROOT_PATH,
+    activeWorkspace: getConfig().ACTIVE_WORKSPACE,
+    proxyConfigFile: getConfig().PROXY_CONFIG_FILE,
+    proxyConfigFileAddressKey: getConfig().PROXY_CONFIG_FILE_ADDRESS_KEY,
   };
 
   private readonly workspacePath = path.resolve(
@@ -269,7 +269,7 @@ class ServerEndpoints {
     }, this.globalJsonConfig);
 
     if (!objectConfig) {
-      envValidators
+      configValidators
         .PROXY_CONFIG_FILE_ADDRESS_KEY()
         .fail(
           `\n\x1b[31mNão foi possível ler a propriedade (${this.envs.proxyConfigFileAddressKey}) do arquivo de configuração.\x1b[0m\n`,

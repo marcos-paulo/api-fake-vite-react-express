@@ -1,5 +1,11 @@
 {
-  "rules": {},
+  "rules": {
+    "/api/endpoint12": "http://localhost:3342/endpoint12",
+    "/api/endpoint13": "http://localhost:3342/endpoint13",
+    "/api/endpoint14": "http://localhost:3342/endpoint14",
+    "/api/endpoint15": "http://localhost:3342/endpoint15",
+    "/api/endpoint16": "http://localhost:3342/endpoint16"
+  },
   "editor.rulers": [
     100,
     150
