@@ -133,7 +133,7 @@ const S = {
 type LoadingState = 'idle' | 'fetching' | 'saving';
 
 export default function App() {
-  const [endpoints, setEndpoints] = useState<Endpoints | null>({ listEndpoints: [] });
+  const [endpoints, setEndpoints] = useState<Endpoints | null>({ listEndpoints: [], failedFiles: [] });
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessage | null>(null);
   const [pendingChanges, setPendingChanges] = useState<Record<string, Endpoint>>({});
@@ -153,7 +153,7 @@ export default function App() {
 
   const handleFetchError = useCallback((error: unknown) => {
     console.error('Erro ao buscar endpoints:', error);
-    setEndpoints({ listEndpoints: [] });
+    setEndpoints({ listEndpoints: [], failedFiles: [] });
     setFeedbackMessage({ text: 'Erro ao carregar endpoints', type: 'error' });
   }, []);
 
@@ -235,6 +235,7 @@ export default function App() {
   const filteredEndpoints = useMemo(() => {
     if (!endpoints) return null;
     return {
+      failedFiles: endpoints.failedFiles,
       listEndpoints:
         filterRegexes.length === 0
           ? endpoints.listEndpoints
