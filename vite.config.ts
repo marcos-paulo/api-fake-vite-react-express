@@ -17,11 +17,15 @@ export default defineConfig({
     outDir: '../../dist/client', // Define o diretório de saída do frontend
     emptyOutDir: true, // Limpa o diretório de saída antes de cada build
   },
+  define: {
+    // Expõe a porta do backend para o cliente poder conectar SSE diretamente (sem proxy)
+    __VITE_API_PORT__: JSON.stringify(getConfig().CLIENT_API_PORT),
+  },
   server: {
     open: false, // Electron exibe o cliente
     port: Number(getConfig().CLIENT_APP_PORT), // Define a porta do frontend
     proxy: {
-      '/api': `http://localhost:${getConfig().CLIENT_API_PORT}`, // Define o proxy para a API
+      '/api': `http://localhost:${getConfig().CLIENT_API_PORT}`,
     },
   },
 });

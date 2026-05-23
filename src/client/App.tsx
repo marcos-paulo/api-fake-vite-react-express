@@ -217,6 +217,49 @@ export default function App() {
     fetchEndpoints().catch(console.error);
   }, [fetchEndpoints]);
 
+  useEffect(() => {
+    // Em dev, conecta diretamente ao backend (evita problema de reconexão pelo proxy do Vite)
+    const sseUrl = import.meta.env.DEV
+      ? `http://localhost:${__VITE_API_PORT__}/api/events`
+      : '/api/events';
+
+    let es: EventSource | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let destroyed = false;
+
+    function connect() {
+      if (destroyed) return;
+
+      es = new EventSource(sseUrl);
+
+      es.onopen = () => {
+        console.log('[SSE] Conectado');
+      };
+
+      es.onmessage = (event) => {
+        console.log('[SSE] Mensagem recebida:', event.data);
+        fetchEndpoints().catch(console.error);
+      };
+
+      es.onerror = () => {
+        if (destroyed) return;
+        console.warn('[SSE] Conexão perdida, reconectando em 1s...');
+        es?.close();
+        es = null;
+        reconnectTimer = setTimeout(connect, 1000);
+      };
+    }
+
+    connect();
+
+    return () => {
+      destroyed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      es?.close();
+      console.log('[SSE] Encerrando conexão');
+    };
+  }, [fetchEndpoints]);
+
   const pendingKeys = Object.keys(pendingChanges);
 
   // Compilado apenas quando filterText muda, não a cada endpoint iterado
