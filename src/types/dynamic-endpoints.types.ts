@@ -8,6 +8,11 @@ export type EndpointObject = {
   handler: (req: Request, res: Response) => void;
 };
 
+export type LoadedModule = {
+  endpoints: EndpointObject[];
+  fileName: string;
+};
+
 export function isModuleEndpoints(module: unknown): module is EndpointObject[] {
   return Array.isArray(module) && module.every((e) => isEndpoint(e));
 }
@@ -25,3 +30,12 @@ function isEndpoint(
 }
 
 export type ModuleEndpoint = { default: EndpointObject[] };
+
+export type EnabledEndpointRecord = {
+  serverAddress: string;
+  fileName: string;
+};
+
+export type FailedModuleRecord = {
+  fileName: string;
+};
