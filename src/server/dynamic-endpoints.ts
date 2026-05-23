@@ -2,14 +2,14 @@ import fs from 'fs';
 import path from 'path';
 
 import type { Endpoint, Endpoints } from '../types/Endpoints';
-import { type EndpointObject, type ModuleEndpoint } from './dynamic-endpoints.types';
-import { configValidators, getConfig } from './server-load-envs';
+import { type EndpointObject, type ModuleEndpoint } from '../types/dynamic-endpoints.types';
+import { configValidators, getConfig } from './server-load-config';
 
 // ─── Logger ──────────────────────────────────────────────────────────────────
 
 const CYAN = '\x1b[36m';
-// VERDE CLARO
 const LIGHT_GREEN = '\x1b[92m';
+const LIGHT_YELLOW = '\x1b[93m';
 const MAGENTA = '\x1b[35m';
 const RESET = '\x1b[0m';
 
@@ -56,7 +56,7 @@ class Logger {
       header,
       step: (message: string) => console.info(`${spaces} ${MAGENTA}◆ ${message}${RESET}`),
       info: (message: string) => console.info(`${spaces} → ${message}`),
-      warn: (message: string) => console.warn(`${spaces} → ${message}`),
+      warn: (message: string) => console.warn(`${spaces} ${LIGHT_YELLOW}⚠ ${message}${RESET}`),
       success: (message: string) => console.info(`${spaces} ${LIGHT_GREEN}✔ ${message}${RESET}`),
       error: (message: string, cause?: unknown) =>
         console.error(`${spaces} → ${message}`, ...(cause !== undefined ? [cause] : [])),
@@ -177,6 +177,8 @@ class ServerEndpoints {
     log.step('Carregando endereços habilitados');
     this.loadEnabledEndpointsFile();
 
+    const previousEnabledAddresses = [...this.enabledAddresses];
+
     log.step('Resolvendo rotas do proxy');
     this.resolveProxyRoutes();
 
@@ -185,6 +187,9 @@ class ServerEndpoints {
 
     log.step('Construindo lista de endpoints habilitados');
     this.buildEnabledEndpointList();
+
+    log.step('Preservando estado de módulos com erro de carregamento');
+    this.preserveFailedModulesState(previousEnabledAddresses);
 
     log.step('Atualizando arquivos de configuração do proxy e endpoints habilitados');
     this.saveConfigFile();
@@ -321,6 +326,23 @@ class ServerEndpoints {
     }
 
     this.enabledAddresses = newEnabledAddresses;
+    log.endSection();
+  }
+
+  private preserveFailedModulesState(previousEnabledAddresses: string[]) {
+    const log = this.logger.startSection('preserveFailedModulesState');
+
+    const loadedAddresses = new Set(this.endpoints.listEndpoints.map((e) => e.serverAddress));
+
+    const orphaned = previousEnabledAddresses.filter((addr) => !loadedAddresses.has(addr));
+
+    if (orphaned.length > 0) {
+      log.warn(
+        `Módulo(s) com erro de carregamento tiveram seu estado preservado: ${orphaned.join(', ')}`,
+      );
+      this.enabledAddresses = [...this.enabledAddresses, ...orphaned];
+    }
+
     log.endSection();
   }
 
