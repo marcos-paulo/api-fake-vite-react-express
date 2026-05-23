@@ -3,6 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "types": "./src/types/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/types/index.ts"
+    }
+  },
   "bin": {
     "api-fake": "./bin/api-fake.cjs"
   },

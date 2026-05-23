@@ -2,7 +2,7 @@ import express from 'express';
 
 import { type Endpoint } from '../types/Endpoints';
 import { createServerEndpointsManager, endpointsServer } from './dynamic-endpoints';
-import { getConfig } from './server-load-envs';
+import { getConfig } from './server-load-config';
 
 export const app = express();
 
