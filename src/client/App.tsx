@@ -1,6 +1,6 @@
 import type { AxiosResponse } from 'axios';
 import axios from 'axios';
-import { type CSSProperties, useCallback, useEffect, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { Endpoint, Endpoints } from '../types/Endpoints';
 import { ListEndpoints } from './components/ListEndpoints';
@@ -219,18 +219,35 @@ export default function App() {
 
   const pendingKeys = Object.keys(pendingChanges);
 
-  const filteredEndpoints = endpoints
-    ? {
-        listEndpoints: endpoints.listEndpoints.filter((ep) => {
-          const q = filterText.toLowerCase();
-          return (
-            ep.description.toLowerCase().includes(q) ||
-            ep.localhostAddress.toLowerCase().includes(q) ||
-            ep.method.toLowerCase().includes(q)
-          );
-        }),
-      }
-    : null;
+  // Compilado apenas quando filterText muda, não a cada endpoint iterado
+  const filterRegexes = useMemo(() => {
+    return filterText
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((token) => {
+        // Escapa tudo exceto ".", que é curinga (qualquer caractere)
+        const pattern = token.replace(/[^.]/g, (c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+        return new RegExp(pattern, 'i');
+      });
+  }, [filterText]);
+
+  const filteredEndpoints = useMemo(() => {
+    if (!endpoints) return null;
+    return {
+      listEndpoints:
+        filterRegexes.length === 0
+          ? endpoints.listEndpoints
+          : endpoints.listEndpoints.filter((ep) =>
+              filterRegexes.some(
+                (regex) =>
+                  regex.test(ep.description) ||
+                  regex.test(ep.localhostAddress) ||
+                  regex.test(ep.method),
+              ),
+            ),
+    };
+  }, [endpoints, filterRegexes]);
 
   return (
     <>
