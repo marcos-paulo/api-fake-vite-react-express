@@ -7,9 +7,9 @@ const fs = require('fs');
 const pkgRoot = path.resolve(__dirname, '..');
 const workDir = process.cwd();
 
-console.log('🚀 Iniciando api-fake no browser...');
+console.log('🚀 Iniciando api-fake com Puppeteer...');
 
-const child = spawn('npm', ['run', 'dev:browser'], {
+const child = spawn('npm', ['run', 'dev:with:puppeteer'], {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: true,
