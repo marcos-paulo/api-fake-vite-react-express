@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
 
 import type { Endpoint, Endpoints } from '../../types/Endpoints';
-import type { FailedModuleRecord } from '../../types/dynamic-endpoints.types';
 
 // ---------------------------------------------------------------------------
 // Estilos estáticos (nível de módulo)
@@ -85,6 +84,16 @@ const S = {
     padding: '1px 6px',
   } satisfies CSSProperties,
 
+  duplicateBadge: {
+    marginLeft: '8px',
+    color: '#ff6b35',
+    fontStyle: 'italic',
+    fontSize: '0.8em',
+    border: '1px solid #ff6b35',
+    borderRadius: '4px',
+    padding: '1px 6px',
+  } satisfies CSSProperties,
+
   openFileButton: {
     padding: '2px 8px',
     borderRadius: '4px',
@@ -95,17 +104,11 @@ const S = {
     fontSize: '0.8em',
   } satisfies CSSProperties,
 
-  itemActionContainer: {
-    marginLeft: 'auto',
-    display: 'flex',
-    alignItems: 'center',
-  } satisfies CSSProperties,
-
   endpointItemStyle: (isPending: boolean, isError: boolean): CSSProperties => ({
     display: 'flex',
     flexDirection: 'row',
     flexWrap: 'wrap',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: '4px',
     padding: '5px',
     marginBottom: '5px',
@@ -115,7 +118,7 @@ const S = {
         ? '1px solid var(--color-warning)'
         : '1px solid var(--color-border-muted)',
     backgroundColor: isError
-      ? 'var(--color-error-bg, rgba(255,50,50,0.08))'
+      ? 'var(--color-error-bg)'
       : isPending
         ? 'var(--color-warning-bg)'
         : 'transparent',
@@ -123,14 +126,31 @@ const S = {
     transition: 'background-color 0.2s ease, border-color 0.2s ease',
   }),
 
-  endpointItemDescriptionStyle: (isPending: boolean, isError: boolean): CSSProperties => ({
-    flex: '1 1 auto',
-    minWidth: 0,
-    color: isError ? 'var(--color-error)' : isPending ? 'var(--color-warning)' : 'inherit',
-    fontWeight: isError || isPending ? 'bold' : 'normal',
-  }),
+  endpointItemCheckboxAndName: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    flex: '0 1 auto',
+  } satisfies CSSProperties,
 
-  endpointMetaRow: {
+  endpointItemBadgesContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    flex: '0 1 auto',
+  } satisfies CSSProperties,
+
+  endpointItemActionButton: {
+    marginLeft: 'auto',
+    flex: '0 0 auto',
+  } satisfies CSSProperties,
+
+  endpointItemDescription: {
+    flex: '1 1 100%',
+    minWidth: 0,
+  } satisfies CSSProperties,
+
+  endpointItemMetaRow: {
     flex: '1 1 100%',
     display: 'flex',
     alignItems: 'center',
@@ -179,15 +199,6 @@ export const ListEndpoints = ({
   onOpenEndpointFile,
 }: ListEndpointsProps) => {
   const allEndpoints = endpoints?.listEndpoints ?? [];
-  const failedFiles = endpoints?.failedFiles ?? [];
-
-  // Arquivos com erro já representados em listEndpoints (tinham endpoints habilitados previamente)
-  const filesAlreadyInList = new Set(
-    allEndpoints.filter((ep) => ep.loadError).map((ep) => ep.fileName),
-  );
-
-  // failedFiles que NÃO têm nenhuma entrada em listEndpoints → só aparecem na lista de desabilitados
-  const failedFilesNotInList = failedFiles.filter((ff) => !filesAlreadyInList.has(ff.fileName));
 
   // loadError entries first, then normal entries — cada arquivo aparece em apenas UMA lista
   const enabled = [
@@ -209,7 +220,7 @@ export const ListEndpoints = ({
   ];
 
   const enabledCount = enabled.length;
-  const disabledCount = disabled.length + failedFilesNotInList.length;
+  const disabledCount = disabled.length;
 
   return (
     <div className="flex-scroll-row-hidden" style={S.listEndpointsContainerStyle(isLoading)}>
@@ -230,16 +241,9 @@ export const ListEndpoints = ({
 
       <EndpointSection variant="disabled" count={disabledCount}>
         <EmptyMessage show={disabledCount === 0} message="Nenhum endpoint desabilitado" />
-        {failedFilesNotInList.map((record) => (
-          <FailedFileItem
-            key={record.fileName}
-            record={record}
-            onOpenEndpointFile={onOpenEndpointFile}
-          />
-        ))}
         {disabled.map((endpoint) => (
           <EndpointItem
-            key={endpoint.serverAddress || endpoint.fileName}
+            key={endpoint.fileName}
             endpoint={endpoint}
             isPending={pendingChanges.has(endpoint.localhostAddress)}
             displayEnabled={false}
@@ -254,40 +258,6 @@ export const ListEndpoints = ({
 };
 
 // ---------------------------------------------------------------------------
-// FailedFileItem
-// ---------------------------------------------------------------------------
-
-const FailedFileItem = ({
-  record,
-  onOpenEndpointFile,
-}: {
-  record: FailedModuleRecord;
-  onOpenEndpointFile: (fileName: string) => void;
-}) => (
-  <li style={S.endpointItemStyle(false, true)}>
-    <span style={S.endpointItemDescriptionStyle(false, true)}>Erro ao carregar módulo</span>
-    <span
-      style={{
-        color: 'var(--color-error)',
-        fontFamily: 'monospace',
-        fontSize: '0.85em',
-      }}
-    >
-      📄 {record.fileName}
-    </span>
-    <button
-      type="button"
-      onClick={() => onOpenEndpointFile(record.fileName)}
-      style={S.openFileButton}
-      title="Abrir arquivo no VS Code"
-    >
-      Abrir arquivo
-    </button>
-    <span style={S.errorBadge}>erro</span>
-  </li>
-);
-
-// ---------------------------------------------------------------------------
 // EndpointItem
 // ---------------------------------------------------------------------------
 
@@ -300,41 +270,63 @@ const EndpointItem = ({
   onOpenEndpointFile,
 }: EndpointItemProps) => {
   const isError = endpoint.loadError;
+
   return (
     <li style={S.endpointItemStyle(isPending, isError)}>
-      <input
-        type="checkbox"
-        checked={displayEnabled}
-        onChange={() => onAddPendingEndpoint(endpoint)}
-        disabled={isLoading || isError}
-      />
-      {endpoint.fileName && (
+      {/* Linha 1: Checkbox, Nome e Badges à esquerda | Botão à direita */}
+      <div style={S.endpointItemCheckboxAndName}>
+        <input
+          type="checkbox"
+          checked={displayEnabled}
+          onChange={() => onAddPendingEndpoint(endpoint)}
+          disabled={isLoading || isError}
+        />
         <span style={{ opacity: 0.7, fontSize: '0.8em', fontFamily: 'monospace' }}>
           📄 {endpoint.fileName}
         </span>
-      )}
-      <span style={S.endpointItemDescriptionStyle(isPending, isError)}>
-        {isError ? 'Erro ao carregar módulo' : endpoint.description}
-      </span>
-      {endpoint.fileName && (
-        <div style={S.itemActionContainer}>
-          <button
-            type="button"
-            onClick={() => onOpenEndpointFile(endpoint.fileName)}
-            style={S.openFileButton}
-            title="Abrir arquivo no VS Code"
-            disabled={isLoading}
+      </div>
+
+      <div style={S.endpointItemBadgesContainer}>
+        {isError && <span style={S.errorBadge}>erro</span>}
+        {endpoint.isDuplicate && (
+          <span
+            style={S.duplicateBadge}
+            title={`Duplicado em: ${endpoint.duplicateFiles.join(', ')}`}
           >
-            Abrir arquivo
-          </button>
-        </div>
-      )}
-      <div style={S.endpointMetaRow}>
+            🔁 duplicado, {endpoint.duplicateFiles.join(', ')}
+          </span>
+        )}
+        <PendingBadge isPending={isPending} />
+      </div>
+
+      <div style={S.endpointItemActionButton}>
+        <button
+          type="button"
+          onClick={() => onOpenEndpointFile(endpoint.fileName)}
+          style={S.openFileButton}
+          title="Abrir arquivo no VS Code"
+          disabled={isLoading}
+        >
+          Abrir arquivo
+        </button>
+      </div>
+
+      {/* Linha 2: Descrição */}
+      <div style={S.endpointItemDescription}>
+        <span
+          style={{
+            color: isError ? 'var(--color-error)' : isPending ? 'var(--color-warning)' : 'inherit',
+            fontWeight: isError || isPending ? 'bold' : 'normal',
+          }}
+        >
+          {isError ? 'Erro ao carregar módulo' : endpoint.description}
+        </span>
+      </div>
+
+      {/* Linha 3: Endereço do servidor */}
+      <div style={S.endpointItemMetaRow}>
         {isError ? (
-          <>
-            <span style={{ color: 'var(--color-error)' }}>{endpoint.serverAddress}</span>
-            <span style={S.errorBadge}>erro</span>
-          </>
+          <span style={{ color: 'var(--color-error)' }}>{endpoint.serverAddress}</span>
         ) : (
           <>
             <span>{endpoint.serverAddress}</span>
@@ -343,7 +335,6 @@ const EndpointItem = ({
           </>
         )}
       </div>
-      <PendingBadge isPending={isPending} />
     </li>
   );
 };

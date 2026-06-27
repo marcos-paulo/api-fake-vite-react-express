@@ -8,11 +8,13 @@ import {
   type FailedModuleRecord,
   type LoadedModule,
   type ModuleEndpoint,
+  isEndpointObject,
 } from '../types/dynamic-endpoints.types';
 import { configValidators, getConfig } from './server-load-config';
 
 // ─── Logger ──────────────────────────────────────────────────────────────────
 
+const RED = '\x1b[31m';
 const CYAN = '\x1b[36m';
 const LIGHT_GREEN = '\x1b[92m';
 const LIGHT_YELLOW = '\x1b[93m';
@@ -65,7 +67,10 @@ class Logger {
       warn: (message: string) => console.warn(`${spaces} ${LIGHT_YELLOW}⚠ ${message}${RESET}`),
       success: (message: string) => console.info(`${spaces} ${LIGHT_GREEN}✔ ${message}${RESET}`),
       error: (message: string, cause?: unknown) =>
-        console.error(`${spaces} → ${message}`, ...(cause !== undefined ? [cause] : [])),
+        console.error(
+          `${spaces} ${RED}✗ ${message}${RESET}`,
+          ...(cause !== undefined ? [cause] : []),
+        ),
       endSection: () => this.endSection(),
     };
   }
@@ -178,16 +183,14 @@ class ServerEndpoints {
   private async reloadEndpointModules() {
     const log = this.logger.startSection('reloadEndpointModules');
 
-    const previousEnabledAddresses = [...this.enabledAddresses];
-
     log.step('Reimportando módulos de endpoints (com cache-busting)');
     await this.importEndpointModules(true);
 
     log.step('Construindo lista de endpoints habilitados');
     this.buildEnabledEndpointList();
 
-    log.step('Preservando estado de módulos com erro de carregamento');
-    this.preserveFailedModulesState(previousEnabledAddresses);
+    log.step('Detectando duplicatas de endereços');
+    this.detectDuplicateEndpoints();
 
     log.step('Salvando arquivo de configuração');
     this.saveConfigFile();
@@ -249,8 +252,6 @@ class ServerEndpoints {
     log.step('Carregando endereços habilitados');
     this.loadEnabledEndpointsFile();
 
-    const previousEnabledAddresses = [...this.enabledAddresses];
-
     log.step('Resolvendo rotas do proxy');
     this.resolveProxyRoutes();
 
@@ -260,8 +261,8 @@ class ServerEndpoints {
     log.step('Construindo lista de endpoints habilitados');
     this.buildEnabledEndpointList();
 
-    log.step('Preservando estado de módulos com erro de carregamento');
-    this.preserveFailedModulesState(previousEnabledAddresses);
+    log.step('Detectando duplicatas de endereços');
+    this.detectDuplicateEndpoints();
 
     log.step('Atualizando arquivos de configuração do proxy e endpoints habilitados');
     this.saveConfigFile();
@@ -291,12 +292,24 @@ class ServerEndpoints {
 
     // suporte ao formato legado (string[])
     if (parsed.length > 0 && typeof parsed[0] === 'string') {
-      this.enabledAddresses = (parsed as string[]).map((addr) => ({
-        serverAddress: addr,
-        fileName: '',
-      }));
+      this.enabledAddresses = (parsed as string[])
+        .filter((entry) => /\.(ts|js)$/i.test(entry))
+        .map((fileName) => ({ fileName: fileName.trim() }));
+
+      const ignoredLegacyEntries = (parsed as string[]).filter(
+        (entry) => !/\.(ts|js)$/i.test(entry),
+      );
+      if (ignoredLegacyEntries.length > 0) {
+        log.warn(
+          `Entradas legadas sem fileName foram ignoradas: ${ignoredLegacyEntries.join(', ')}`,
+        );
+      }
     } else {
-      this.enabledAddresses = parsed as EnabledEndpointRecord[];
+      this.enabledAddresses = (parsed as EnabledEndpointRecord[])
+        .filter((record) => !!record?.fileName)
+        .map((record) => ({
+          fileName: record.fileName.trim(),
+        }));
     }
 
     log.endSection();
@@ -374,71 +387,110 @@ class ServerEndpoints {
     this.endpoints.failedFiles = [...this.failedModules];
     this.enabledEndpointModules = [];
 
+    const loadedFileNames = new Set(this.loadedModules.map((m) => m.fileName));
+    this.enabledAddresses = this.enabledAddresses.filter((record) =>
+      loadedFileNames.has(record.fileName),
+    );
+
+    const enabledFileNames = new Set(this.enabledAddresses.map((r) => r.fileName));
     const newEnabledAddresses: EnabledEndpointRecord[] = [];
 
-    for (const { endpoints, fileName } of this.loadedModules) {
-      for (const endpointModule of endpoints) {
-        const { description, localhostEndpoint, method, endpointServerPrefix } = endpointModule;
+    // Construir lista de endpoints
+    for (const { endpoint, fileName, loadError } of this.loadedModules) {
+      const enabled = enabledFileNames.has(fileName);
 
-        const serverPrefixApi = endpointServerPrefix
-          ? endpointServerPrefix
-          : this.envs.serverDefaultPrefixApi;
-
-        const serverAddress = path.join(serverPrefixApi, localhostEndpoint);
-
-        // prettier-ignore
-        const localhostAddress = `http://${path.join(`localhost:${this.envs.endpointServerPort}`,localhostEndpoint)}`;
-
-        delete this.jsonConfig[serverAddress];
-
-        const enabled = this.enabledAddresses.some((r) => r.serverAddress === serverAddress);
-
-        if (enabled) {
-          this.enabledEndpointModules.push(endpointModule);
-          this.jsonConfig[serverAddress] = localhostAddress;
-          newEnabledAddresses.push({ serverAddress, fileName });
-        }
-
+      if (loadError || !endpoint) {
         this.endpoints.listEndpoints.push({
-          description,
-          serverAddress,
-          localhostAddress,
-          method,
+          description: '',
+          serverAddress: '',
+          localhostAddress: '',
+          method: 'get',
           enabled,
           fileName,
-          loadError: false,
+          loadError: true,
+          isDuplicate: false,
+          duplicateFiles: [],
         });
+
+        if (enabled) {
+          newEnabledAddresses.push({ fileName });
+        }
+
+        continue;
       }
+
+      const { description, localhostEndpoint, method, endpointServerPrefix } = endpoint;
+
+      const serverPrefixApi = endpointServerPrefix
+        ? endpointServerPrefix
+        : this.envs.serverDefaultPrefixApi;
+
+      const serverAddress = path.join(serverPrefixApi, localhostEndpoint);
+
+      // prettier-ignore
+      const localhostAddress = `http://${path.join(`localhost:${this.envs.endpointServerPort}`,localhostEndpoint)}`;
+
+      delete this.jsonConfig[serverAddress];
+
+      if (enabled) {
+        this.enabledEndpointModules.push(endpoint);
+        this.jsonConfig[serverAddress] = localhostAddress;
+        newEnabledAddresses.push({ fileName });
+      }
+
+      this.endpoints.listEndpoints.push({
+        description,
+        serverAddress,
+        localhostAddress,
+        method,
+        enabled,
+        fileName,
+        loadError: false,
+        isDuplicate: false,
+        duplicateFiles: [],
+      });
     }
 
     this.enabledAddresses = newEnabledAddresses;
     log.endSection();
   }
 
-  private preserveFailedModulesState(previousEnabledAddresses: EnabledEndpointRecord[]) {
-    const log = this.logger.startSection('preserveFailedModulesState');
+  private detectDuplicateEndpoints(): void {
+    const log = this.logger.startSection('detectDuplicateEndpoints');
 
-    const loadedAddresses = new Set(this.endpoints.listEndpoints.map((e) => e.serverAddress));
+    const serverAddressMap = new Map<string, string[]>();
 
-    const orphaned = previousEnabledAddresses.filter((r) => !loadedAddresses.has(r.serverAddress));
+    // Mapear todos os serverAddresses para seus fileNames
+    for (const { endpoint, fileName, loadError } of this.loadedModules) {
+      if (!loadError && endpoint) {
+        const { localhostEndpoint, endpointServerPrefix } = endpoint;
+        const serverPrefixApi = endpointServerPrefix
+          ? endpointServerPrefix
+          : this.envs.serverDefaultPrefixApi;
+        const serverAddress = path.join(serverPrefixApi, localhostEndpoint);
 
-    if (orphaned.length > 0) {
-      log.warn(
-        `Módulo(s) com erro de carregamento tiveram seu estado preservado: ${orphaned.map((r) => r.serverAddress).join(', ')}`,
-      );
+        if (!serverAddressMap.has(serverAddress)) {
+          serverAddressMap.set(serverAddress, []);
+        }
+        serverAddressMap.get(serverAddress)!.push(fileName);
+      }
+    }
 
-      this.enabledAddresses = [...this.enabledAddresses, ...orphaned];
+    // Atribuir isDuplicate e duplicateFiles diretamente aos endpoints da lista
+    for (const endpoint of this.endpoints.listEndpoints) {
+      if (!endpoint.loadError && endpoint.serverAddress) {
+        const duplicateFiles = serverAddressMap.get(endpoint.serverAddress) || [];
+        const isDuplicate = duplicateFiles.length > 1;
 
-      for (const record of orphaned) {
-        this.endpoints.listEndpoints.push({
-          description: '',
-          serverAddress: record.serverAddress,
-          localhostAddress: '',
-          method: 'get',
-          enabled: true,
-          fileName: record.fileName,
-          loadError: true,
-        });
+        endpoint.isDuplicate = isDuplicate;
+        endpoint.duplicateFiles = duplicateFiles;
+
+        if (isDuplicate) {
+          const filesStr = duplicateFiles.filter((f) => f !== endpoint.fileName).join(', ');
+          log.warn(
+            `🔁 ${endpoint.fileName}: Endereço do servidor duplicado: "${endpoint.serverAddress}" está em: ${filesStr}`,
+          );
+        }
       }
     }
 
@@ -479,10 +531,12 @@ class ServerEndpoints {
 
       const { serverAddress, localhostAddress, fileName } = endpoint;
 
-      if (this.jsonConfig[serverAddress] === undefined) {
-        this.enableEndpoint(serverAddress, localhostAddress, fileName);
+      const isEnabled = this.enabledAddresses.some((record) => record.fileName === fileName);
+
+      if (!isEnabled) {
+        this.enableEndpoint(fileName, serverAddress, localhostAddress);
       } else {
-        this.disableEndpoint(serverAddress);
+        this.disableEndpoint(fileName, serverAddress);
       }
     }
 
@@ -493,19 +547,25 @@ class ServerEndpoints {
     log.endSection();
   }
 
-  private enableEndpoint(serverAddress: string, localhostAddress: string, fileName: string) {
+  private enableEndpoint(fileName: string, serverAddress: string, localhostAddress: string) {
     const log = this.logger.startSection('enableEndpoint');
     log.info(serverAddress);
+
+    if (!fileName.trim()) {
+      throw new Error(`fileName inválido para habilitar endpoint: ${serverAddress}`);
+    }
+
+    this.enabledAddresses = this.enabledAddresses.filter((record) => record.fileName !== fileName);
     this.jsonConfig[serverAddress] = localhostAddress;
-    this.enabledAddresses.push({ serverAddress, fileName });
+    this.enabledAddresses.push({ fileName: fileName.trim() });
     log.endSection();
   }
 
-  private disableEndpoint(serverAddress: string) {
+  private disableEndpoint(fileName: string, serverAddress: string) {
     const log = this.logger.startSection('disableEndpoint');
     log.info(serverAddress);
     delete this.jsonConfig[serverAddress];
-    const index = this.enabledAddresses.findIndex((r) => r.serverAddress === serverAddress);
+    const index = this.enabledAddresses.findIndex((r) => r.fileName === fileName);
     if (index > -1) {
       this.enabledAddresses.splice(index, 1);
     }
@@ -518,6 +578,8 @@ class ServerEndpoints {
     for (const endpoint of this.endpoints.listEndpoints) {
       delete this.jsonConfig[endpoint.serverAddress];
     }
+
+    this.enabledAddresses = [];
 
     this.buildEnabledEndpointList();
     this.saveConfigFile();
@@ -568,14 +630,22 @@ class ServerEndpoints {
         const uri = path.join(this.workspacePath, `endpoints/${file}.${ext}s`);
         const importUri = bustCache ? `${uri}?t=${Date.now()}` : uri;
 
-        const importedModule = (await import(importUri)) as ModuleEndpoint;
+        const importedModule = (await import(importUri)) as Partial<ModuleEndpoint>;
+
+        if (!isEndpointObject(importedModule.endpoint)) {
+          throw new Error(
+            `Módulo inválido: ${fileName}. Esperado export const endpoint: EndpointObject`,
+          );
+        }
 
         log.success(uri);
 
-        listImportedModules.push({ endpoints: importedModule.default, fileName });
-      } catch (error) {
-        log.error(`Erro ao carregar o módulo de endpoint: ${fileName}`, error);
+        listImportedModules.push({ endpoint: importedModule.endpoint, fileName, loadError: false });
+      } catch (e) {
+        const error = e as Error;
+        log.error(error?.message);
         this.failedModules.push({ fileName });
+        listImportedModules.push({ endpoint: null, fileName, loadError: true });
       }
     }
 

@@ -1,38 +1,40 @@
-import { type Request, type Response } from "express";
+import { type Request, type Response } from 'express';
 
 export type EndpointObject = {
   description: string;
   endpointServerPrefix?: string;
   localhostEndpoint: string;
-  method: "get" | "post" | "put" | "delete";
+  method: 'get' | 'post' | 'put' | 'delete';
   handler: (req: Request, res: Response) => void;
 };
 
 export type LoadedModule = {
-  endpoints: EndpointObject[];
+  endpoint: EndpointObject | null;
   fileName: string;
+  loadError: boolean;
 };
 
-export function isModuleEndpoints(module: unknown): module is EndpointObject[] {
-  return Array.isArray(module) && module.every((e) => isEndpoint(e));
+export function isEndpointObject(endpoint: unknown): endpoint is EndpointObject {
+  if (!endpoint || typeof endpoint !== 'object') {
+    return false;
+  }
+
+  return isEndpoint(endpoint as Partial<EndpointObject>);
 }
 
-function isEndpoint(
-  endpoint: Partial<EndpointObject>
-): endpoint is EndpointObject {
+function isEndpoint(endpoint: Partial<EndpointObject>): endpoint is EndpointObject {
   return (
     // typeof endpoint.endpointServerPrefix === "string" &&
-    typeof endpoint.localhostEndpoint === "string" &&
-    typeof endpoint.handler === "function" &&
+    typeof endpoint.localhostEndpoint === 'string' &&
+    typeof endpoint.handler === 'function' &&
     !!endpoint.method &&
-    ["get", "post", "put", "delete"].includes(endpoint.method)
+    ['get', 'post', 'put', 'delete'].includes(endpoint.method)
   );
 }
 
-export type ModuleEndpoint = { default: EndpointObject[] };
+export type ModuleEndpoint = { endpoint: EndpointObject };
 
 export type EnabledEndpointRecord = {
-  serverAddress: string;
   fileName: string;
 };
 
