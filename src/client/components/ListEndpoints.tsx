@@ -85,6 +85,22 @@ const S = {
     padding: '1px 6px',
   } satisfies CSSProperties,
 
+  openFileButton: {
+    padding: '2px 8px',
+    borderRadius: '4px',
+    border: '1px solid var(--color-border-muted)',
+    backgroundColor: 'var(--color-surface-raised)',
+    color: 'var(--color-text)',
+    cursor: 'pointer',
+    fontSize: '0.8em',
+  } satisfies CSSProperties,
+
+  itemActionContainer: {
+    marginLeft: 'auto',
+    display: 'flex',
+    alignItems: 'center',
+  } satisfies CSSProperties,
+
   endpointItemStyle: (isPending: boolean, isError: boolean): CSSProperties => ({
     display: 'flex',
     flexDirection: 'row',
@@ -108,10 +124,18 @@ const S = {
   }),
 
   endpointItemDescriptionStyle: (isPending: boolean, isError: boolean): CSSProperties => ({
-    flex: '1 100%',
+    flex: '1 1 auto',
+    minWidth: 0,
     color: isError ? 'var(--color-error)' : isPending ? 'var(--color-warning)' : 'inherit',
     fontWeight: isError || isPending ? 'bold' : 'normal',
   }),
+
+  endpointMetaRow: {
+    flex: '1 1 100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  } satisfies CSSProperties,
 
   listEndpointsContainerStyle: (isLoading: boolean): CSSProperties => ({
     opacity: isLoading ? 0.6 : 1,
@@ -131,6 +155,7 @@ type ListEndpointsProps = {
   pendingChanges?: Set<string>;
   isLoading?: boolean;
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
+  onOpenEndpointFile: (fileName: string) => void;
 };
 
 type EndpointItemProps = {
@@ -139,6 +164,7 @@ type EndpointItemProps = {
   isPending: boolean;
   isLoading: boolean;
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
+  onOpenEndpointFile: (fileName: string) => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -150,6 +176,7 @@ export const ListEndpoints = ({
   isLoading = false,
   pendingChanges = new Set(),
   onAddPendingEndpoint,
+  onOpenEndpointFile,
 }: ListEndpointsProps) => {
   const allEndpoints = endpoints?.listEndpoints ?? [];
   const failedFiles = endpoints?.failedFiles ?? [];
@@ -195,6 +222,7 @@ export const ListEndpoints = ({
             isPending={pendingChanges.has(endpoint.localhostAddress)}
             displayEnabled={true}
             onAddPendingEndpoint={onAddPendingEndpoint}
+            onOpenEndpointFile={onOpenEndpointFile}
             isLoading={isLoading}
           />
         ))}
@@ -203,7 +231,11 @@ export const ListEndpoints = ({
       <EndpointSection variant="disabled" count={disabledCount}>
         <EmptyMessage show={disabledCount === 0} message="Nenhum endpoint desabilitado" />
         {failedFilesNotInList.map((record) => (
-          <FailedFileItem key={record.fileName} record={record} />
+          <FailedFileItem
+            key={record.fileName}
+            record={record}
+            onOpenEndpointFile={onOpenEndpointFile}
+          />
         ))}
         {disabled.map((endpoint) => (
           <EndpointItem
@@ -212,6 +244,7 @@ export const ListEndpoints = ({
             isPending={pendingChanges.has(endpoint.localhostAddress)}
             displayEnabled={false}
             onAddPendingEndpoint={onAddPendingEndpoint}
+            onOpenEndpointFile={onOpenEndpointFile}
             isLoading={isLoading}
           />
         ))}
@@ -224,7 +257,13 @@ export const ListEndpoints = ({
 // FailedFileItem
 // ---------------------------------------------------------------------------
 
-const FailedFileItem = ({ record }: { record: FailedModuleRecord }) => (
+const FailedFileItem = ({
+  record,
+  onOpenEndpointFile,
+}: {
+  record: FailedModuleRecord;
+  onOpenEndpointFile: (fileName: string) => void;
+}) => (
   <li style={S.endpointItemStyle(false, true)}>
     <span style={S.endpointItemDescriptionStyle(false, true)}>Erro ao carregar módulo</span>
     <span
@@ -236,6 +275,14 @@ const FailedFileItem = ({ record }: { record: FailedModuleRecord }) => (
     >
       📄 {record.fileName}
     </span>
+    <button
+      type="button"
+      onClick={() => onOpenEndpointFile(record.fileName)}
+      style={S.openFileButton}
+      title="Abrir arquivo no VS Code"
+    >
+      Abrir arquivo
+    </button>
     <span style={S.errorBadge}>erro</span>
   </li>
 );
@@ -250,6 +297,7 @@ const EndpointItem = ({
   isPending,
   isLoading,
   onAddPendingEndpoint,
+  onOpenEndpointFile,
 }: EndpointItemProps) => {
   const isError = endpoint.loadError;
   return (
@@ -262,24 +310,39 @@ const EndpointItem = ({
       />
       {endpoint.fileName && (
         <span style={{ opacity: 0.7, fontSize: '0.8em', fontFamily: 'monospace' }}>
-          📄 {endpoint.fileName} aa
+          📄 {endpoint.fileName}
         </span>
       )}
       <span style={S.endpointItemDescriptionStyle(isPending, isError)}>
         {isError ? 'Erro ao carregar módulo' : endpoint.description}
       </span>
-      {isError ? (
-        <>
-          <span style={{ color: 'var(--color-error)' }}>{endpoint.serverAddress}</span>
-          <span style={S.errorBadge}>erro</span>
-        </>
-      ) : (
-        <>
-          <span>{endpoint.serverAddress}</span>
-          <span style={S.endpointItemSeparator}> — </span>
-          <span style={S.endpointItemAddress}>{endpoint.localhostAddress}</span>
-        </>
+      {endpoint.fileName && (
+        <div style={S.itemActionContainer}>
+          <button
+            type="button"
+            onClick={() => onOpenEndpointFile(endpoint.fileName)}
+            style={S.openFileButton}
+            title="Abrir arquivo no VS Code"
+            disabled={isLoading}
+          >
+            Abrir arquivo
+          </button>
+        </div>
       )}
+      <div style={S.endpointMetaRow}>
+        {isError ? (
+          <>
+            <span style={{ color: 'var(--color-error)' }}>{endpoint.serverAddress}</span>
+            <span style={S.errorBadge}>erro</span>
+          </>
+        ) : (
+          <>
+            <span>{endpoint.serverAddress}</span>
+            <span style={S.endpointItemSeparator}> — </span>
+            <span style={S.endpointItemAddress}>{endpoint.localhostAddress}</span>
+          </>
+        )}
+      </div>
       <PendingBadge isPending={isPending} />
     </li>
   );

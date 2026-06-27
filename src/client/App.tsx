@@ -133,7 +133,10 @@ const S = {
 type LoadingState = 'idle' | 'fetching' | 'saving';
 
 export default function App() {
-  const [endpoints, setEndpoints] = useState<Endpoints | null>({ listEndpoints: [], failedFiles: [] });
+  const [endpoints, setEndpoints] = useState<Endpoints | null>({
+    listEndpoints: [],
+    failedFiles: [],
+  });
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessage | null>(null);
   const [pendingChanges, setPendingChanges] = useState<Record<string, Endpoint>>({});
@@ -179,6 +182,18 @@ export default function App() {
       }
       return { ...prev, [endpoint.localhostAddress]: endpoint };
     });
+  }, []);
+
+  const handleOpenEndpointFile = useCallback(async (fileName: string) => {
+    try {
+      await axios.post('/api/open-endpoint-file', { fileName });
+      setFeedbackMessage({ text: `Abrindo ${fileName} no VS Code...`, type: 'info' });
+    } catch (error) {
+      console.error('Erro ao abrir arquivo de endpoint:', error);
+      setFeedbackMessage({ text: `Erro ao abrir arquivo: ${fileName}`, type: 'error' });
+    } finally {
+      setTimeout(() => setFeedbackMessage(null), 3000);
+    }
   }, []);
 
   const handleSaveStart = useCallback(() => {
@@ -306,6 +321,7 @@ export default function App() {
         isLoading={loadingState !== 'idle'}
         pendingChanges={new Set(pendingKeys)}
         onAddPendingEndpoint={onAddPendingEndpoint}
+        onOpenEndpointFile={handleOpenEndpointFile}
       />
 
       <ActionsBar

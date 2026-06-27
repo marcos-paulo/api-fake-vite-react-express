@@ -1,3 +1,7 @@
+import fs from 'fs';
+import { spawn } from 'node:child_process';
+import path from 'path';
+
 import express from 'express';
 
 import { type Endpoint } from '../types/Endpoints';
@@ -84,6 +88,47 @@ app.post('/api/disable', (_req, res) => {
   res.status(200).send('');
 });
 
+type OpenEndpointFileRequest = {
+  fileName?: string;
+};
+
+app.post('/api/open-endpoint-file', (req, res) => {
+  const { fileName } = req.body as OpenEndpointFileRequest;
+
+  if (!fileName || typeof fileName !== 'string') {
+    return res.status(400).json({ error: 'fileName é obrigatório' });
+  }
+
+  if (!/\.(ts|js)$/i.test(fileName)) {
+    return res.status(400).json({ error: 'Apenas arquivos .ts e .js são permitidos' });
+  }
+
+  const normalizedFileName = path.basename(fileName);
+  const workspacePath = path.resolve(
+    getConfig().WORKSPACES_ROOT_PATH,
+    getConfig().ACTIVE_WORKSPACE,
+  );
+  const endpointsDir = path.resolve(workspacePath, 'endpoints');
+  const endpointFilePath = path.resolve(endpointsDir, normalizedFileName);
+
+  if (!endpointFilePath.startsWith(`${endpointsDir}${path.sep}`)) {
+    return res.status(400).json({ error: 'Caminho de arquivo inválido' });
+  }
+
+  if (!fs.existsSync(endpointFilePath)) {
+    return res.status(404).json({ error: `Arquivo não encontrado: ${normalizedFileName}` });
+  }
+
+  const codeProcess = spawn('code', ['-g', endpointFilePath], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  codeProcess.unref();
+
+  console.log(`REQUEST: /api/open-endpoint-file -> ${endpointFilePath}`);
+  return res.status(200).json({ ok: true });
+});
+
 app.post('/api/shutdown', (_req, res) => {
   console.log('REQUEST: /api/shutdown');
   res.status(200).send('');
@@ -91,7 +136,7 @@ app.post('/api/shutdown', (_req, res) => {
 });
 
 // SIMULAÇÃO: rota que lança erro intencionalmente para demonstrar o error handler
-app.get('/api/simulate-error', (_req, _res, next) => {
+app.get('/api/simulate-error', (_req, _res) => {
   throw new Error('Erro simulado para demonstração');
   // next({ error: new Error('Erro simulado para demonstração'), status: 500 });
 });
