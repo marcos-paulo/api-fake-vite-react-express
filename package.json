@@ -10,7 +10,8 @@
     }
   },
   "bin": {
-    "api-fake": "./bin/api-fake.cjs"
+    "api-fake": "./bin/api-fake.cjs",
+    "api-fake-browser": "./bin/api-fake-browser.cjs"
   },
   "scripts": {
     "BUN-SCRIPTS": "-------------------------------------------------------------------------------",
@@ -29,6 +30,7 @@
     "electron:dev": "wait-on tcp:3343 && NODE_ENV=development electron --ozone-platform=x11 --disable-gpu dist/electron/main.js",
     "dev:with:electron": "concurrently --handle-input --default-input-target 0 --names \"BACKEND,FRONTEND,ELECTRON\" --prefix-colors \"blue,green,cyan\" --kill-others \"npm:server:watch\" \"npm:dev-vite-wait\" \"npm:electron:dev\"",
     "dev:without:electron": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm:server:watch\" \"npm:dev-vite\"",
+    "dev:browser": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm:server:watch\" \"npm:dev-vite\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
