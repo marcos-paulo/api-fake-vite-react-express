@@ -13,4 +13,6 @@ export type Endpoint = {
   enabled: boolean;
   fileName: string;
   loadError: boolean;
+  isDuplicate: boolean;
+  duplicateFiles: string[];
 };
