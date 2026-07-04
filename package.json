@@ -11,9 +11,9 @@
     }
   },
   "bin": {
-    "api-fake-browser": "./bin/api-fake-browser.cjs",
-    "api-fake-puppeteer": "./bin/api-fake-puppeteer.cjs",
-    "api-fake-electron": "./bin/api-fake-electron.cjs"
+    "api-fake-browser": "./bin/api-fake-browser.mjs",
+    "api-fake-puppeteer": "./bin/api-fake-puppeteer.mjs",
+    "api-fake-electron": "./bin/api-fake-electron.mjs"
   },
   "scripts": {
     "CLIENTE    ": "-------------------------------------------------------------------------------",
@@ -27,18 +27,19 @@
     "ELECTRON   ": "-------------------------------------------------------------------------------",
     "electron:dev": "wait-on tcp:3343 && NODE_ENV=development electron --ozone-platform=x11 --disable-gpu dist/electron/main.js",
     "NPM-SCRIPTS": "-------------------------------------------------------------------------------",
+    "postinstall": "tsx src/postinstall/download-puppeteer.ts",
     "dev:with:puppeteer": "concurrently --handle-input --default-input-target 0 --names \"BACKEND,FRONTEND,PUPPETEER\" --prefix-colors \"blue,green,cyan\" --kill-others \"npm:server:dev:watch\" \"npm:client:dev:wait\" \"npm:puppeteer:dev\"",
     "dev:with:electron": "concurrently --handle-input --default-input-target 0 --names \"BACKEND,FRONTEND,ELECTRON\" --prefix-colors \"blue,green,cyan\" --kill-others \"npm:server:dev:watch\" \"npm:client:dev:wait\" \"npm:electron:dev\"",
     "dev:browser": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm:server:dev:watch\" \"npm:client:dev\"",
     "lint": "eslint .",
     "COMPILE    ": "-------------------------------------------------------------------------------",
     "build:types": "tsup src/types/index.ts --dts-only --format esm --out-dir dist/types",
-    "build:server": "tsup src/server/server.ts --format esm,cjs --dts --out-dir dist/server --tsconfig tsconfig.pack-server.json",
+    "build:server": "tsup src/server/server.ts --format esm --dts --out-dir dist/server --tsconfig tsconfig.pack-server.json",
     "build:client": "vite build",
     "build:puppeteer": "tsup src/puppeteer/main.ts --format esm --out-dir dist/puppeteer --tsconfig tsconfig.pack-puppeteer.json --external puppeteer --clean",
-    "build:puppeteer:prod-bin": "tsup src/bin/api-fake-puppeteer-prod.ts --format cjs --out-dir dist/bin --tsconfig tsconfig.pack-bin.json && npm run build:puppeteer:prod-bin:fix-shebang",
-    "build:puppeteer:prod-bin:fix-shebang": "node ./scripts/fix-cli-shebang.mjs ./dist/bin/api-fake-puppeteer-prod.cjs",
-    "build:postinstall": "tsup src/postinstall/postinstall-add-script.ts --format cjs --out-dir dist/scripts --tsconfig tsconfig.pack-postinstall.json",
+    "build:puppeteer:prod-bin": "tsup src/bin/api-fake-puppeteer-prod.ts --format esm --out-dir dist/bin --tsconfig tsconfig.pack-bin.json && mv dist/bin/api-fake-puppeteer-prod.js dist/bin/api-fake-puppeteer-prod.mjs && npm run build:puppeteer:prod-bin:fix-shebang",
+    "build:puppeteer:prod-bin:fix-shebang": "node ./scripts/fix-cli-shebang.mjs ./dist/bin/api-fake-puppeteer-prod.mjs",
+    "build:postinstall": "tsup src/postinstall/postinstall-add-script.ts src/postinstall/download-puppeteer.ts --format esm --out-dir dist/scripts --tsconfig tsconfig.pack-postinstall.json && mv dist/scripts/postinstall-add-script.js dist/scripts/postinstall-add-script.mjs && mv dist/scripts/download-puppeteer.js dist/scripts/download-puppeteer.mjs",
     "build:electron": "tsup src/electron/main.ts --format esm --out-dir dist/electron --tsconfig tsconfig.pack-electron.json",
     "BUILD      ": "-------------------------------------------------------------------------------",
     "rm-dist": "rm -rfv dist dist-package dist-target",

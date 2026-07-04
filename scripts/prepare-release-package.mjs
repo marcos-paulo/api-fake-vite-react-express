@@ -14,9 +14,10 @@ const packageScriptsDir = path.join(packageDir, 'scripts');
 
 const rootPackageJsonPath = path.join(rootDir, 'package.json');
 const rootReadmePath = path.join(rootDir, 'README.md');
-const compiledPostInstallPath = path.join(rootDir, 'dist', 'scripts', 'postinstall-add-script.cjs');
+const compiledPostInstallPath = path.join(rootDir, 'dist', 'scripts', 'postinstall-add-script.mjs');
+const compiledDownloadPuppeteerPath = path.join(rootDir, 'dist', 'scripts', 'download-puppeteer.mjs');
 
-const productionBinFileName = 'api-fake-puppeteer-prod.cjs';
+const productionBinFileName = 'api-fake-puppeteer-prod.mjs';
 
 if (!fs.existsSync(sourceDistDir)) {
   throw new Error('Diretório dist não encontrado. Execute o build antes de preparar o pacote.');
@@ -38,7 +39,7 @@ const packageJson = {
   },
   files: ['dist', 'scripts', 'README.md'],
   scripts: {
-    postinstall: 'node ./scripts/postinstall-add-script.cjs',
+    postinstall: 'node ./scripts/postinstall-add-script.mjs && node ./scripts/download-puppeteer.mjs',
   },
   dependencies: {
     ...rootPackageJson.dependencies,
@@ -55,6 +56,12 @@ if (!fs.existsSync(compiledPostInstallPath)) {
   );
 }
 
+if (!fs.existsSync(compiledDownloadPuppeteerPath)) {
+  throw new Error(
+    'Script de download do puppeteer compilado nao encontrado. Execute o build antes de preparar o pacote.',
+  );
+}
+
 fs.cpSync(sourceDistDir, packageDistDir, {
   recursive: true,
   filter: (source) => {
@@ -64,7 +71,12 @@ fs.cpSync(sourceDistDir, packageDistDir, {
 
 fs.copyFileSync(
   compiledPostInstallPath,
-  path.join(packageScriptsDir, 'postinstall-add-script.cjs'),
+  path.join(packageScriptsDir, 'postinstall-add-script.mjs'),
+);
+
+fs.copyFileSync(
+  compiledDownloadPuppeteerPath,
+  path.join(packageScriptsDir, 'download-puppeteer.mjs'),
 );
 
 if (fs.existsSync(rootReadmePath)) {
