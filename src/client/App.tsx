@@ -175,11 +175,11 @@ export default function App() {
   const onAddPendingEndpoint = useCallback((endpoint: Endpoint) => {
     setPendingChanges((prev) => {
       // Se o endpoint já estiver pendente, remove das pendências (toggle)
-      if (endpoint.localhostAddress in prev) {
-        const { [endpoint.localhostAddress]: _, ...rest } = prev;
+      if (endpoint.fileName in prev) {
+        const { [endpoint.fileName]: _, ...rest } = prev;
         return rest;
       }
-      return { ...prev, [endpoint.localhostAddress]: endpoint };
+      return { ...prev, [endpoint.fileName]: endpoint };
     });
   }, []);
 
