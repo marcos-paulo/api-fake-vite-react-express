@@ -178,15 +178,6 @@ type ListEndpointsProps = {
   onOpenEndpointFile: (fileName: string) => void;
 };
 
-type EndpointItemProps = {
-  endpoint: Endpoint;
-  displayEnabled: boolean;
-  isPending: boolean;
-  isLoading: boolean;
-  onAddPendingEndpoint: (endpoint: Endpoint) => void;
-  onOpenEndpointFile: (fileName: string) => void;
-};
-
 // ---------------------------------------------------------------------------
 // ListEndpoints
 // ---------------------------------------------------------------------------
@@ -205,7 +196,7 @@ export const ListEndpoints = ({
     ...allEndpoints.filter((ep) => ep.loadError && ep.enabled),
     ...allEndpoints.filter((ep) => {
       if (ep.loadError) return false;
-      const isPending = pendingChanges.has(ep.localhostAddress);
+      const isPending = pendingChanges.has(ep.fileName);
       return isPending ? !ep.enabled : ep.enabled;
     }),
   ];
@@ -214,7 +205,7 @@ export const ListEndpoints = ({
     ...allEndpoints.filter((ep) => ep.loadError && !ep.enabled),
     ...allEndpoints.filter((ep) => {
       if (ep.loadError) return false;
-      const isPending = pendingChanges.has(ep.localhostAddress);
+      const isPending = pendingChanges.has(ep.fileName);
       return isPending ? ep.enabled : !ep.enabled;
     }),
   ];
@@ -230,7 +221,7 @@ export const ListEndpoints = ({
           <EndpointItem
             key={endpoint.serverAddress + endpoint.fileName}
             endpoint={endpoint}
-            isPending={pendingChanges.has(endpoint.localhostAddress)}
+            isPending={pendingChanges.has(endpoint.fileName)}
             displayEnabled={true}
             onAddPendingEndpoint={onAddPendingEndpoint}
             onOpenEndpointFile={onOpenEndpointFile}
@@ -245,7 +236,7 @@ export const ListEndpoints = ({
           <EndpointItem
             key={endpoint.fileName}
             endpoint={endpoint}
-            isPending={pendingChanges.has(endpoint.localhostAddress)}
+            isPending={pendingChanges.has(endpoint.fileName)}
             displayEnabled={false}
             onAddPendingEndpoint={onAddPendingEndpoint}
             onOpenEndpointFile={onOpenEndpointFile}
@@ -260,6 +251,15 @@ export const ListEndpoints = ({
 // ---------------------------------------------------------------------------
 // EndpointItem
 // ---------------------------------------------------------------------------
+
+type EndpointItemProps = {
+  endpoint: Endpoint;
+  displayEnabled: boolean;
+  isPending: boolean;
+  isLoading: boolean;
+  onAddPendingEndpoint: (endpoint: Endpoint) => void;
+  onOpenEndpointFile: (fileName: string) => void;
+};
 
 const EndpointItem = ({
   endpoint,

@@ -491,6 +491,7 @@ class ServerEndpoints {
     }
 
     this.buildEnabledEndpointList();
+    this.detectDuplicateEndpoints();
 
     this.saveConfigFile();
 
@@ -532,7 +533,24 @@ class ServerEndpoints {
     this.enabledAddresses = [];
 
     this.buildEnabledEndpointList();
+    this.detectDuplicateEndpoints();
     this.saveConfigFile();
+
+    log.endSection();
+  }
+
+  clearProxyEndpointsOnShutdown() {
+    const log = this.logger.startSection('clearProxyEndpointsOnShutdown');
+
+    for (const endpoint of this.endpoints.listEndpoints) {
+      if (!endpoint.serverAddress) {
+        continue;
+      }
+
+      delete this.jsonConfig[endpoint.serverAddress];
+    }
+
+    this.saveConfigFile(this.globalJsonConfig, this.enabledAddresses);
 
     log.endSection();
   }
