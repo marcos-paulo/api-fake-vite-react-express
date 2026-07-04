@@ -427,10 +427,12 @@ class ServerEndpoints {
           : this.envs.serverDefaultPrefixApi;
         const serverAddress = path.join(serverPrefixApi, localhostEndpoint);
 
-        if (!serverAddressMap.has(serverAddress)) {
-          serverAddressMap.set(serverAddress, []);
+        let filesForAddress = serverAddressMap.get(serverAddress);
+        if (!filesForAddress) {
+          filesForAddress = [];
+          serverAddressMap.set(serverAddress, filesForAddress);
         }
-        serverAddressMap.get(serverAddress)!.push(fileName);
+        filesForAddress.push(fileName);
       }
     }
 
