@@ -246,12 +246,7 @@ export default function App() {
 
       es = new EventSource(sseUrl);
 
-      es.onopen = () => {
-        console.log('[SSE] Conectado');
-      };
-
-      es.onmessage = (event) => {
-        console.log('[SSE] Mensagem recebida:', event.data);
+      es.onmessage = () => {
         fetchEndpoints().catch(console.error);
       };
 
@@ -270,7 +265,6 @@ export default function App() {
       destroyed = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
       es?.close();
-      console.log('[SSE] Encerrando conexão');
     };
   }, [fetchEndpoints]);
 

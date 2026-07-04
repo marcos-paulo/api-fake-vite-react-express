@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
 import { getConfig } from '../server/server-load-config';
 
 const __filename = fileURLToPath(import.meta.url);

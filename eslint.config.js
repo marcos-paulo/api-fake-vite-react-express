@@ -84,4 +84,23 @@ export default tseslint.config(
       '@typescript-eslint/require-await': 'error',
     },
   },
+
+  // ---------------------------------------------------------------------------
+  // Scripts de CLI/build — o console é a própria interface com quem roda o comando
+  // ---------------------------------------------------------------------------
+  {
+    files: [
+      'src/bin/**/*.ts',
+      'src/postinstall/**/*.ts',
+      'src/puppeteer/**/*.ts',
+      'src/electron/**/*.ts',
+      'vite.config.ts',
+    ],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+    rules: {
+      'no-console': 'off',
+    },
+  },
 );
