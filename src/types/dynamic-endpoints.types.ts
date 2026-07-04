@@ -7,6 +7,7 @@ export type EndpointObject = {
   endpointServerPrefix?: string;
   localhostEndpoint: string;
   method: EndpointMethod;
+  tags?: string[];
   handler: (req: Request, res: Response) => void;
 };
 
@@ -25,12 +26,17 @@ export function isEndpointObject(endpoint: unknown): endpoint is EndpointObject 
 }
 
 function isEndpoint(endpoint: Partial<EndpointObject>): endpoint is EndpointObject {
+  const hasValidTags =
+    endpoint.tags === undefined ||
+    (Array.isArray(endpoint.tags) && endpoint.tags.every((tag) => typeof tag === 'string'));
+
   return (
     // typeof endpoint.endpointServerPrefix === "string" &&
     typeof endpoint.localhostEndpoint === 'string' &&
     typeof endpoint.handler === 'function' &&
     !!endpoint.method &&
-    ['get', 'post', 'put', 'delete'].includes(endpoint.method)
+    ['get', 'post', 'put', 'delete'].includes(endpoint.method) &&
+    hasValidTags
   );
 }
 

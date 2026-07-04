@@ -9,6 +9,7 @@ export type Endpoint = {
   serverAddress: string;
   localhostAddress: string;
   method: EndpointMethod;
+  tags: string[];
   enabled: boolean;
   fileName: string;
   loadError: boolean;

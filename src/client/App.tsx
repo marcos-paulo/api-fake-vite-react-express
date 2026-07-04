@@ -295,14 +295,16 @@ export default function App() {
       listEndpoints:
         filterRegexes.length === 0
           ? endpoints.listEndpoints
-          : endpoints.listEndpoints.filter((ep) =>
-              filterRegexes.some(
+          : endpoints.listEndpoints.filter((ep) => {
+              const tagsText = ep.tags.join(' ');
+              return filterRegexes.some(
                 (regex) =>
                   regex.test(ep.description) ||
                   regex.test(ep.localhostAddress) ||
-                  regex.test(ep.method),
-              ),
-            ),
+                  regex.test(ep.method) ||
+                  regex.test(tagsText),
+              );
+            }),
     };
   }, [endpoints, filterRegexes]);
 
@@ -380,7 +382,7 @@ const FilterBar = ({ value, onChange }: FilterBarProps) => (
     <input
       style={S.filterInput}
       type="text"
-      placeholder="Filtrar por descrição, endereço ou método..."
+      placeholder="Filtrar por descrição, endereço, método ou tag..."
       value={value}
       onChange={(e) => onChange(e.target.value)}
     />
