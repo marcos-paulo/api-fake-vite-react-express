@@ -10,7 +10,7 @@ import {
 } from '../types/dynamic-endpoints.types';
 import type { Endpoint, Endpoints } from '../types/endpoints.types';
 import { LoadingGate } from './loading-gate';
-import { Logger } from './logger';
+import { logger as appLogger } from './logger';
 import { configValidators, getConfig } from './server-load-config';
 
 class ServerEndpoints {
@@ -56,7 +56,7 @@ class ServerEndpoints {
     'initialEnabledEndpoints.json',
   );
 
-  private logger = new Logger();
+  private logger = appLogger;
 
   private loadingGate = new LoadingGate();
 
@@ -604,11 +604,22 @@ class ServerEndpoints {
   }
 }
 
-let endpointsServer: ServerEndpoints;
-
-export async function createServerEndpointsManager() {
+export function createServerEndpointsManager() {
   endpointsServer = new ServerEndpoints();
-  await endpointsServer.beginLoading();
 }
+
+export function startServerEndpointsManager() {
+  if (!endpointsServer) {
+    createServerEndpointsManager();
+  }
+
+  endpointsServer.beginLoading().catch((error) => {
+    const log = appLogger.logToSection('createServerEndpointsManager - unhandledError');
+    log.error('Erro inesperado ao iniciar o carregamento dos endpoints', error);
+    log.endSection();
+  });
+}
+
+let endpointsServer: ServerEndpoints;
 
 export { endpointsServer };
