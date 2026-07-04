@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-import type { Endpoint, Endpoints } from '../../types/Endpoints';
+import type { Endpoint, Endpoints } from '../../types/endpoints.types';
 
 // ---------------------------------------------------------------------------
 // Estilos estáticos (nível de módulo)

@@ -2,7 +2,7 @@ import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import { type CSSProperties, useCallback, useEffect, useMemo, useState } from 'react';
 
-import type { Endpoint, Endpoints } from '../types/Endpoints';
+import type { Endpoint, Endpoints } from '../types/endpoints.types';
 import { ListEndpoints } from './components/ListEndpoints';
 
 const S = {
@@ -135,7 +135,6 @@ type LoadingState = 'idle' | 'fetching' | 'saving';
 export default function App() {
   const [endpoints, setEndpoints] = useState<Endpoints | null>({
     listEndpoints: [],
-    failedFiles: [],
   });
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessage | null>(null);
@@ -156,7 +155,7 @@ export default function App() {
 
   const handleFetchError = useCallback((error: unknown) => {
     console.error('Erro ao buscar endpoints:', error);
-    setEndpoints({ listEndpoints: [], failedFiles: [] });
+    setEndpoints({ listEndpoints: [] });
     setFeedbackMessage({ text: 'Erro ao carregar endpoints', type: 'error' });
   }, []);
 
@@ -293,7 +292,6 @@ export default function App() {
   const filteredEndpoints = useMemo(() => {
     if (!endpoints) return null;
     return {
-      failedFiles: endpoints.failedFiles,
       listEndpoints:
         filterRegexes.length === 0
           ? endpoints.listEndpoints
