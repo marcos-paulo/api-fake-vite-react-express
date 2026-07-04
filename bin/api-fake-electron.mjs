@@ -14,7 +14,7 @@ const isFirstRun = !fs.existsSync(electronMain);
 
 if (isFirstRun) {
   console.log('🔨 Primeira execução: compilando Electron...');
-  execSync('npm run electron:compile', { cwd: pkgRoot, stdio: 'inherit' });
+  execSync('npm run build:electron', { cwd: pkgRoot, stdio: 'inherit' });
 }
 
 console.log('🚀 Iniciando api-fake com Electron...');
