@@ -355,6 +355,7 @@ class ServerEndpoints {
           serverAddress: '',
           localhostAddress: '',
           method: 'get',
+          tags: [],
           enabled,
           fileName,
           loadError: true,
@@ -370,6 +371,12 @@ class ServerEndpoints {
       }
 
       const { description, localhostEndpoint, method, endpointServerPrefix } = endpoint;
+      const tags = Array.isArray(endpoint.tags)
+        ? endpoint.tags
+            .filter((tag): tag is string => typeof tag === 'string')
+            .map((tag) => tag.trim())
+            .filter(Boolean)
+        : [];
 
       const serverPrefixApi = endpointServerPrefix
         ? endpointServerPrefix
@@ -393,6 +400,7 @@ class ServerEndpoints {
         serverAddress,
         localhostAddress,
         method,
+        tags,
         enabled,
         fileName,
         loadError: false,

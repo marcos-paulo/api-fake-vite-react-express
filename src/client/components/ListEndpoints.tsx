@@ -150,6 +150,24 @@ const S = {
     minWidth: 0,
   } satisfies CSSProperties,
 
+  endpointItemTagsRow: {
+    flex: '1 1 100%',
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: '6px',
+  } satisfies CSSProperties,
+
+  endpointTagBadge: {
+    padding: '2px 8px',
+    borderRadius: '999px',
+    border: '1px solid var(--color-border-muted)',
+    backgroundColor: 'var(--color-surface-raised)',
+    color: 'var(--color-text-muted)',
+    fontSize: '0.75em',
+    fontWeight: 600,
+  } satisfies CSSProperties,
+
   endpointItemMetaRow: {
     flex: '1 1 100%',
     display: 'flex',
@@ -335,6 +353,17 @@ const EndpointItem = ({
           </>
         )}
       </div>
+
+      {/* Linha 4: Tags */}
+      {!isError && endpoint.tags.length > 0 && (
+        <div style={S.endpointItemTagsRow}>
+          {endpoint.tags.map((tag) => (
+            <span key={`${endpoint.fileName}-${tag}`} style={S.endpointTagBadge}>
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
     </li>
   );
 };
