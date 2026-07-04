@@ -5,20 +5,22 @@ const workDir = process.env.API_FAKE_WORKDIR ?? process.cwd();
 const configFile = path.join(workDir, 'api-fake.config.json');
 
 const defaultConfig = {
-  CLIENT_APP_PORT: '3343',
-  CLIENT_API_PORT: '3342',
+  APP_PORT: 3343,
+  API_PORT: 3342,
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: '/api',
-  WORKSPACES_ROOT_PATH: 'root-endpoints',
-  ACTIVE_WORKSPACE: '',
+  WORKSPACES_ROOT_PATH: 'src',
+  ACTIVE_WORKSPACE: 'grupo-endpoints',
   PROXY_CONFIG_FILE: '',
   PROXY_CONFIG_FILE_ADDRESS_KEY: '',
   BROWSER: '',
   BROWSER_ARGS: '',
 };
 
-type ConfigKey = keyof typeof defaultConfig;
+type Configs = typeof defaultConfig;
 
-const config = { ...defaultConfig };
+type ConfigKey = keyof Configs;
+
+const config: Configs = { ...defaultConfig };
 
 export function getConfig() {
   return config;
@@ -29,16 +31,18 @@ function isValidConfigKey(key: string | undefined): key is ConfigKey {
   return key in defaultConfig;
 }
 
-const pathKeys: ConfigKey[] = ['WORKSPACES_ROOT_PATH', 'PROXY_CONFIG_FILE'];
+type ConfigKeyWithPath = Extract<ConfigKey, 'WORKSPACES_ROOT_PATH' | 'PROXY_CONFIG_FILE'>;
+type ConfigPaths = Pick<Configs, (typeof pathKeys)[number]>;
+const pathKeys: ConfigKeyWithPath[] = ['WORKSPACES_ROOT_PATH', 'PROXY_CONFIG_FILE'];
 
-function resolvePaths(cfg: typeof defaultConfig): typeof defaultConfig {
-  const resolved = { ...cfg };
+function resolvePaths(cfg: Configs): Configs {
+  const resolved = { ...cfg } as ConfigPaths;
   for (const key of pathKeys) {
     if (resolved[key]) {
       resolved[key] = path.resolve(workDir, resolved[key]);
     }
   }
-  return resolved;
+  return resolved as Configs;
 }
 
 function syncConfigFile() {
@@ -68,9 +72,7 @@ function syncConfigFile() {
   }
 
   const resolved = resolvePaths(merged);
-  keys.forEach((key) => {
-    config[key] = resolved[key];
-  });
+  Object.assign(config, resolved);
 }
 
 class ConfigValidationError {
@@ -116,9 +118,19 @@ function noopValidator() {
   return { fail: () => {} };
 }
 
+function portValidator() {
+  const port = config.APP_PORT;
+  if (typeof port !== 'number' || port <= 0 || port > 65535) {
+    const help = ['APP_PORT deve ser um número inteiro entre 1 e 65535.'].join('\n');
+    const error = new ConfigValidationError({ help, key: 'APP_PORT' });
+    error.exit('');
+  }
+  return noopValidator();
+}
+
 export const configValidators: ConfigValidators = {
-  CLIENT_APP_PORT: noopValidator,
-  CLIENT_API_PORT: noopValidator,
+  APP_PORT: portValidator,
+  API_PORT: portValidator,
   SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: noopValidator,
   WORKSPACES_ROOT_PATH: () => {
     const help = [
@@ -165,9 +177,8 @@ export const configValidators: ConfigValidators = {
       error.exit('');
     }
 
-    if (!fs.existsSync(path.resolve(rootPath, config.ACTIVE_WORKSPACE))) {
-      error.exit('Diretório de trabalho dos endpoints não encontrado.');
-    }
+    const resolvedPath = path.resolve(rootPath, config.ACTIVE_WORKSPACE);
+    fs.mkdirSync(resolvedPath, { recursive: true });
 
     return noopValidator();
   },
@@ -273,4 +284,3 @@ export function loadConfig() {
 }
 
 loadConfig();
-

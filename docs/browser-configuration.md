@@ -36,8 +36,8 @@ BROWSER_ARGS="--incognito --new-window"
 
 ```json
 {
-  "CLIENT_APP_PORT": "3343",
-  "CLIENT_API_PORT": "3342",
+  "APP_PORT": "3343",
+  "API_PORT": "3342",
   "BROWSER": "vscode",
   "BROWSER_ARGS": ""
 }

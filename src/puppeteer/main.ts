@@ -1,31 +1,20 @@
 import fs from 'fs';
 import path from 'path';
 import puppeteer, { Browser } from 'puppeteer';
-import { fileURLToPath, pathToFileURL } from 'url';
+import { fileURLToPath } from 'url';
+import { getConfig } from '../server/server-load-config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const workDir = process.env.API_FAKE_WORKDIR ?? process.cwd();
-const configFile = path.join(workDir, 'api-fake.config.json');
-
-function readConfig(): Record<string, string> {
-  try {
-    return JSON.parse(fs.readFileSync(configFile, 'utf-8'));
-  } catch {
-    return {};
-  }
-}
-
-const config = readConfig();
 const isDev = process.env.NODE_ENV === 'development';
-const clientPort = config['CLIENT_APP_PORT'] ?? '3343';
+const clientPort = getConfig().APP_PORT;
+const productionPort = getConfig().API_PORT;
 
 let browser: Browser | null = null;
 
 async function openWindow() {
-  const productionFile = path.join(__dirname, '../client/index.html');
-  const targetUrl = isDev ? `http://localhost:${clientPort}` : pathToFileURL(productionFile).href;
+  const targetUrl = isDev ? `http://localhost:${clientPort}` : `http://localhost:${productionPort}`;
 
   browser = await puppeteer.launch({
     headless: false,
@@ -34,12 +23,13 @@ async function openWindow() {
   });
 
   if (isDev) {
-    console.log('🚀\tCarregando aplicação em modo desenvolvimento...');
-    console.log(`🔌\tPorta do cliente: ${clientPort}`);
-    console.log(`🪟\tModo app: ${targetUrl}`);
+    console.log('🚀  Carregando aplicação em modo desenvolvimento...');
+    console.log(`🔌  Porta do cliente: ${clientPort}`);
+    console.log(`🪟   Modo app: ${targetUrl}`);
   } else {
-    console.log('📦 Carregando aplicação em modo produção...');
-    console.log(`🪟 Modo app: ${targetUrl}`);
+    console.log('📦  Carregando aplicação em modo produção...');
+    console.log(`🔌  Porta do servidor: ${productionPort}`);
+    console.log(`🪟   Modo app: ${targetUrl}`);
   }
 
   browser.on('disconnected', () => {

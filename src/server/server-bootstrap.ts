@@ -51,7 +51,7 @@ const registerShutdownHandlers = () => {
   });
 };
 
-export function startServerBootstrap(app: Express, port: string) {
+export function startServerBootstrap(app: Express, port: number) {
   serverLog.info('Iniciando servidor Express...');
   app.listen(port, (error) => {
     if (error) {

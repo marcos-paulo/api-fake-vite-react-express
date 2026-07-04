@@ -16,7 +16,7 @@ import { getConfig } from './server-load-config';
 
 export const app = express();
 
-const CLIENT_APP_PORT = getConfig().CLIENT_API_PORT ?? 3000;
+const CLIENT_APP_PORT = getConfig().API_PORT ?? 3000;
 
 createServerEndpointsManager();
 
