@@ -1,25 +1,13 @@
 import { app, BrowserWindow } from 'electron';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getConfig } from '../server/server-load-config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const workDir = process.env.API_FAKE_WORKDIR ?? process.cwd();
-const configFile = path.join(workDir, 'api-fake.config.json');
-
-function readConfig(): Record<string, string> {
-  try {
-    return JSON.parse(fs.readFileSync(configFile, 'utf-8'));
-  } catch {
-    return {};
-  }
-}
-
-const config = readConfig();
 const isDev = process.env.NODE_ENV === 'development';
-const clientPort = config['CLIENT_APP_PORT'] ?? '3343';
+const clientPort = getConfig().APP_PORT;
 
 let mainWindow: BrowserWindow | null = null;
 

@@ -38,7 +38,7 @@ class ServerEndpoints {
 
   private readonly envs = {
     serverDefaultPrefixApi: getConfig().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API,
-    endpointServerPort: getConfig().CLIENT_API_PORT,
+    endpointServerPort: getConfig().API_PORT,
     workspacesRootPath: getConfig().WORKSPACES_ROOT_PATH,
     activeWorkspace: getConfig().ACTIVE_WORKSPACE,
     proxyConfigFile: getConfig().PROXY_CONFIG_FILE,

@@ -21,11 +21,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
-
-    // "baseUrl": "./"
-    // "paths": {
-    //   "src/*": ["./src/*"],
-    // }
   },
-  "include": ["src", "../dist-target/root-endpoints/root-endpoints"]
+  "include": ["src"]
 }
