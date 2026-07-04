@@ -64,26 +64,35 @@ class ServerEndpoints {
 
   constructor() {
     const log = this.logger.startSection('ServerEndpoints - constructor', true);
+    log.step('Inicializando observadores de arquivos');
+    this.initializeWatchers();
+    log.endSection();
+  }
+
+  private initializeWatchers() {
+    const log = this.logger.startSection('initializeWatchers');
+    this.initializeProxyConfigWatcher();
+    this.initializeEndpointsDirectoryWatcher();
+    log.endSection();
+  }
+
+  private initializeProxyConfigWatcher() {
+    const log = this.logger.startSection('initializeProxyConfigWatcher');
 
     log.step('Observando arquivo de configuração do proxy para alterações');
     log.info('Arquivo de configuração do proxy: ' + this.envs.proxyConfigFile);
-    fs.watchFile(this.envs.proxyConfigFile, async () => {
-      const log = this.logger.startSection('ServerEndpoints - onProxyFileChange');
-      log.step('Arquivo de configuração do proxy foi modificado, recarregando endpoints');
-      log.info(this.envs.proxyConfigFile);
-
-      try {
-        log.step('Recarregando endpoints');
-        await this.loadEndpoints();
-        log.step('Resolvendo carregamento para liberar respostas dos endpoints');
-        this.loadingGate.resolve();
-        this.notifyReload();
-      } catch (error) {
-        log.error('Falha ao recarregar endpoints', error);
-      } finally {
-        log.endSection();
-      }
+    fs.watchFile(this.envs.proxyConfigFile, () => {
+      this.handleProxyConfigFileChange().catch((error) => {
+        const errorLog = this.logger.logToSection('initializeProxyConfigWatcher - unhandledError');
+        errorLog.error('Erro inesperado ao processar alteração no arquivo de proxy', error);
+        errorLog.endSection();
+      });
     });
+    log.endSection();
+  }
+
+  private initializeEndpointsDirectoryWatcher() {
+    const log = this.logger.startSection('initializeEndpointsDirectoryWatcher');
 
     const endpointsDir = path.join(this.workspacePath, 'endpoints');
     log.step('Observando diretório de endpoints para alterações');
@@ -98,20 +107,48 @@ class ServerEndpoints {
       }
       clearTimeout(this.endpointsDirWatchDebounce);
       this.endpointsDirWatchDebounce = setTimeout(async () => {
-        const log = this.logger.startSection('ServerEndpoints - onEndpointFileChange');
-        log.step(`Arquivo de endpoint modificado: ${filename}`);
-        try {
-          await this.reloadEndpointModules();
-          log.success(`Reload concluído com sucesso`);
-        } catch (error) {
-          log.error('Falha ao recarregar módulos de endpoint', error);
-        } finally {
-          log.endSection();
-        }
+        await this.handleEndpointFileChange(filename);
       }, 500);
     });
 
     log.endSection();
+  }
+
+  private async handleProxyConfigFileChange() {
+    const log = this.logger.startSection('ServerEndpoints - onProxyFileChange');
+    log.step('Arquivo de configuração do proxy foi modificado, recarregando endpoints');
+    log.info(this.envs.proxyConfigFile);
+
+    try {
+      await this.loadingGate.run(async () => {
+        log.step('Recarregando endpoints');
+        await this.loadEndpoints();
+      });
+
+      this.notifyReload();
+    } catch (error) {
+      log.error('Falha ao recarregar endpoints', error);
+    } finally {
+      log.endSection();
+    }
+  }
+
+  private async handleEndpointFileChange(filename: string) {
+    const log = this.logger.startSection('ServerEndpoints - onEndpointFileChange');
+    log.step(`Arquivo de endpoint modificado: ${filename}`);
+
+    try {
+      await this.loadingGate.run(async () => {
+        await this.reloadEndpointModules();
+      });
+
+      this.notifyReload();
+      log.success('Reload concluído com sucesso');
+    } catch (error) {
+      log.error('Falha ao recarregar módulos de endpoint', error);
+    } finally {
+      log.endSection();
+    }
   }
 
   private async reloadEndpointModules() {
@@ -129,10 +166,6 @@ class ServerEndpoints {
     log.step('Salvando arquivo de configuração');
     this.saveConfigFile();
 
-    log.step('Notificando clientes SSE');
-    this.loadingGate.resolve();
-    this.notifyReload();
-
     log.endSection();
   }
 
@@ -149,9 +182,10 @@ class ServerEndpoints {
   async beginLoading() {
     const log = this.logger.startSection('ServerEndpoints - beginLoading', true);
     log.step('Habilitando trava de resposta de endpoints enquanto estão sendo carregados');
-    this.loadingGate.enable();
-    log.step('Carregando endpoints');
-    await this.loadEndpoints();
+    await this.loadingGate.run(async () => {
+      log.step('Carregando endpoints');
+      await this.loadEndpoints();
+    });
     log.step('Carregamento dos endpoints concluído');
     log.endSection();
   }
