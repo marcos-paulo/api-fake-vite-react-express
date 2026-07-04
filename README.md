@@ -2,6 +2,27 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## 🌐 Download do Chrome em intranet com proxy
+
+O pacote `puppeteer` já baixa o Chrome sozinho no seu próprio `postinstall`. Quando o host
+padrão de download não é acessível diretamente (ex.: intranet com proxy), este pacote inclui
+um segundo script de `postinstall` (`scripts/download-puppeteer.mjs`, compilado a partir de
+`src/postinstall/download-puppeteer.ts`) capaz de apontar o download para um mirror interno.
+
+Esse script só age quando o download automático do `puppeteer` foi explicitamente desativado
+— caso contrário, não faz nada (evita baixar o Chrome duas vezes). Para ativá-lo, no projeto
+que está instalando o pacote, antes do `npm install`:
+
+```bash
+export PUPPETEER_SKIP_DOWNLOAD=true
+export PUPPETEER_DOWNLOAD_BASE_URL=https://seu-mirror-interno/chrome  # ou PUPPETEER_DOWNLOAD_HOST
+npm install api-fake
+```
+
+Alternativamente, um `.puppeteerrc.cjs` com `module.exports = { skipDownload: true }` na
+**raiz do projeto que está instalando** (não dentro deste pacote) tem o mesmo efeito de
+desativar o download automático — o host do mirror continua vindo das env vars acima.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
