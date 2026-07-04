@@ -599,12 +599,12 @@ class ServerEndpoints {
 
     const listImportedModules: LoadedModule[] = [];
     for (const fileName of files) {
+      const [, file, ext] = fileName.match(/(.*)\.(t|j)(s)$/) || [];
+
+      const uri = path.join(this.workspacePath, `endpoints/${file}.${ext}s`);
+      const importUri = bustCache ? `${uri}?t=${Date.now()}` : uri;
+
       try {
-        const [, file, ext] = fileName.match(/(.*)\.(t|j)(s)$/) || [];
-
-        const uri = path.join(this.workspacePath, `endpoints/${file}.${ext}s`);
-        const importUri = bustCache ? `${uri}?t=${Date.now()}` : uri;
-
         const importedModule = (await import(importUri)) as Partial<ModuleEndpoint>;
 
         if (!isEndpointObject(importedModule.endpoint)) {
@@ -618,7 +618,9 @@ class ServerEndpoints {
         listImportedModules.push({ endpoint: importedModule.endpoint, fileName, loadError: false });
       } catch (e) {
         const error = e as Error;
-        log.error(error?.message);
+        log.error(`Falha ao importar módulo de endpoint: ${fileName}`);
+        log.error(importUri);
+        log.error(error.toString());
         listImportedModules.push({ endpoint: null, fileName, loadError: true });
       }
     }

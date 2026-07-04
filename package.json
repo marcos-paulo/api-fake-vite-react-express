@@ -6,7 +6,8 @@
   "types": "./src/types/index.ts",
   "exports": {
     ".": {
-      "types": "./src/types/index.ts"
+      "types": "./src/types/index.ts",
+      "import": "./src/types/index.ts"
     }
   },
   "bin": {
@@ -43,8 +44,7 @@
     "rm-dist": "rm -rfv dist dist-package dist-target",
     "release:build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:puppeteer:prod-bin && npm run build:postinstall && npm run package:prepare",
     "package:prepare": "node ./scripts/prepare-release-package.mjs",
-    "package:pack": "npm run rm-dist && npm run release:build && mkdir -p dist-target && cd dist-package && npm pack --pack-destination ../dist-target",
-    "api-fake": "api-fake"
+    "package:pack": "npm run rm-dist && npm run release:build && mkdir -p dist-target && cd dist-package && npm pack --pack-destination ../dist-target"
   },
   "dependencies": {
     "axios": "^1.7.8",
