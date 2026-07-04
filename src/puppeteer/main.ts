@@ -1,4 +1,5 @@
-import puppeteer, { Browser } from 'puppeteer';
+import puppeteer, { type Browser } from 'puppeteer';
+
 import { getConfig } from '../server/server-load-config';
 
 const isDev = process.env.NODE_ENV === 'development';

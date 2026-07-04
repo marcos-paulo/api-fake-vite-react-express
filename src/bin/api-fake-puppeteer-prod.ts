@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
+import { type ChildProcess,spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawn, type ChildProcess } from 'node:child_process';
+
 import waitOn from 'wait-on';
+
 import { getConfig } from '../server/server-load-config';
 
 // Resolve a raiz do pacote em dois cenarios:

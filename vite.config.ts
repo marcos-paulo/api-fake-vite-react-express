@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
+
 import type { getConfig } from './src/server/server-load-config';
 
 // https://vite.dev/config/
