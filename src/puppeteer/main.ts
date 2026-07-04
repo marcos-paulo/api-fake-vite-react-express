@@ -1,11 +1,5 @@
-import fs from 'fs';
-import path from 'path';
 import puppeteer, { Browser } from 'puppeteer';
-import { fileURLToPath } from 'url';
 import { getConfig } from '../server/server-load-config';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const isDev = process.env.NODE_ENV === 'development';
 const clientPort = getConfig().APP_PORT;
