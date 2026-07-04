@@ -9,7 +9,7 @@ const workDir = process.cwd();
 
 console.log('🚀 Iniciando api-fake com Puppeteer...');
 
-const child = spawn('npm', ['run', 'bun:dev:with:puppeteer'], {
+const child = spawn('npm', ['run', 'dev:with:puppeteer'], {
   cwd: pkgRoot,
   stdio: 'inherit',
   shell: true,
