@@ -3,10 +3,13 @@
 import { type ChildProcess,spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import waitOn from 'wait-on';
 
 import { getConfig } from '../server/server-load-config';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Resolve a raiz do pacote em dois cenarios:
 // 1) build local (saida em dist/bin)
@@ -16,7 +19,7 @@ function resolvePackageRoot() {
 
   return (
     candidates.find((candidate) => {
-      const distServer = path.join(candidate, 'dist', 'server', 'server.cjs');
+      const distServer = path.join(candidate, 'dist', 'server', 'server.js');
       const distPuppeteer = path.join(candidate, 'dist', 'puppeteer', 'main.js');
       return fs.existsSync(distServer) && fs.existsSync(distPuppeteer);
     }) ?? candidates[0]
@@ -30,7 +33,7 @@ const workDir = process.cwd();
 // igual ao fluxo usado pelo server.ts.
 process.env.API_FAKE_WORKDIR = process.env.API_FAKE_WORKDIR ?? workDir;
 
-const serverEntry = path.join(pkgRoot, 'dist', 'server', 'server.cjs');
+const serverEntry = path.join(pkgRoot, 'dist', 'server', 'server.js');
 const puppeteerEntry = path.join(pkgRoot, 'dist', 'puppeteer', 'main.js');
 
 function assertBuildArtifacts() {
