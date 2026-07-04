@@ -5,14 +5,18 @@ import fs from 'fs';
 import path from 'path';
 
 import { type Endpoint } from '../types/endpoints.types';
-import { createServerEndpointsManager, endpointsServer } from './dynamic-endpoints';
+import {
+  createServerEndpointsManager,
+  endpointsServer,
+  startServerEndpointsManager,
+} from './dynamic-endpoints';
 import { getConfig } from './server-load-config';
 
 export const app = express();
 
 const CLIENT_APP_PORT = getConfig().CLIENT_API_PORT ?? 3000;
 
-await createServerEndpointsManager();
+createServerEndpointsManager();
 
 app.use(express.json());
 
@@ -30,12 +34,17 @@ app.use((req, res, next) => {
 
 const sseClients = new Set<express.Response>();
 
-endpointsServer.onReload(() => {
+const notifySseClients = () => {
   console.log(`[SSE] Notificando ${sseClients.size} cliente(s) conectado(s)`);
   for (const client of sseClients) {
     client.write('data: reload\n\n');
   }
-});
+};
+
+const startEndpointsBackgroundManager = () => {
+  startServerEndpointsManager();
+  endpointsServer.onReload(notifySseClients);
+};
 
 app.get('/api/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -246,4 +255,5 @@ app.listen(CLIENT_APP_PORT, (error) => {
     throw error;
   }
   console.log(`Server is running at http://localhost:${CLIENT_APP_PORT}`);
+  startEndpointsBackgroundManager();
 });
