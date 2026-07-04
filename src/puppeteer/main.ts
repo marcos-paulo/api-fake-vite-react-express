@@ -34,9 +34,9 @@ async function openWindow() {
   });
 
   if (isDev) {
-    console.log('🚀 Carregando aplicação em modo desenvolvimento...');
-    console.log(`🔌 Porta do cliente: ${clientPort}`);
-    console.log(`🪟 Modo app: ${targetUrl}`);
+    console.log('🚀\tCarregando aplicação em modo desenvolvimento...');
+    console.log(`🔌\tPorta do cliente: ${clientPort}`);
+    console.log(`🪟\tModo app: ${targetUrl}`);
   } else {
     console.log('📦 Carregando aplicação em modo produção...');
     console.log(`🪟 Modo app: ${targetUrl}`);
