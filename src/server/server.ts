@@ -1,10 +1,10 @@
-import fs from 'fs';
 import { spawn } from 'node:child_process';
-import path from 'path';
 
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 
-import { type Endpoint } from '../types/Endpoints';
+import { type Endpoint } from '../types/endpoints.types';
 import { createServerEndpointsManager, endpointsServer } from './dynamic-endpoints';
 import { getConfig } from './server-load-config';
 

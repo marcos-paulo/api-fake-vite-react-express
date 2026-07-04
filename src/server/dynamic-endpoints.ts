@@ -1,89 +1,25 @@
 import fs from 'fs';
 import path from 'path';
 
-import type { Endpoint, Endpoints } from '../types/Endpoints';
 import {
   type EnabledEndpointRecord,
   type EndpointObject,
-  type FailedModuleRecord,
+  isEndpointObject,
   type LoadedModule,
   type ModuleEndpoint,
-  isEndpointObject,
 } from '../types/dynamic-endpoints.types';
+import type { Endpoint, Endpoints } from '../types/endpoints.types';
+import { LoadingGate } from './loading-gate';
+import { Logger } from './logger';
 import { configValidators, getConfig } from './server-load-config';
 
-// ─── Logger ──────────────────────────────────────────────────────────────────
-
-const RED = '\x1b[31m';
-const CYAN = '\x1b[36m';
-const LIGHT_GREEN = '\x1b[92m';
-const LIGHT_YELLOW = '\x1b[93m';
-const MAGENTA = '\x1b[35m';
-const RESET = '\x1b[0m';
-
-class Logger {
-  level: number = -1;
-
-  constructor() {}
-
-  private stack: string[] = [];
-
-  addToStack(context: string) {
-    this.stack.push(context);
-  }
-
-  removeFromStack() {
-    this.stack.pop();
-  }
-
-  startSection(context: string, isRoot = false) {
-    this.addToStack(context);
-    const log = this.createLogger(context, isRoot ? 0 : this.stack.length - 1);
-    log.header();
-    return log;
-  }
-
-  endSection() {
-    this.removeFromStack();
-  }
-
-  logToSection(context: string) {
-    const log = this.createLogger(context, this.stack.length);
-    log.header();
-    return log;
-  }
-
-  createLogger(methodName: string, level: number) {
-    const spaces = ' '.repeat(level * 2);
-
-    const header = () => {
-      console.info(`${spaces}${CYAN}[${methodName}]${RESET}`);
-    };
-
-    return {
-      header,
-      step: (message: string) => console.info(`${spaces} ${MAGENTA}◆ ${message}${RESET}`),
-      info: (message: string) => console.info(`${spaces} → ${message}`),
-      warn: (message: string) => console.warn(`${spaces} ${LIGHT_YELLOW}⚠ ${message}${RESET}`),
-      success: (message: string) => console.info(`${spaces} ${LIGHT_GREEN}✔ ${message}${RESET}`),
-      error: (message: string, cause?: unknown) =>
-        console.error(
-          `${spaces} ${RED}✗ ${message}${RESET}`,
-          ...(cause !== undefined ? [cause] : []),
-        ),
-      endSection: () => this.endSection(),
-    };
-  }
-}
-
 class ServerEndpoints {
-  endpoints: Endpoints = { listEndpoints: [], failedFiles: [] };
+  endpoints: Endpoints = { listEndpoints: [] };
 
   enabledAddresses: EnabledEndpointRecord[] = [];
 
-  failedModules: FailedModuleRecord[] = [];
-
   globalJsonConfig: Record<string, unknown> = {};
+
   jsonConfig: Record<string, unknown> = {};
 
   loadedModules: LoadedModule[] = [];
@@ -120,11 +56,9 @@ class ServerEndpoints {
     'initialEnabledEndpoints.json',
   );
 
-  private static loading: Promise<void> | undefined;
-
-  private static _resolveLoading: () => void = () => {};
-
   private logger = new Logger();
+
+  private loadingGate = new LoadingGate();
 
   private endpointsDirWatchDebounce: ReturnType<typeof setTimeout> | undefined;
 
@@ -142,7 +76,7 @@ class ServerEndpoints {
         log.step('Recarregando endpoints');
         await this.loadEndpoints();
         log.step('Resolvendo carregamento para liberar respostas dos endpoints');
-        this.resolveLoading();
+        this.loadingGate.resolve();
         this.notifyReload();
       } catch (error) {
         log.error('Falha ao recarregar endpoints', error);
@@ -196,25 +130,9 @@ class ServerEndpoints {
     this.saveConfigFile();
 
     log.step('Notificando clientes SSE');
-    this.resolveLoading();
+    this.loadingGate.resolve();
     this.notifyReload();
 
-    log.endSection();
-  }
-
-  private enableLoading() {
-    const log = this.logger.startSection('enableLoading');
-    ServerEndpoints.loading = new Promise<void>((resolve) => {
-      ServerEndpoints._resolveLoading = resolve;
-    });
-    log.endSection();
-  }
-
-  resolveLoading() {
-    const log = this.logger.startSection('resolveLoading');
-    ServerEndpoints._resolveLoading();
-    ServerEndpoints._resolveLoading = () => {};
-    ServerEndpoints.loading = undefined;
     log.endSection();
   }
 
@@ -222,7 +140,7 @@ class ServerEndpoints {
     const log = this.logger.startSection('ServerEndpoints - getEndpoints', true);
     const id = Date.now();
     log.step(`Aguardando carregamento dos endpoints (id: ${id})`);
-    await ServerEndpoints.loading;
+    await this.loadingGate.wait();
     log.info(`Carregamento dos endpoints concluído (id: ${id})`);
     log.endSection();
     return this.endpoints;
@@ -231,7 +149,7 @@ class ServerEndpoints {
   async beginLoading() {
     const log = this.logger.startSection('ServerEndpoints - beginLoading', true);
     log.step('Habilitando trava de resposta de endpoints enquanto estão sendo carregados');
-    this.enableLoading();
+    this.loadingGate.enable();
     log.step('Carregando endpoints');
     await this.loadEndpoints();
     log.step('Carregamento dos endpoints concluído');
@@ -384,7 +302,6 @@ class ServerEndpoints {
     const log = this.logger.startSection('buildEnabledEndpointList');
 
     this.endpoints.listEndpoints = [];
-    this.endpoints.failedFiles = [...this.failedModules];
     this.enabledEndpointModules = [];
 
     const loadedFileNames = new Set(this.loadedModules.map((m) => m.fileName));
@@ -595,7 +512,6 @@ class ServerEndpoints {
     const resolvedDir = path.resolve(basePath);
 
     this.loadedModules = [];
-    this.failedModules = [];
 
     log.step('Lendo arquivos do diretório de endpoints');
     log.info(`Diretório de endpoints: ${resolvedDir}`);
@@ -644,7 +560,6 @@ class ServerEndpoints {
       } catch (e) {
         const error = e as Error;
         log.error(error?.message);
-        this.failedModules.push({ fileName });
         listImportedModules.push({ endpoint: null, fileName, loadError: true });
       }
     }

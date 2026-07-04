@@ -1,10 +1,12 @@
 import { type Request, type Response } from 'express';
 
+export type EndpointMethod = 'get' | 'post' | 'put' | 'delete';
+
 export type EndpointObject = {
   description: string;
   endpointServerPrefix?: string;
   localhostEndpoint: string;
-  method: 'get' | 'post' | 'put' | 'delete';
+  method: EndpointMethod;
   handler: (req: Request, res: Response) => void;
 };
 
@@ -35,9 +37,5 @@ function isEndpoint(endpoint: Partial<EndpointObject>): endpoint is EndpointObje
 export type ModuleEndpoint = { endpoint: EndpointObject };
 
 export type EnabledEndpointRecord = {
-  fileName: string;
-};
-
-export type FailedModuleRecord = {
   fileName: string;
 };
