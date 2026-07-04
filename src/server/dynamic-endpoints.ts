@@ -26,15 +26,14 @@ class ServerEndpoints {
 
   enabledEndpointModules: EndpointObject[] = [];
 
-  private reloadListeners = new Set<() => void>();
+  private reloadListener: (() => void) | undefined;
 
-  onReload(callback: () => void): () => void {
-    this.reloadListeners.add(callback);
-    return () => this.reloadListeners.delete(callback);
+  onReload(callback: () => void) {
+    this.reloadListener = callback;
   }
 
   private notifyReload() {
-    for (const cb of this.reloadListeners) cb();
+    this.reloadListener?.();
   }
 
   private readonly envs = {
