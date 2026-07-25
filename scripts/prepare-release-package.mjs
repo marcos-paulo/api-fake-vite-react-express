@@ -12,7 +12,14 @@ const packageScriptsDir = path.join(packageDir, 'scripts');
 const rootPackageJsonPath = path.join(rootDir, 'package.json');
 const rootReadmePath = path.join(rootDir, 'README.md');
 const compiledPostInstallPath = path.join(rootDir, 'dist', 'scripts', 'postinstall-add-script.mjs');
+const compiledLintConfigPostInstallPath = path.join(
+  rootDir,
+  'dist',
+  'scripts',
+  'postinstall-add-lint-config.mjs',
+);
 const compiledDownloadPuppeteerPath = path.join(rootDir, 'dist', 'scripts', 'download-puppeteer.mjs');
+const tsconfigBaseSourcePath = path.join(rootDir, 'config', 'tsconfig-base.json');
 const productionBinFileName = 'api-fake-prod.mjs';
 
 function assertBuildArtifactsExist() {
@@ -31,6 +38,16 @@ function assertBuildArtifactsExist() {
       'Script de download do puppeteer compilado nao encontrado. Execute o build antes de preparar o pacote.',
     );
   }
+
+  if (!fs.existsSync(compiledLintConfigPostInstallPath)) {
+    throw new Error(
+      'Script de postinstall de lint/tsconfig compilado nao encontrado. Execute o build antes de preparar o pacote.',
+    );
+  }
+
+  if (!fs.existsSync(tsconfigBaseSourcePath)) {
+    throw new Error('config/tsconfig-base.json nao encontrado.');
+  }
 }
 
 function resetPackageDir() {
@@ -47,6 +64,10 @@ function copyDistFiles() {
 
 function copyCompiledScripts() {
   fs.copyFileSync(compiledPostInstallPath, path.join(packageScriptsDir, 'postinstall-add-script.mjs'));
+  fs.copyFileSync(
+    compiledLintConfigPostInstallPath,
+    path.join(packageScriptsDir, 'postinstall-add-lint-config.mjs'),
+  );
   fs.copyFileSync(compiledDownloadPuppeteerPath, path.join(packageScriptsDir, 'download-puppeteer.mjs'));
 }
 
@@ -54,6 +75,10 @@ function copyReadme() {
   if (fs.existsSync(rootReadmePath)) {
     fs.copyFileSync(rootReadmePath, path.join(packageDir, 'README.md'));
   }
+}
+
+function copyTsconfigBase() {
+  fs.copyFileSync(tsconfigBaseSourcePath, path.join(packageDir, 'tsconfig-base.json'));
 }
 
 function buildPackageJson() {
@@ -71,10 +96,15 @@ function buildPackageJson() {
       '.': {
         types: './dist/types/index.d.ts',
       },
+      './eslint-config': {
+        import: './dist/shared/eslint-config.js',
+      },
+      './tsconfig-base.json': './tsconfig-base.json',
     },
-    files: ['dist', 'scripts', 'README.md'],
+    files: ['dist', 'scripts', 'tsconfig-base.json', 'README.md'],
     scripts: {
-      postinstall: 'node ./scripts/postinstall-add-script.mjs && node ./scripts/download-puppeteer.mjs',
+      postinstall:
+        'node ./scripts/postinstall-add-script.mjs && node ./scripts/postinstall-add-lint-config.mjs && node ./scripts/download-puppeteer.mjs',
     },
     dependencies: {
       ...rootPackageJson.dependencies,
@@ -93,6 +123,7 @@ function main() {
   copyDistFiles();
   copyCompiledScripts();
   copyReadme();
+  copyTsconfigBase();
   writePackageJson(buildPackageJson());
 }
 
