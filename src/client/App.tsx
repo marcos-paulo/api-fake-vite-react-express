@@ -195,6 +195,22 @@ export default function App() {
     }
   }, []);
 
+  const handleChangeActiveHandler = useCallback(
+    async (fileName: string, handlerKey: string) => {
+      try {
+        await axios.post('/api/changeActiveHandler', { fileName, handlerKey });
+        setFeedbackMessage({ text: 'Handler alterado com sucesso!', type: 'success' });
+        await fetchEndpoints();
+      } catch (error) {
+        console.error('Erro ao trocar handler ativo:', error);
+        setFeedbackMessage({ text: 'Erro ao trocar handler ativo', type: 'error' });
+      } finally {
+        setTimeout(() => setFeedbackMessage(null), 3000);
+      }
+    },
+    [fetchEndpoints],
+  );
+
   const handleSaveStart = useCallback(() => {
     setLoadingState('saving');
     setFeedbackMessage({ text: 'Salvando alterações...', type: 'info' });
@@ -316,6 +332,7 @@ export default function App() {
         pendingChanges={new Set(pendingKeys)}
         onAddPendingEndpoint={onAddPendingEndpoint}
         onOpenEndpointFile={handleOpenEndpointFile}
+        onChangeActiveHandler={handleChangeActiveHandler}
       />
 
       <ActionsBar

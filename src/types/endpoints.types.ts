@@ -4,6 +4,11 @@ export type Endpoints = {
   listEndpoints: Endpoint[];
 };
 
+export type HandlerOption = {
+  key: string;
+  description: string;
+};
+
 export type Endpoint = {
   description: string;
   serverAddress: string;
@@ -15,4 +20,6 @@ export type Endpoint = {
   loadError: boolean;
   isDuplicate: boolean;
   duplicateFiles: string[];
+  handlerOptions: HandlerOption[];
+  activeHandlerKey: string;
 };

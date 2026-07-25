@@ -10,21 +10,21 @@ export function registerDynamicEndpointsMiddleware(app: Express) {
     const log = startRouteLog(`${req.method} ${req.path}`);
     try {
       const enabledEndpoint = endpointsServer.enabledEndpointModules.find(
-        (endpointModule) => endpointModule.localhostEndpoint === req.path,
+        (endpointModule) => endpointModule.endpoint.localhostEndpoint === req.path,
       );
 
       if (enabledEndpoint) {
         log.success(
-          `REQUEST API FAKE: ${req.method} ${req.path} -> Endpoint encontrado: ${enabledEndpoint.localhostEndpoint}`,
+          `REQUEST API FAKE: ${req.method} ${req.path} -> Endpoint encontrado: ${enabledEndpoint.endpoint.localhostEndpoint}`,
         );
-        return enabledEndpoint.handler(req, res);
+        return enabledEndpoint.activeHandler(req, res);
       }
 
       if (req.path.startsWith('/api/')) {
         log.warn(`Endpoint não encontrado: ${req.path}`);
         log.warn('Endpoints habilitados:');
         endpointsServer.enabledEndpointModules.forEach((endpointModule) => {
-          log.info(` - ${endpointModule.localhostEndpoint}`);
+          log.info(` - ${endpointModule.endpoint.localhostEndpoint}`);
         });
 
         return res.status(404).send('');
