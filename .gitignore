@@ -18,6 +18,9 @@ dist-package
 dist-target
 *.local
 
+# Worktrees de branches órfãs (docs/planos fora do histórico de código)
+.worktrees
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
