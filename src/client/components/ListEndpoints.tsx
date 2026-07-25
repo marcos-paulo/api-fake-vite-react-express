@@ -175,6 +175,27 @@ const S = {
     gap: '4px',
   } satisfies CSSProperties,
 
+  handlerSelectRow: {
+    flex: '1 1 100%',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  } satisfies CSSProperties,
+
+  handlerSelectLabel: {
+    opacity: 0.7,
+    fontSize: '0.8em',
+  } satisfies CSSProperties,
+
+  handlerSelect: {
+    padding: '2px 6px',
+    borderRadius: '4px',
+    border: '1px solid var(--color-border-muted)',
+    backgroundColor: 'var(--color-surface-raised)',
+    color: 'var(--color-text)',
+    fontSize: '0.8em',
+  } satisfies CSSProperties,
+
   listEndpointsContainerStyle: (isLoading: boolean): CSSProperties => ({
     opacity: isLoading ? 0.6 : 1,
     pointerEvents: isLoading ? 'none' : 'auto',
@@ -194,6 +215,7 @@ type ListEndpointsProps = {
   isLoading?: boolean;
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
   onOpenEndpointFile: (fileName: string) => void;
+  onChangeActiveHandler: (fileName: string, handlerKey: string) => void;
 };
 
 // ---------------------------------------------------------------------------
@@ -206,6 +228,7 @@ export const ListEndpoints = ({
   pendingChanges = new Set(),
   onAddPendingEndpoint,
   onOpenEndpointFile,
+  onChangeActiveHandler,
 }: ListEndpointsProps) => {
   const allEndpoints = endpoints?.listEndpoints ?? [];
 
@@ -243,6 +266,7 @@ export const ListEndpoints = ({
             displayEnabled={true}
             onAddPendingEndpoint={onAddPendingEndpoint}
             onOpenEndpointFile={onOpenEndpointFile}
+            onChangeActiveHandler={onChangeActiveHandler}
             isLoading={isLoading}
           />
         ))}
@@ -258,6 +282,7 @@ export const ListEndpoints = ({
             displayEnabled={false}
             onAddPendingEndpoint={onAddPendingEndpoint}
             onOpenEndpointFile={onOpenEndpointFile}
+            onChangeActiveHandler={onChangeActiveHandler}
             isLoading={isLoading}
           />
         ))}
@@ -277,6 +302,7 @@ type EndpointItemProps = {
   isLoading: boolean;
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
   onOpenEndpointFile: (fileName: string) => void;
+  onChangeActiveHandler: (fileName: string, handlerKey: string) => void;
 };
 
 const EndpointItem = ({
@@ -286,6 +312,7 @@ const EndpointItem = ({
   isLoading,
   onAddPendingEndpoint,
   onOpenEndpointFile,
+  onChangeActiveHandler,
 }: EndpointItemProps) => {
   const isError = endpoint.loadError;
 
@@ -362,6 +389,25 @@ const EndpointItem = ({
               #{tag}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Linha 5: Seletor de handler (só quando há mais de uma variante de resposta) */}
+      {!isError && endpoint.handlerOptions.length > 1 && (
+        <div style={S.handlerSelectRow}>
+          <span style={S.handlerSelectLabel}>Resposta:</span>
+          <select
+            style={S.handlerSelect}
+            value={endpoint.activeHandlerKey}
+            disabled={isLoading}
+            onChange={(e) => onChangeActiveHandler(endpoint.fileName, e.target.value)}
+          >
+            {endpoint.handlerOptions.map((option) => (
+              <option key={option.key} value={option.key}>
+                {option.description}
+              </option>
+            ))}
+          </select>
         </div>
       )}
     </li>

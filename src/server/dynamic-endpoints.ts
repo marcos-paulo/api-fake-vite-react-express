@@ -3,7 +3,9 @@ import path from 'path';
 
 import {
   type EnabledEndpointRecord,
+  type EndpointHandlerFn,
   type EndpointObject,
+  getEndpointHandlersMap,
   isEndpointObject,
   type LoadedModule,
   type ModuleEndpoint,
@@ -27,7 +29,9 @@ class ServerEndpoints {
 
   loadedModules: LoadedModule[] = [];
 
-  enabledEndpointModules: EndpointObject[] = [];
+  enabledEndpointModules: { endpoint: EndpointObject; activeHandler: EndpointHandlerFn }[] = [];
+
+  activeHandlerSelections: Record<string, string> = {};
 
   private reloadListener: (() => void) | undefined;
 
@@ -57,6 +61,8 @@ class ServerEndpoints {
     this.workspacePath,
     'initialEnabledEndpoints.json',
   );
+
+  private readonly activeHandlersFilePath = path.join(this.workspacePath, 'activeHandlers.json');
 
   private logger = appLogger;
 
@@ -206,6 +212,9 @@ class ServerEndpoints {
     log.step('Carregando endereços habilitados');
     this.loadEnabledEndpointsFile();
 
+    log.step('Carregando seleção de handlers ativos');
+    this.loadActiveHandlerSelectionsFile();
+
     log.step('Resolvendo rotas do proxy');
     this.resolveProxyRoutes();
 
@@ -264,6 +273,29 @@ class ServerEndpoints {
         .map((record) => ({
           fileName: record.fileName.trim(),
         }));
+    }
+
+    log.endSection();
+  }
+
+  private loadActiveHandlerSelectionsFile() {
+    const log = this.logger.startSection('loadActiveHandlerSelectionsFile');
+
+    if (!fs.existsSync(this.activeHandlersFilePath)) {
+      fs.writeFileSync(this.activeHandlersFilePath, '{}');
+    }
+
+    try {
+      const raw = fs.readFileSync(this.activeHandlersFilePath, { encoding: 'utf-8' });
+      const parsed = JSON.parse(raw) as unknown;
+
+      this.activeHandlerSelections =
+        parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+          ? (parsed as Record<string, string>)
+          : {};
+    } catch (error) {
+      log.error(`Erro ao ler o arquivo de handlers ativos: ${this.activeHandlersFilePath}`, error);
+      this.activeHandlerSelections = {};
     }
 
     log.endSection();
@@ -353,6 +385,9 @@ class ServerEndpoints {
       const enabled = enabledFileNames.has(fileName);
 
       if (loadError || !endpoint) {
+        // Sem módulo importado não há como saber quais handlers o arquivo declararia.
+        // A seleção salva em activeHandlerSelections[fileName] (se houver) NÃO é apagada
+        // aqui — volta a valer assim que o arquivo carregar sem erro novamente.
         this.endpoints.listEndpoints.push({
           description: '',
           serverAddress: '',
@@ -364,6 +399,8 @@ class ServerEndpoints {
           loadError: true,
           isDuplicate: false,
           duplicateFiles: [],
+          handlerOptions: [],
+          activeHandlerKey: '',
         });
 
         if (enabled) {
@@ -392,8 +429,25 @@ class ServerEndpoints {
 
       delete this.jsonConfig[serverAddress];
 
+      const handlersMap = getEndpointHandlersMap(endpoint);
+      const handlerKeys = Object.keys(handlersMap);
+      const storedHandlerKey = this.activeHandlerSelections[fileName];
+      const activeHandlerKey = handlerKeys.includes(storedHandlerKey)
+        ? storedHandlerKey
+        : handlerKeys[0];
+
+      // auto-cura: chave salva não existe mais (endpoint foi editado) — regrava a escolhida
+      if (activeHandlerKey !== storedHandlerKey) {
+        this.activeHandlerSelections[fileName] = activeHandlerKey;
+      }
+
+      const handlerOptions = handlerKeys.map((key) => ({
+        key,
+        description: handlersMap[key].description,
+      }));
+
       if (enabled) {
-        this.enabledEndpointModules.push(endpoint);
+        this.enabledEndpointModules.push({ endpoint, activeHandler: handlersMap[activeHandlerKey].handler });
         this.jsonConfig[serverAddress] = localhostAddress;
         newEnabledAddresses.push({ fileName });
       }
@@ -409,6 +463,8 @@ class ServerEndpoints {
         loadError: false,
         isDuplicate: false,
         duplicateFiles: [],
+        handlerOptions,
+        activeHandlerKey,
       });
     }
 
@@ -463,6 +519,7 @@ class ServerEndpoints {
   private saveConfigFile(
     jsonConfigData?: Record<string, unknown>,
     initialEnabledEndpoints?: EnabledEndpointRecord[],
+    activeHandlerSelectionsData?: Record<string, string>,
   ) {
     const log = this.logger.startSection('saveConfigFile');
 
@@ -479,6 +536,11 @@ class ServerEndpoints {
         this.initialEnabledEndpointsFilePath,
         JSON.stringify(initialEnabledEndpointsData, null, 2),
       );
+
+      log.info('Salvando arquivo de handlers ativos');
+
+      const activeHandlers = activeHandlerSelectionsData || this.activeHandlerSelections;
+      fs.writeFileSync(this.activeHandlersFilePath, JSON.stringify(activeHandlers, null, 2));
     } catch (error) {
       log.error(`Erro ao salvar os arquivos de configuração: ${this.envs.proxyConfigFile}`, error);
     }
@@ -507,6 +569,36 @@ class ServerEndpoints {
     this.detectDuplicateEndpoints();
 
     this.saveConfigFile();
+
+    log.endSection();
+  }
+
+  changeActiveHandler(fileName: string, handlerKey: string) {
+    const log = this.logger.startSection('changeActiveHandler');
+    log.info(`${fileName} -> ${handlerKey}`);
+
+    const loadedModule = this.loadedModules.find((module) => module.fileName === fileName);
+
+    if (!loadedModule || loadedModule.loadError || !loadedModule.endpoint) {
+      log.endSection();
+      throw new Error(`Endpoint não encontrado ou com erro de carregamento: ${fileName}`);
+    }
+
+    const handlersMap = getEndpointHandlersMap(loadedModule.endpoint);
+
+    if (!(handlerKey in handlersMap)) {
+      log.endSection();
+      throw new Error(`Handler "${handlerKey}" não existe no endpoint: ${fileName}`);
+    }
+
+    this.activeHandlerSelections[fileName] = handlerKey;
+
+    this.buildEnabledEndpointList();
+    this.saveConfigFile();
+
+    // Diferente de toggleEndpoints, essa troca não mexe no arquivo de proxy do host —
+    // não há watcher de arquivo para disparar a notificação SSE sozinho.
+    this.notifyReload();
 
     log.endSection();
   }
