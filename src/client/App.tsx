@@ -1,345 +1,27 @@
-import type { AxiosResponse } from 'axios';
-import axios from 'axios';
-import { type CSSProperties, useCallback, useEffect, useMemo, useState } from 'react';
-
-import type { Endpoint, Endpoints } from '../types/endpoints.types';
+import { ActionsBar } from './components/ActionsBar';
+import { FeedbackToast } from './components/FeedbackToast';
+import { FilterBar } from './components/FilterBar';
 import { ListEndpoints } from './components/ListEndpoints';
-
-const S = {
-  // Estáticos
-  overlayBackdrop: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'var(--color-overlay-backdrop)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 999,
-  } satisfies CSSProperties,
-
-  overlayCard: {
-    backgroundColor: 'var(--color-surface)',
-    padding: '30px',
-    borderRadius: '10px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '15px',
-    border: '1px solid var(--color-border-subtle)',
-  } satisfies CSSProperties,
-
-  overlaySpinner: {
-    width: '50px',
-    height: '50px',
-    border: '5px solid var(--color-border)',
-    borderTop: '5px solid var(--color-accent-spinner)',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  } satisfies CSSProperties,
-
-  loadingText: {
-    fontSize: '16px',
-    color: 'var(--color-text)',
-  } satisfies CSSProperties,
-
-  filterBar: {
-    display: 'flex',
-    alignItems: 'stretch',
-    gap: '12px',
-  } satisfies CSSProperties,
-
-  filterInput: {
-    flex: 1,
-    padding: '8px 8px',
-    borderRadius: '6px',
-    border: '1px solid var(--color-border)',
-    backgroundColor: 'var(--color-bg)',
-    color: 'var(--color-text-secondary)',
-    fontSize: '14px',
-    outline: 'none',
-  } satisfies CSSProperties,
-
-  filterClearButton: {
-    padding: '6px 12px',
-    borderRadius: '6px',
-    border: '1px solid var(--color-border)',
-    backgroundColor: 'var(--color-surface-raised)',
-    color: 'var(--color-text-muted)',
-    cursor: 'pointer',
-    fontSize: '14px',
-  } satisfies CSSProperties,
-
-  actionsBarStyle: {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    display: 'flex',
-    gap: '8px',
-  } satisfies CSSProperties,
-
-  // Dinâmicos
-  feedback: (type: FeedbackMessage['type'] | undefined): CSSProperties => ({
-    position: 'fixed',
-    top: '20px',
-    right: '20px',
-    padding: '15px 20px',
-    borderRadius: '8px',
-    backgroundColor:
-      type === 'success'
-        ? 'var(--color-success)'
-        : type === 'error'
-          ? 'var(--color-error)'
-          : 'var(--color-info)',
-    color: 'white',
-    fontWeight: 'bold',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-    zIndex: 1000,
-    animation: 'slideIn 0.3s ease-out',
-  }),
-
-  actionBarDiscardButton: (isDisabled: boolean): CSSProperties => ({
-    padding: '12px 20px',
-    borderRadius: '8px',
-    border: '1px solid var(--color-border)',
-    backgroundColor: 'var(--color-surface-raised)',
-    color: isDisabled ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)',
-    cursor: isDisabled ? 'not-allowed' : 'pointer',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
-  }),
-
-  actionBarSaveButton: (isDisabled: boolean): CSSProperties => ({
-    padding: '12px 24px',
-    borderRadius: '8px',
-    border: 'none',
-    backgroundColor: isDisabled ? 'var(--color-disabled-bg)' : 'var(--color-warning)',
-    color: isDisabled ? 'var(--color-text-disabled)' : 'white',
-    cursor: isDisabled ? 'not-allowed' : 'pointer',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-    transition: 'background-color 0.2s ease',
-  }),
-};
-
-// ---------------------------------------------------------------------------
-// App
-// ---------------------------------------------------------------------------
-
-type LoadingState = 'idle' | 'fetching' | 'saving';
+import { LoadingOverlay } from './components/LoadingOverlay';
+import { useEndpointFilter } from './hooks/useEndpointFilter';
+import { useEndpoints } from './hooks/useEndpoints';
 
 export default function App() {
-  const [endpoints, setEndpoints] = useState<Endpoints | null>({
-    listEndpoints: [],
-  });
-  const [loadingState, setLoadingState] = useState<LoadingState>('idle');
-  const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessage | null>(null);
-  const [pendingChanges, setPendingChanges] = useState<Record<string, Endpoint>>({});
-  const [pendingHandlerChanges, setPendingHandlerChanges] = useState<Record<string, string>>({});
-  const [filterText, setFilterText] = useState('');
-
-  const handleFetchStart = useCallback(() => {
-    setLoadingState('fetching');
-    setFeedbackMessage({ text: 'Carregando endpoints...', type: 'info' });
-  }, []);
-
-  const handleFetchSuccess = useCallback((response: AxiosResponse<Endpoints>) => {
-    if (response.status === 200) {
-      setEndpoints(response.data);
-      setFeedbackMessage({ text: 'Endpoints carregados com sucesso!', type: 'success' });
-    }
-  }, []);
-
-  const handleFetchError = useCallback((error: unknown) => {
-    console.error('Erro ao buscar endpoints:', error);
-    setEndpoints({ listEndpoints: [] });
-    setFeedbackMessage({ text: 'Erro ao carregar endpoints', type: 'error' });
-  }, []);
-
-  const fetchEndpoints = useCallback(async () => {
-    handleFetchStart();
-    try {
-      const response = await axios.get<Endpoints>('/api/endpoints');
-      handleFetchSuccess(response);
-    } catch (error) {
-      handleFetchError(error);
-    } finally {
-      setLoadingState('idle');
-      setTimeout(() => setFeedbackMessage(null), 3000);
-    }
-  }, [handleFetchStart, handleFetchSuccess, handleFetchError]);
-
-  const onAddPendingEndpoint = useCallback((endpoint: Endpoint) => {
-    setPendingChanges((prev) => {
-      // Se o endpoint já estiver pendente, remove das pendências (toggle)
-      if (endpoint.fileName in prev) {
-        const { [endpoint.fileName]: _, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, [endpoint.fileName]: endpoint };
-    });
-  }, []);
-
-  const handleOpenEndpointFile = useCallback(async (fileName: string) => {
-    try {
-      await axios.post('/api/open-endpoint-file', { fileName });
-      setFeedbackMessage({ text: `Abrindo ${fileName} no VS Code...`, type: 'info' });
-    } catch (error) {
-      console.error('Erro ao abrir arquivo de endpoint:', error);
-      setFeedbackMessage({ text: `Erro ao abrir arquivo: ${fileName}`, type: 'error' });
-    } finally {
-      setTimeout(() => setFeedbackMessage(null), 3000);
-    }
-  }, []);
-
-  const onAddPendingHandlerChange = useCallback(
-    (fileName: string, handlerKey: string) => {
-      setPendingHandlerChanges((prev) => {
-        const originalHandlerKey = endpoints?.listEndpoints.find(
-          (ep) => ep.fileName === fileName,
-        )?.activeHandlerKey;
-
-        // Se o handler escolhido é o mesmo que já estava salvo, remove das pendências
-        if (handlerKey === originalHandlerKey) {
-          const { [fileName]: _, ...rest } = prev;
-          return rest;
-        }
-        return { ...prev, [fileName]: handlerKey };
-      });
-    },
-    [endpoints],
-  );
-
-  const handleSaveStart = useCallback(() => {
-    setLoadingState('saving');
-    setFeedbackMessage({ text: 'Salvando alterações...', type: 'info' });
-  }, []);
-
-  const handleSaveSuccess = useCallback(() => {
-    setPendingChanges({});
-    setPendingHandlerChanges({});
-    setFeedbackMessage({ text: 'Alterações salvas com sucesso!', type: 'success' });
-  }, []);
-
-  const handleSaveError = useCallback((error: unknown) => {
-    console.error('Erro ao salvar alterações:', error);
-    setFeedbackMessage({ text: 'Erro ao salvar alterações', type: 'error' });
-  }, []);
-
-  const saveChanges = useCallback(async () => {
-    const endpointsToChange = Object.values(pendingChanges);
-    const handlerChangesToSave = Object.entries(pendingHandlerChanges).map(
-      ([fileName, handlerKey]) => ({ fileName, handlerKey }),
-    );
-    if (endpointsToChange.length === 0 && handlerChangesToSave.length === 0) return;
-
-    handleSaveStart();
-    try {
-      await Promise.all([
-        endpointsToChange.length > 0
-          ? axios.post('/api/changeStateEndpoint', endpointsToChange)
-          : null,
-        handlerChangesToSave.length > 0
-          ? axios.post('/api/changeActiveHandler', handlerChangesToSave)
-          : null,
-      ]);
-      handleSaveSuccess();
-      await fetchEndpoints();
-    } catch (error) {
-      handleSaveError(error);
-    } finally {
-      setLoadingState('idle');
-      setTimeout(() => setFeedbackMessage(null), 3000);
-    }
-  }, [
-    pendingChanges,
+  const {
+    endpoints,
+    loadingState,
+    feedbackMessage,
+    pendingChangeKeys,
     pendingHandlerChanges,
-    handleSaveStart,
-    handleSaveSuccess,
-    handleSaveError,
-    fetchEndpoints,
-  ]);
+    totalPendingCount,
+    onAddPendingEndpoint,
+    onAddPendingHandlerChange,
+    onOpenEndpointFile,
+    discardChanges,
+    saveChanges,
+  } = useEndpoints();
 
-  useEffect(() => {
-    fetchEndpoints().catch(console.error);
-  }, [fetchEndpoints]);
-
-  useEffect(() => {
-    // Em dev, conecta diretamente ao backend (evita problema de reconexão pelo proxy do Vite)
-    const sseUrl = import.meta.env.DEV
-      ? `http://localhost:${__VITE_API_PORT__}/api/events`
-      : '/api/events';
-
-    let es: EventSource | null = null;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let destroyed = false;
-
-    function connect() {
-      if (destroyed) return;
-
-      es = new EventSource(sseUrl);
-
-      es.onmessage = () => {
-        fetchEndpoints().catch(console.error);
-      };
-
-      es.onerror = () => {
-        if (destroyed) return;
-        console.warn('[SSE] Conexão perdida, reconectando em 1s...');
-        es?.close();
-        es = null;
-        reconnectTimer = setTimeout(connect, 1000);
-      };
-    }
-
-    connect();
-
-    return () => {
-      destroyed = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      es?.close();
-    };
-  }, [fetchEndpoints]);
-
-  const pendingKeys = Object.keys(pendingChanges);
-  const pendingHandlerKeys = Object.keys(pendingHandlerChanges);
-  const totalPendingCount = new Set([...pendingKeys, ...pendingHandlerKeys]).size;
-
-  // Compilado apenas quando filterText muda, não a cada endpoint iterado
-  const filterRegexes = useMemo(() => {
-    return filterText
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((token) => {
-        // Escapa tudo exceto ".", que é curinga (qualquer caractere)
-        const pattern = token.replace(/[^.]/g, (c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-        return new RegExp(pattern, 'i');
-      });
-  }, [filterText]);
-
-  const filteredEndpoints = useMemo(() => {
-    if (!endpoints) return null;
-    return {
-      listEndpoints:
-        filterRegexes.length === 0
-          ? endpoints.listEndpoints
-          : endpoints.listEndpoints.filter((ep) => {
-              const tagsText = ep.tags.join(' ');
-              return filterRegexes.some(
-                (regex) =>
-                  regex.test(ep.description) ||
-                  regex.test(ep.localhostAddress) ||
-                  regex.test(ep.method) ||
-                  regex.test(tagsText),
-              );
-            }),
-    };
-  }, [endpoints, filterRegexes]);
+  const { filterText, setFilterText, filteredEndpoints } = useEndpointFilter(endpoints);
 
   return (
     <>
@@ -352,110 +34,19 @@ export default function App() {
       <ListEndpoints
         endpoints={filteredEndpoints}
         isLoading={loadingState !== 'idle'}
-        pendingChanges={new Set(pendingKeys)}
+        pendingChanges={pendingChangeKeys}
         pendingHandlerChanges={pendingHandlerChanges}
         onAddPendingEndpoint={onAddPendingEndpoint}
-        onOpenEndpointFile={handleOpenEndpointFile}
+        onOpenEndpointFile={onOpenEndpointFile}
         onChangeActiveHandler={onAddPendingHandlerChange}
       />
 
       <ActionsBar
         count={totalPendingCount}
         isDisabled={loadingState !== 'idle'}
-        onDiscard={() => {
-          setPendingChanges({});
-          setPendingHandlerChanges({});
-        }}
+        onDiscard={discardChanges}
         onSave={saveChanges}
       />
     </>
   );
 }
-
-type FeedbackMessage = {
-  text: string;
-  type: 'success' | 'error' | 'info';
-};
-
-// ---------------------------------------------------------------------------
-// FeedbackToast
-// ---------------------------------------------------------------------------
-const FeedbackToast = ({ message }: { message: FeedbackMessage | null }) => {
-  if (!message) return null;
-  return <div style={S.feedback(message.type)}>{message.text}</div>;
-};
-
-// ---------------------------------------------------------------------------
-// LoadingOverlay
-// ---------------------------------------------------------------------------
-
-const overlayStates: Record<LoadingState, string> = {
-  idle: '',
-  fetching: 'Carregando...',
-  saving: 'Alterando estado...',
-};
-
-const LoadingOverlay = ({ loadingState }: { loadingState: LoadingState }) => {
-  if (loadingState === 'idle') return null;
-  return (
-    <div style={S.overlayBackdrop}>
-      <div style={S.overlayCard}>
-        <div style={S.overlaySpinner} />
-        <span style={S.loadingText}>{overlayStates[loadingState]}</span>
-      </div>
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// FilterBar
-// ---------------------------------------------------------------------------
-type FilterBarProps = {
-  value: string;
-  onChange: (value: string) => void;
-};
-
-const FilterBar = ({ value, onChange }: FilterBarProps) => (
-  <div style={S.filterBar}>
-    <input
-      style={S.filterInput}
-      type="text"
-      placeholder="Filtrar por descrição, endereço, método ou tag..."
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    />
-    {value && (
-      <button style={S.filterClearButton} onClick={() => onChange('')}>
-        ✕
-      </button>
-    )}
-  </div>
-);
-
-// ---------------------------------------------------------------------------
-// ActionsBar
-// ---------------------------------------------------------------------------
-type ActionsBarProps = {
-  count: number;
-  isDisabled: boolean;
-  onDiscard: () => void;
-  onSave: () => void;
-};
-
-const ActionsBar = ({ count, isDisabled, onDiscard, onSave }: ActionsBarProps) => {
-  if (count === 0) return null;
-  return (
-    <div style={S.actionsBarStyle}>
-      <button
-        style={S.actionBarDiscardButton(isDisabled)}
-        disabled={isDisabled}
-        onClick={onDiscard}
-      >
-        Descartar ({count})
-      </button>
-      <button style={S.actionBarSaveButton(isDisabled)} disabled={isDisabled} onClick={onSave}>
-        Salvar alterações ({count})
-      </button>
-    </div>
-  );
-};
