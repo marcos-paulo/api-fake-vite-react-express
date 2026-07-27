@@ -1,8 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const startScriptKey = 'start';
-const startScriptValue = 'api-fake';
 const typeKey = 'type';
 const typeValue = 'module';
 const targetDir = process.env.INIT_CWD || process.cwd();
@@ -29,12 +27,18 @@ const scriptsValue = packageJson.scripts;
 const scripts: Record<string, string> =
   scriptsValue && typeof scriptsValue === 'object' ? (scriptsValue as Record<string, string>) : {};
 
-if (scripts[startScriptKey] && scripts[startScriptKey] !== startScriptValue) {
-  console.warn('[api-fake] Script "start" ja existe no projeto destino e nao foi alterado.');
-} else if (scripts[startScriptKey] !== startScriptValue) {
-  scripts[startScriptKey] = startScriptValue;
-  console.log('[api-fake] Script "start" adicionado ao package.json do projeto destino.');
+function applyScript(key: string, value: string) {
+  if (scripts[key] && scripts[key] !== value) {
+    console.warn(`[api-fake] Script "${key}" ja existe no projeto destino e nao foi alterado.`);
+  } else if (scripts[key] !== value) {
+    scripts[key] = value;
+    console.log(`[api-fake] Script "${key}" adicionado ao package.json do projeto destino.`);
+  }
 }
+
+applyScript('start', 'api-fake');
+applyScript('lint', 'eslint .');
+applyScript('lint:fix', 'eslint . --fix');
 
 if (packageJson[typeKey] && packageJson[typeKey] !== typeValue) {
   console.warn('[api-fake] Campo "type" ja existe no projeto destino e nao foi alterado.');
