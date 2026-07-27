@@ -1,4 +1,4 @@
-import { type Request, type Response } from 'express';
+import type { Request, Response } from 'express';
 
 export type EndpointMethod = 'get' | 'post' | 'put' | 'delete';
 
