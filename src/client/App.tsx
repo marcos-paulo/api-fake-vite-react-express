@@ -139,6 +139,7 @@ export default function App() {
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [feedbackMessage, setFeedbackMessage] = useState<FeedbackMessage | null>(null);
   const [pendingChanges, setPendingChanges] = useState<Record<string, Endpoint>>({});
+  const [pendingHandlerChanges, setPendingHandlerChanges] = useState<Record<string, string>>({});
   const [filterText, setFilterText] = useState('');
 
   const handleFetchStart = useCallback(() => {
@@ -195,20 +196,22 @@ export default function App() {
     }
   }, []);
 
-  const handleChangeActiveHandler = useCallback(
-    async (fileName: string, handlerKey: string) => {
-      try {
-        await axios.post('/api/changeActiveHandler', { fileName, handlerKey });
-        setFeedbackMessage({ text: 'Handler alterado com sucesso!', type: 'success' });
-        await fetchEndpoints();
-      } catch (error) {
-        console.error('Erro ao trocar handler ativo:', error);
-        setFeedbackMessage({ text: 'Erro ao trocar handler ativo', type: 'error' });
-      } finally {
-        setTimeout(() => setFeedbackMessage(null), 3000);
-      }
+  const onAddPendingHandlerChange = useCallback(
+    (fileName: string, handlerKey: string) => {
+      setPendingHandlerChanges((prev) => {
+        const originalHandlerKey = endpoints?.listEndpoints.find(
+          (ep) => ep.fileName === fileName,
+        )?.activeHandlerKey;
+
+        // Se o handler escolhido é o mesmo que já estava salvo, remove das pendências
+        if (handlerKey === originalHandlerKey) {
+          const { [fileName]: _, ...rest } = prev;
+          return rest;
+        }
+        return { ...prev, [fileName]: handlerKey };
+      });
     },
-    [fetchEndpoints],
+    [endpoints],
   );
 
   const handleSaveStart = useCallback(() => {
@@ -218,6 +221,7 @@ export default function App() {
 
   const handleSaveSuccess = useCallback(() => {
     setPendingChanges({});
+    setPendingHandlerChanges({});
     setFeedbackMessage({ text: 'Alterações salvas com sucesso!', type: 'success' });
   }, []);
 
@@ -228,11 +232,21 @@ export default function App() {
 
   const saveChanges = useCallback(async () => {
     const endpointsToChange = Object.values(pendingChanges);
-    if (endpointsToChange.length === 0) return;
+    const handlerChangesToSave = Object.entries(pendingHandlerChanges).map(
+      ([fileName, handlerKey]) => ({ fileName, handlerKey }),
+    );
+    if (endpointsToChange.length === 0 && handlerChangesToSave.length === 0) return;
 
     handleSaveStart();
     try {
-      await axios.post('/api/changeStateEndpoint', endpointsToChange);
+      await Promise.all([
+        endpointsToChange.length > 0
+          ? axios.post('/api/changeStateEndpoint', endpointsToChange)
+          : null,
+        handlerChangesToSave.length > 0
+          ? axios.post('/api/changeActiveHandler', handlerChangesToSave)
+          : null,
+      ]);
       handleSaveSuccess();
       await fetchEndpoints();
     } catch (error) {
@@ -241,7 +255,14 @@ export default function App() {
       setLoadingState('idle');
       setTimeout(() => setFeedbackMessage(null), 3000);
     }
-  }, [pendingChanges, handleSaveStart, handleSaveSuccess, handleSaveError, fetchEndpoints]);
+  }, [
+    pendingChanges,
+    pendingHandlerChanges,
+    handleSaveStart,
+    handleSaveSuccess,
+    handleSaveError,
+    fetchEndpoints,
+  ]);
 
   useEffect(() => {
     fetchEndpoints().catch(console.error);
@@ -285,6 +306,8 @@ export default function App() {
   }, [fetchEndpoints]);
 
   const pendingKeys = Object.keys(pendingChanges);
+  const pendingHandlerKeys = Object.keys(pendingHandlerChanges);
+  const totalPendingCount = new Set([...pendingKeys, ...pendingHandlerKeys]).size;
 
   // Compilado apenas quando filterText muda, não a cada endpoint iterado
   const filterRegexes = useMemo(() => {
@@ -330,15 +353,19 @@ export default function App() {
         endpoints={filteredEndpoints}
         isLoading={loadingState !== 'idle'}
         pendingChanges={new Set(pendingKeys)}
+        pendingHandlerChanges={pendingHandlerChanges}
         onAddPendingEndpoint={onAddPendingEndpoint}
         onOpenEndpointFile={handleOpenEndpointFile}
-        onChangeActiveHandler={handleChangeActiveHandler}
+        onChangeActiveHandler={onAddPendingHandlerChange}
       />
 
       <ActionsBar
-        count={pendingKeys.length}
+        count={totalPendingCount}
         isDisabled={loadingState !== 'idle'}
-        onDiscard={() => setPendingChanges({})}
+        onDiscard={() => {
+          setPendingChanges({});
+          setPendingHandlerChanges({});
+        }}
         onSave={saveChanges}
       />
     </>

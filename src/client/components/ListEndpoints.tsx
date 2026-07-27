@@ -212,6 +212,7 @@ const S = {
 type ListEndpointsProps = {
   endpoints: Endpoints | null;
   pendingChanges?: Set<string>;
+  pendingHandlerChanges?: Record<string, string>;
   isLoading?: boolean;
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
   onOpenEndpointFile: (fileName: string) => void;
@@ -226,6 +227,7 @@ export const ListEndpoints = ({
   endpoints,
   isLoading = false,
   pendingChanges = new Set(),
+  pendingHandlerChanges = {},
   onAddPendingEndpoint,
   onOpenEndpointFile,
   onChangeActiveHandler,
@@ -262,7 +264,10 @@ export const ListEndpoints = ({
           <EndpointItem
             key={endpoint.serverAddress + endpoint.fileName}
             endpoint={endpoint}
-            isPending={pendingChanges.has(endpoint.fileName)}
+            isPending={
+              pendingChanges.has(endpoint.fileName) || endpoint.fileName in pendingHandlerChanges
+            }
+            pendingHandlerKey={pendingHandlerChanges[endpoint.fileName]}
             displayEnabled={true}
             onAddPendingEndpoint={onAddPendingEndpoint}
             onOpenEndpointFile={onOpenEndpointFile}
@@ -278,7 +283,10 @@ export const ListEndpoints = ({
           <EndpointItem
             key={endpoint.fileName}
             endpoint={endpoint}
-            isPending={pendingChanges.has(endpoint.fileName)}
+            isPending={
+              pendingChanges.has(endpoint.fileName) || endpoint.fileName in pendingHandlerChanges
+            }
+            pendingHandlerKey={pendingHandlerChanges[endpoint.fileName]}
             displayEnabled={false}
             onAddPendingEndpoint={onAddPendingEndpoint}
             onOpenEndpointFile={onOpenEndpointFile}
@@ -299,6 +307,7 @@ type EndpointItemProps = {
   endpoint: Endpoint;
   displayEnabled: boolean;
   isPending: boolean;
+  pendingHandlerKey?: string;
   isLoading: boolean;
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
   onOpenEndpointFile: (fileName: string) => void;
@@ -309,6 +318,7 @@ const EndpointItem = ({
   endpoint,
   displayEnabled,
   isPending,
+  pendingHandlerKey,
   isLoading,
   onAddPendingEndpoint,
   onOpenEndpointFile,
@@ -398,7 +408,7 @@ const EndpointItem = ({
           <span style={S.handlerSelectLabel}>Resposta:</span>
           <select
             style={S.handlerSelect}
-            value={endpoint.activeHandlerKey}
+            value={pendingHandlerKey ?? endpoint.activeHandlerKey}
             disabled={isLoading}
             onChange={(e) => onChangeActiveHandler(endpoint.fileName, e.target.value)}
           >

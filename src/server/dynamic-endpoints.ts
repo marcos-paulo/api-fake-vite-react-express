@@ -573,25 +573,28 @@ class ServerEndpoints {
     log.endSection();
   }
 
-  changeActiveHandler(fileName: string, handlerKey: string) {
-    const log = this.logger.startSection('changeActiveHandler');
-    log.info(`${fileName} -> ${handlerKey}`);
+  changeActiveHandlers(changes: { fileName: string; handlerKey: string }[]) {
+    const log = this.logger.startSection('changeActiveHandlers');
 
-    const loadedModule = this.loadedModules.find((module) => module.fileName === fileName);
+    for (const { fileName, handlerKey } of changes) {
+      log.step(`${fileName} -> ${handlerKey}`);
 
-    if (!loadedModule || loadedModule.loadError || !loadedModule.endpoint) {
-      log.endSection();
-      throw new Error(`Endpoint não encontrado ou com erro de carregamento: ${fileName}`);
+      const loadedModule = this.loadedModules.find((module) => module.fileName === fileName);
+
+      if (!loadedModule || loadedModule.loadError || !loadedModule.endpoint) {
+        log.endSection();
+        throw new Error(`Endpoint não encontrado ou com erro de carregamento: ${fileName}`);
+      }
+
+      const handlersMap = getEndpointHandlersMap(loadedModule.endpoint);
+
+      if (!(handlerKey in handlersMap)) {
+        log.endSection();
+        throw new Error(`Handler "${handlerKey}" não existe no endpoint: ${fileName}`);
+      }
+
+      this.activeHandlerSelections[fileName] = handlerKey;
     }
-
-    const handlersMap = getEndpointHandlersMap(loadedModule.endpoint);
-
-    if (!(handlerKey in handlersMap)) {
-      log.endSection();
-      throw new Error(`Handler "${handlerKey}" não existe no endpoint: ${fileName}`);
-    }
-
-    this.activeHandlerSelections[fileName] = handlerKey;
 
     this.buildEnabledEndpointList();
     this.saveConfigFile();
