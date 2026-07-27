@@ -1,5 +1,5 @@
 {
-"Endpoint api-fake": {
+  "Endpoint api-fake": {
     "scope": "javascript,typescript",
     "prefix": "api-fake",
     "body": [
@@ -18,6 +18,6 @@
       "};",
       "",
       "export default [endpoint];",
-    ]
-  }
+    ],
+  },
 }

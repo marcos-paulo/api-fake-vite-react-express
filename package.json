@@ -1,7 +1,7 @@
 {
   "name": "api-fake",
   "private": true,
-  "version": "1.1.0-rc.0",
+  "version": "1.1.0",
   "type": "module",
   "types": "./src/types/index.ts",
   "exports": {
@@ -12,7 +12,8 @@
     "./eslint-config": {
       "import": "./src/shared/eslint-config.ts"
     },
-    "./tsconfig-base.json": "./config/tsconfig-base.json"
+    "./tsconfig-base.json": "./config/tsconfig-base.json",
+    "./prettier-config.json": "./.prettierrc"
   },
   "bin": {
     "api-fake-browser": "./bin/api-fake-browser.mjs",
@@ -35,6 +36,8 @@
     "dev:with:electron": "concurrently --handle-input --default-input-target 0 --names \"BACKEND,FRONTEND,ELECTRON\" --prefix-colors \"blue,green,cyan\" --kill-others \"npm:server:dev:watch\" \"npm:client:dev:wait\" \"npm:electron:dev\"",
     "dev:browser": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm:server:dev:watch\" \"npm:client:dev:wait\"",
     "lint": "eslint .",
+    "prettier:check": "prettier --check .",
+    "prettier": "prettier --write .",
     "----BUILD----------": "------------------------------------------------------------------------",
     "build:types": "tsup src/types/index.ts --dts-only --format esm --out-dir dist/types --tsconfig tsconfig.pack-types.json",
     "build:server": "tsup src/server/server.ts --format esm --dts --out-dir dist/server --tsconfig tsconfig.pack-server.json",
@@ -50,6 +53,7 @@
     "package:pack": "node scripts/release.mjs"
   },
   "dependencies": {
+    "@types/express": "^5.0.1",
     "axios": "^1.7.8",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
@@ -57,6 +61,7 @@
     "eslint": "^9.15.0",
     "eslint-plugin-simple-import-sort": "^13.0.0",
     "express": "^4.21.2",
+    "prettier": "^3.9.6",
     "puppeteer": "^24.43.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -67,7 +72,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
-    "@types/express": "^5.0.1",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
