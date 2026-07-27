@@ -64,7 +64,9 @@ function downloadChrome() {
   const args = ['browsers', 'install', 'chrome'];
 
   if (baseUrl) {
-    console.log(`[postinstall] Host de download do Puppeteer configurado, baixando via: ${baseUrl}`);
+    console.log(
+      `[postinstall] Host de download do Puppeteer configurado, baixando via: ${baseUrl}`,
+    );
     args.push(`--base-url=${baseUrl}`);
   } else {
     console.log(

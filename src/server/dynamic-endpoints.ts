@@ -447,7 +447,10 @@ class ServerEndpoints {
       }));
 
       if (enabled) {
-        this.enabledEndpointModules.push({ endpoint, activeHandler: handlersMap[activeHandlerKey].handler });
+        this.enabledEndpointModules.push({
+          endpoint,
+          activeHandler: handlersMap[activeHandlerKey].handler,
+        });
         this.jsonConfig[serverAddress] = localhostAddress;
         newEnabledAddresses.push({ fileName });
       }
