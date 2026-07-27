@@ -5,6 +5,7 @@ import { registerCorsMiddleware } from './middleware/cors-middleware';
 import { registerDynamicEndpointsMiddleware } from './middleware/dynamic-endpoints-middleware';
 import { registerGlobalErrorHandler } from './middleware/global-error-handler';
 import { registerProductionStaticMiddleware } from './middleware/production-static-middleware';
+import { registerChangeActiveHandlerRoute } from './routes/change-active-handler-route';
 import { registerChangeStateEndpointRoute } from './routes/change-state-endpoint-route';
 import { registerEndpointsRoute } from './routes/endpoints-route';
 import { registerEventsRoute } from './routes/events-route';
@@ -27,6 +28,7 @@ registerCorsMiddleware(app);
 registerEventsRoute(app);
 registerEndpointsRoute(app);
 registerChangeStateEndpointRoute(app);
+registerChangeActiveHandlerRoute(app);
 registerOpenEndpointFileRoute(app);
 registerShutdownRoute(app);
 

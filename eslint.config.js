@@ -42,8 +42,9 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/consistent-type-imports': [
         'error',
-        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+        { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
       ],
+      '@typescript-eslint/no-import-type-side-effects': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
@@ -67,7 +68,12 @@ export default tseslint.config(
   // Servidor — arquivos Node.js (sem React, com globals de Node)
   // ---------------------------------------------------------------------------
   {
-    files: ['src/server/**/*.ts', 'root-endpoints/**/*.ts', 'express-plugin.ts'],
+    files: [
+      'src/server/**/*.ts',
+      'src/shared/**/*.ts',
+      'root-endpoints/**/*.ts',
+      'express-plugin.ts',
+    ],
     languageOptions: {
       globals: { ...globals.node },
       parserOptions: {
