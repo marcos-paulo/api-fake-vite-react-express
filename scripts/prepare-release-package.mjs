@@ -18,8 +18,15 @@ const compiledLintConfigPostInstallPath = path.join(
   'scripts',
   'postinstall-add-lint-config.mjs',
 );
-const compiledDownloadPuppeteerPath = path.join(rootDir, 'dist', 'scripts', 'download-puppeteer.mjs');
+const compiledDownloadPuppeteerPath = path.join(
+  rootDir,
+  'dist',
+  'scripts',
+  'download-puppeteer.mjs',
+);
 const tsconfigBaseSourcePath = path.join(rootDir, 'config', 'tsconfig-base.json');
+const prettierBaseSourcePath = path.join(rootDir, '.prettierrc');
+const editorconfigSourcePath = path.join(rootDir, '.editorconfig');
 const productionBinFileName = 'api-fake-prod.mjs';
 
 function assertBuildArtifactsExist() {
@@ -48,6 +55,14 @@ function assertBuildArtifactsExist() {
   if (!fs.existsSync(tsconfigBaseSourcePath)) {
     throw new Error('config/tsconfig-base.json nao encontrado.');
   }
+
+  if (!fs.existsSync(prettierBaseSourcePath)) {
+    throw new Error('.prettierrc nao encontrado.');
+  }
+
+  if (!fs.existsSync(editorconfigSourcePath)) {
+    throw new Error('.editorconfig nao encontrado.');
+  }
 }
 
 function resetPackageDir() {
@@ -63,12 +78,18 @@ function copyDistFiles() {
 }
 
 function copyCompiledScripts() {
-  fs.copyFileSync(compiledPostInstallPath, path.join(packageScriptsDir, 'postinstall-add-script.mjs'));
+  fs.copyFileSync(
+    compiledPostInstallPath,
+    path.join(packageScriptsDir, 'postinstall-add-script.mjs'),
+  );
   fs.copyFileSync(
     compiledLintConfigPostInstallPath,
     path.join(packageScriptsDir, 'postinstall-add-lint-config.mjs'),
   );
-  fs.copyFileSync(compiledDownloadPuppeteerPath, path.join(packageScriptsDir, 'download-puppeteer.mjs'));
+  fs.copyFileSync(
+    compiledDownloadPuppeteerPath,
+    path.join(packageScriptsDir, 'download-puppeteer.mjs'),
+  );
 }
 
 function copyReadme() {
@@ -79,6 +100,14 @@ function copyReadme() {
 
 function copyTsconfigBase() {
   fs.copyFileSync(tsconfigBaseSourcePath, path.join(packageDir, 'tsconfig-base.json'));
+}
+
+function copyPrettierBase() {
+  fs.copyFileSync(prettierBaseSourcePath, path.join(packageDir, 'prettier-config.json'));
+}
+
+function copyEditorConfigBase() {
+  fs.copyFileSync(editorconfigSourcePath, path.join(packageDir, 'editorconfig-base'));
 }
 
 function buildPackageJson() {
@@ -100,8 +129,16 @@ function buildPackageJson() {
         import: './dist/shared/eslint-config.js',
       },
       './tsconfig-base.json': './tsconfig-base.json',
+      './prettier-config.json': './prettier-config.json',
     },
-    files: ['dist', 'scripts', 'tsconfig-base.json', 'README.md'],
+    files: [
+      'dist',
+      'scripts',
+      'tsconfig-base.json',
+      'prettier-config.json',
+      'editorconfig-base',
+      'README.md',
+    ],
     scripts: {
       postinstall:
         'node ./scripts/postinstall-add-script.mjs && node ./scripts/postinstall-add-lint-config.mjs && node ./scripts/download-puppeteer.mjs',
@@ -114,7 +151,10 @@ function buildPackageJson() {
 }
 
 function writePackageJson(packageJson) {
-  fs.writeFileSync(path.join(packageDir, 'package.json'), `${JSON.stringify(packageJson, null, 2)}\n`);
+  fs.writeFileSync(
+    path.join(packageDir, 'package.json'),
+    `${JSON.stringify(packageJson, null, 2)}\n`,
+  );
 }
 
 function main() {
@@ -124,6 +164,8 @@ function main() {
   copyCompiledScripts();
   copyReadme();
   copyTsconfigBase();
+  copyPrettierBase();
+  copyEditorConfigBase();
   writePackageJson(buildPackageJson());
 }
 

@@ -68,7 +68,12 @@ export default tseslint.config(
   // Servidor — arquivos Node.js (sem React, com globals de Node)
   // ---------------------------------------------------------------------------
   {
-    files: ['src/server/**/*.ts', 'src/shared/**/*.ts', 'root-endpoints/**/*.ts', 'express-plugin.ts'],
+    files: [
+      'src/server/**/*.ts',
+      'src/shared/**/*.ts',
+      'root-endpoints/**/*.ts',
+      'express-plugin.ts',
+    ],
     languageOptions: {
       globals: { ...globals.node },
       parserOptions: {

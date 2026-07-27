@@ -39,6 +39,8 @@ function applyScript(key: string, value: string) {
 applyScript('start', 'api-fake');
 applyScript('lint', 'eslint .');
 applyScript('lint:fix', 'eslint . --fix');
+applyScript('prettier:check', 'prettier --check .');
+applyScript('prettier', 'prettier --write .');
 
 if (packageJson[typeKey] && packageJson[typeKey] !== typeValue) {
   console.warn('[api-fake] Campo "type" ja existe no projeto destino e nao foi alterado.');
