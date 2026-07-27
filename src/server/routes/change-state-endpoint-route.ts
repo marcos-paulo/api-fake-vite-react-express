@@ -1,6 +1,6 @@
 import type { Express } from 'express';
 
-import { type Endpoint } from '../../types/endpoints.types';
+import type { Endpoint } from '../../types/endpoints.types';
 import { endpointsServer } from '../dynamic-endpoints';
 import { logger as appLogger } from '../logger';
 

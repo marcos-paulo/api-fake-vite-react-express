@@ -7,7 +7,11 @@ import { runTsup } from './lib/run-tools.mjs';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = path.join(rootDir, 'dist', 'scripts');
 
-const ENTRIES = ['src/postinstall/postinstall-add-script.ts', 'src/postinstall/download-puppeteer.ts'];
+const ENTRIES = [
+  'src/postinstall/postinstall-add-script.ts',
+  'src/postinstall/postinstall-add-lint-config.ts',
+  'src/postinstall/download-puppeteer.ts',
+];
 
 function buildEntries() {
   runTsup(rootDir, [

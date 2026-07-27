@@ -1,14 +1,19 @@
 {
   "name": "api-fake",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.2.0",
   "type": "module",
   "types": "./src/types/index.ts",
   "exports": {
     ".": {
       "types": "./src/types/index.ts",
       "import": "./src/types/index.ts"
-    }
+    },
+    "./eslint-config": {
+      "import": "./src/shared/eslint-config.ts"
+    },
+    "./tsconfig-base.json": "./config/tsconfig-base.json",
+    "./prettier-config.json": "./.prettierrc"
   },
   "bin": {
     "api-fake-browser": "./bin/api-fake-browser.mjs",
@@ -31,6 +36,8 @@
     "dev:with:electron": "concurrently --handle-input --default-input-target 0 --names \"BACKEND,FRONTEND,ELECTRON\" --prefix-colors \"blue,green,cyan\" --kill-others \"npm:server:dev:watch\" \"npm:client:dev:wait\" \"npm:electron:dev\"",
     "dev:browser": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm:server:dev:watch\" \"npm:client:dev:wait\"",
     "lint": "eslint .",
+    "prettier:check": "prettier --check .",
+    "prettier": "prettier --write .",
     "----BUILD----------": "------------------------------------------------------------------------",
     "build:types": "tsup src/types/index.ts --dts-only --format esm --out-dir dist/types --tsconfig tsconfig.pack-types.json",
     "build:server": "tsup src/server/server.ts --format esm --dts --out-dir dist/server --tsconfig tsconfig.pack-server.json",
@@ -39,42 +46,44 @@
     "build:prod-bin": "node scripts/build-prod-bin.mjs",
     "build:postinstall": "node scripts/build-postinstall.mjs",
     "build:electron": "tsup src/electron/main.ts --format esm --out-dir dist/electron --tsconfig tsconfig.pack-electron.json",
-    "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:prod-bin && npm run build:postinstall",
+    "build:shared-config": "tsup src/shared/eslint-config.ts --format esm --out-dir dist/shared --tsconfig tsconfig.pack-shared-config.json --external eslint --external typescript-eslint --external eslint-plugin-simple-import-sort",
+    "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:prod-bin && npm run build:postinstall && npm run build:shared-config",
     "----PACKAGE--------": "------------------------------------------------------------------------",
     "package:prepare": "node ./scripts/prepare-release-package.mjs",
     "package:pack": "node scripts/release.mjs"
   },
   "dependencies": {
+    "@types/express": "^5.0.1",
     "axios": "^1.7.8",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "dotenv": "^16.4.5",
+    "eslint": "^9.15.0",
+    "eslint-plugin-simple-import-sort": "^13.0.0",
     "express": "^4.21.2",
+    "prettier": "^3.9.6",
     "puppeteer": "^24.43.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "remove": "^0.1.5",
+    "typescript": "~5.6.2",
+    "typescript-eslint": "^8.15.0",
     "wait-on": "^9.0.3"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
-    "@types/express": "^5.0.1",
     "@types/node": "^22.10.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/wait-on": "^5.3.4",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "electron": "^42.0.1",
-    "eslint": "^9.15.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
-    "eslint-plugin-simple-import-sort": "^13.0.0",
     "globals": "^15.12.0",
     "tsup": "^8.5.1",
     "tsx": "^4.19.2",
-    "typescript": "~5.6.2",
-    "typescript-eslint": "^8.15.0",
     "vite": "^6.0.1"
   },
   "engines": {
