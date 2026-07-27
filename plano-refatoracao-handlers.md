@@ -195,3 +195,71 @@ Novo `docs/multiplos-handlers.md` (mesmo estilo de `docs/naming-conventions.md`)
   - trocar a seleção muda de fato a resposta HTTP retornada por aquele endereço, sem precisar habilitar/desabilitar;
   - a seleção sobrevive a um restart do servidor (lida de `activeHandlers.json`) e a uma edição do arquivo que remova a chave selecionada (cai pro primeiro handler, sem crashar).
 - Para a Parte 1: rodar `npm run package:pack` e instalar o tarball gerado (`dist-target/*.tgz`) num projeto de teste vazio (sem `eslint.config.js`/`tsconfig.json`) e confirmar que ambos os arquivos são criados corretamente e que `npx eslint .`/`npx tsc --noEmit` funcionam nesse projeto de teste; repetir instalando num projeto que já tem `eslint.config.js` e `tsconfig.json` (com e sem `extends`) e confirmar que nada existente é sobrescrito, só os avisos esperados aparecem.
+
+---
+
+## Desvios e adições em relação a este plano
+
+Registrado a posteriori, comparando o que foi de fato implementado na branch
+`plano-refatoracao-handlers` com o que este documento previa. Ordenado do mais antigo pro mais
+recente.
+
+### 1. `fixStyle` do `consistent-type-imports` trocado de `inline-type-imports` pra `separate-type-imports`
+
+A seção 1.1 especificava `fixStyle: 'inline-type-imports'` para a regra
+`@typescript-eslint/consistent-type-imports` (tanto no `eslint.config.js` deste repo quanto no
+`src/shared/eslint-config.ts` exportado). Isso foi revertido para `'separate-type-imports'`
+(commit `9ee87cd`, mais a regra `@typescript-eslint/no-import-type-side-effects: error`
+adicionada junto): o form inline (`import { type X }`) não é elidido pelo type-stripping nativo
+do Node/TS — só o `import type { X }` como statement inteiro é removido — o que quebrava imports
+de tipos vindos de pacotes sem entry point de runtime (como o próprio `api-fake` visto pelo host).
+Documentado em `CLAUDE.md` (seção de convenções de ESLint).
+
+### 2. Troca de handler ativo virou pendente/em lote, não mais imediata
+
+A seção 2.7 descrevia `handleChangeActiveHandler` dispatando a troca **na hora**
+(`axios.post` + `fetchEndpoints()` imediato), no mesmo estilo de `handleOpenEndpointFile` —
+explicitamente **fora** do fluxo de `pendingChanges`/"Salvar alterações em lote".
+
+Isso foi revertido no commit `44e349d`: a troca de handler agora **acumula** em
+`pendingHandlerChanges` (mesmo padrão de `pendingChanges` para habilitar/desabilitar) e só é
+enviada ao servidor quando o usuário clica em "Salvar alterações", junto com as demais mudanças
+pendentes. Isso exigiu:
+- `POST /api/changeActiveHandler` deixar de aceitar um único `{fileName, handlerKey}` e passar a
+  aceitar um **array** de trocas (`change-active-handler-route.ts` + `ServerEndpoints` do lado do
+  servidor).
+- `ListEndpoints.tsx`/`App.tsx` ganharem o estado `pendingHandlerChanges` (paralelo a
+  `pendingChanges`) e um badge "pendente" também para troca de handler sem toggle de
+  enabled/disabled.
+
+Motivo (do commit): manter consistência com o único outro fluxo de mutação que a UI já tinha
+(habilitar/desabilitar endpoint), em vez de ter dois modelos de mutação diferentes convivendo na
+mesma tela.
+
+### 3. Refatoração da arquitetura do client (fora do escopo original do plano)
+
+Não previsto em nenhuma das duas partes deste plano — pedido à parte pelo usuário depois que a
+Parte 2 já estava concluída, porque `App.tsx` e `ListEndpoints.tsx` acumularam componentes demais
+no mesmo arquivo ao longo da Parte 2 (contador de pendências, seletor de handler, badges, etc.),
+prejudicando entendimento/manutenção.
+
+- `src/client/hooks/` (novo): `useEndpoints.ts` concentra todo o estado e as fases
+  fetch/save/pending-changes/SSE que antes viviam soltas em `App.tsx`; `useEndpointFilter.ts`
+  concentra o texto de filtro e os regexes derivados. `App.tsx` passou a ser só composição
+  (hooks + JSX), sem lógica de fetch/save misturada.
+- `src/client/components/`: `FeedbackToast.tsx`, `LoadingOverlay.tsx`, `FilterBar.tsx` e
+  `ActionsBar.tsx` extraídos de dentro de `App.tsx` para arquivos próprios (cada um com seu
+  próprio objeto de estilos `S`).
+- `src/client/components/ListEndpoints.tsx` (arquivo único) virou pasta
+  `src/client/components/ListEndpoints/`, dividida em `ListEndpoints.tsx` (orquestração
+  enabled/disabled), `EndpointItem.tsx`, `EndpointSection.tsx`, `EmptyMessage.tsx` e
+  `PendingBadge.tsx`, com um `index.ts` de barrel para manter o import
+  `from './components/ListEndpoints'` funcionando sem mudanças em `App.tsx`.
+- Validado com `npm run lint`, `tsc --noEmit` (`tsconfig.app.json`), `npm run build:client`, e
+  também rodando o app de verdade via `npm run dev:browser` com um workspace/endpoint de teste
+  isolado (mesma técnica descrita em `conhecimento-testes-manuais.md`) dirigido por um script
+  Puppeteer headless: carregamento da lista, filtro (com e sem match), toggle de checkbox gerando
+  pendência, troca de handler e descartar alterações — sem erros de console, comportamento
+  idêntico ao anterior à refatoração.
+- Commit: `bc0a8bc` ("Refatora arquitetura do client, separando componentes e hooks por
+  arquivo").
