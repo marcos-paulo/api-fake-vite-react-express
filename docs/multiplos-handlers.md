@@ -12,7 +12,8 @@ Continua funcionando normalmente — nenhuma mudança necessária em endpoints j
 ```ts
 export const endpoint: EndpointObject = {
   description: 'Lista de usuários',
-  localhostEndpoint: '/usuarios',
+  serverAddress: '/api/usuarios',
+  localhostAddress: '/usuarios',
   method: 'get',
   handler: (req, res) => {
     res.json([{ id: 1, nome: 'Ana' }]);
@@ -30,7 +31,8 @@ interface.
 ```ts
 export const endpoint: EndpointObject = {
   description: 'Lista de usuários',
-  localhostEndpoint: '/usuarios',
+  serverAddress: '/api/usuarios',
+  localhostAddress: '/usuarios',
   method: 'get',
   handlers: {
     sucesso: {

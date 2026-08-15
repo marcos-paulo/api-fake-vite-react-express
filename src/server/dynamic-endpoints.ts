@@ -44,7 +44,6 @@ class ServerEndpoints {
   }
 
   private readonly envs = {
-    serverDefaultPrefixApi: getConfig().SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API,
     endpointServerPort: getConfig().API_PORT,
     workspacesRootPath: getConfig().WORKSPACES_ROOT_PATH,
     activeWorkspace: getConfig().ACTIVE_WORKSPACE,
@@ -410,7 +409,7 @@ class ServerEndpoints {
         continue;
       }
 
-      const { description, localhostEndpoint, method, endpointServerPrefix } = endpoint;
+      const { description, method } = endpoint;
       const tags = Array.isArray(endpoint.tags)
         ? endpoint.tags
             .filter((tag): tag is string => typeof tag === 'string')
@@ -418,14 +417,10 @@ class ServerEndpoints {
             .filter(Boolean)
         : [];
 
-      const serverPrefixApi = endpointServerPrefix
-        ? endpointServerPrefix
-        : this.envs.serverDefaultPrefixApi;
-
-      const serverAddress = path.join(serverPrefixApi, localhostEndpoint);
+      const serverAddress = endpoint.serverAddress;
 
       // prettier-ignore
-      const localhostAddress = `http://${path.join(`localhost:${this.envs.endpointServerPort}`,localhostEndpoint)}`;
+      const localhostAddress = `http://${path.join(`localhost:${this.envs.endpointServerPort}`,endpoint.localhostAddress)}`;
 
       delete this.jsonConfig[serverAddress];
 
@@ -483,11 +478,7 @@ class ServerEndpoints {
     // Mapear todos os serverAddresses para seus fileNames
     for (const { endpoint, fileName, loadError } of this.loadedModules) {
       if (!loadError && endpoint) {
-        const { localhostEndpoint, endpointServerPrefix } = endpoint;
-        const serverPrefixApi = endpointServerPrefix
-          ? endpointServerPrefix
-          : this.envs.serverDefaultPrefixApi;
-        const serverAddress = path.join(serverPrefixApi, localhostEndpoint);
+        const serverAddress = endpoint.serverAddress;
 
         let filesForAddress = serverAddressMap.get(serverAddress);
         if (!filesForAddress) {
