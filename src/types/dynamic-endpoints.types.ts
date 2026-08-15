@@ -13,8 +13,10 @@ export type EndpointHandlersMap = Record<string, EndpointHandlerEntry>;
 
 type EndpointBase = {
   description: string;
-  endpointServerPrefix?: string;
-  localhostEndpoint: string;
+  /** Endereço completo interceptado no proxy do host (ex: "/api/usuarios"). */
+  serverAddress: string;
+  /** Endereço completo servido pelo servidor fake local (ex: "/api/usuarios"). */
+  localhostAddress: string;
   method: EndpointMethod;
   tags?: string[];
 };
@@ -47,8 +49,8 @@ function isEndpoint(
     (Array.isArray(endpoint.tags) && endpoint.tags.every((tag) => typeof tag === 'string'));
 
   return (
-    // typeof endpoint.endpointServerPrefix === "string" &&
-    typeof endpoint.localhostEndpoint === 'string' &&
+    typeof endpoint.serverAddress === 'string' &&
+    typeof endpoint.localhostAddress === 'string' &&
     !!endpoint.method &&
     ['get', 'post', 'put', 'delete'].includes(endpoint.method) &&
     hasValidTags &&
