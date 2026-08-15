@@ -7,7 +7,6 @@ const configFile = path.join(workDir, 'api-fake.config.json');
 const defaultConfig = {
   APP_PORT: 3343,
   API_PORT: 3342,
-  SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: '/api',
   WORKSPACES_ROOT_PATH: 'src',
   ACTIVE_WORKSPACE: 'grupo-endpoints',
   PROXY_CONFIG_FILE: '',
@@ -131,7 +130,6 @@ function portValidator() {
 export const configValidators: ConfigValidators = {
   APP_PORT: portValidator,
   API_PORT: portValidator,
-  SERVER_DYNAMIC_ENDPOINTS_DEFAULT_PREFIX_API: noopValidator,
   WORKSPACES_ROOT_PATH: () => {
     const help = [
       'WORKSPACES_ROOT_PATH deve conter o caminho para a pasta raiz dos workspaces de endpoints.',
