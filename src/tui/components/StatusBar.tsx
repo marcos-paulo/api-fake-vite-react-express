@@ -37,9 +37,7 @@ export const StatusBar = ({ loadingState, feedbackMessage, pendingCount }: Statu
         <Text dimColor>Nenhuma alteração pendente</Text>
       )}
     </Box>
-    <Text dimColor>
-      ↑/↓ navegar · espaço/enter habilitar/desabilitar · ←/→ variante de resposta · o abrir arquivo
-      · f filtrar · s salvar · d descartar · q sair
-    </Text>
+    <Text dimColor>↑/↓ navegar · espaço/enter habilitar/desabilitar · ←/→ variante de resposta</Text>
+    <Text dimColor>o abrir arquivo · f filtrar · s salvar · d descartar · q sair</Text>
   </Box>
 );
