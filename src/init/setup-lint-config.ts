@@ -1,9 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const targetDir = process.env.INIT_CWD || process.cwd();
-const packageRootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const eslintConfigCandidates = [
   'eslint.config.js',
@@ -17,7 +13,7 @@ const eslintConfigContent = `import apiFakeConfig from 'api-fake/eslint-config';
 export default [...apiFakeConfig];
 `;
 
-function setupEslintConfig() {
+function setupEslintConfig(targetDir: string) {
   const existing = eslintConfigCandidates.find((fileName) =>
     fs.existsSync(path.join(targetDir, fileName)),
   );
@@ -51,7 +47,7 @@ const prettierConfigCandidates = [
 const prettierPackageJsonKey = 'prettier';
 const prettierPackageJsonValue = 'api-fake/prettier-config.json';
 
-function setupPrettierConfig() {
+function setupPrettierConfig(targetDir: string) {
   const existingFile = prettierConfigCandidates.find((fileName) =>
     fs.existsSync(path.join(targetDir, fileName)),
   );
@@ -108,10 +104,10 @@ function setupPrettierConfig() {
 }
 
 const editorconfigFileName = '.editorconfig';
-const editorconfigSourcePath = path.join(packageRootDir, 'editorconfig-base');
 
-function setupEditorConfig() {
+function setupEditorConfig(targetDir: string, packageRootDir: string) {
   const targetEditorConfigPath = path.join(targetDir, editorconfigFileName);
+  const editorconfigSourcePath = path.join(packageRootDir, 'editorconfig-base');
 
   if (fs.existsSync(targetEditorConfigPath)) {
     console.warn(
@@ -133,7 +129,7 @@ function setupEditorConfig() {
 const tsconfigFileName = 'tsconfig.json';
 const tsconfigExtendsValue = 'api-fake/tsconfig-base.json';
 
-function setupTsconfig() {
+function setupTsconfig(targetDir: string) {
   const tsconfigPath = path.join(targetDir, tsconfigFileName);
 
   if (!fs.existsSync(tsconfigPath)) {
@@ -171,7 +167,9 @@ function setupTsconfig() {
   );
 }
 
-setupEslintConfig();
-setupTsconfig();
-setupPrettierConfig();
-setupEditorConfig();
+export function setupLintConfig(targetDir: string, packageRootDir: string) {
+  setupEslintConfig(targetDir);
+  setupTsconfig(targetDir);
+  setupPrettierConfig(targetDir);
+  setupEditorConfig(targetDir, packageRootDir);
+}
