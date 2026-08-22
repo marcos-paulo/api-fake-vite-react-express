@@ -63,8 +63,17 @@ export const App = () => {
   );
 
   useInput(
-    (_input, key) => {
-      if (key.escape || key.return) {
+    (input, key) => {
+      // Se o terminal entregar teclas em lote (ex: usuário digita o filtro e
+      // aperta Enter rápido demais, sem pausa), o Ink recebe tudo isso como
+      // um único evento "colado" (ver docs do useInput) — e o Enter/Escape
+      // deixa de ser reconhecido como tecla especial (key.return/key.escape
+      // só vêm true quando o evento inteiro é exatamente essa tecla, não
+      // quando ela está embutida no meio de um texto maior). Sem esse
+      // fallback checando o caractere bruto, o app ficava travado no modo
+      // filtro pra sempre, engolindo teclas de navegação como texto.
+      // eslint-disable-next-line no-control-regex
+      if (key.escape || key.return || /[\r\n\x1B]/.test(input)) {
         setMode('list');
       }
     },
