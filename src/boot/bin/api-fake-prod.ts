@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 import waitOn from 'wait-on';
 
-import { getConfig } from '../../app/backend/server-load-config';
+import { getConfig } from '../../shared/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
