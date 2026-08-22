@@ -1,6 +1,6 @@
 import puppeteer, { type Browser } from 'puppeteer';
 
-import { getConfig } from '../../../backend/server-load-config';
+import { getConfig } from '../../../../shared/config';
 
 const isDev = process.env.NODE_ENV === 'development';
 const clientPort = getConfig().APP_PORT;

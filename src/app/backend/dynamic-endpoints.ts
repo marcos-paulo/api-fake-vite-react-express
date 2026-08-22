@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
+import { configValidators, getConfig } from '../../shared/config';
 import {
   type EnabledEndpointRecord,
   type EndpointHandlerFn,
@@ -14,7 +15,6 @@ import type { Endpoint, Endpoints } from '../../types/endpoints.types';
 import { registerEndpointModuleResolver } from './endpoint-module-resolver';
 import { LoadingGate } from './loading-gate';
 import { logger as appLogger } from './logger';
-import { configValidators, getConfig } from './server-load-config';
 
 registerEndpointModuleResolver();
 

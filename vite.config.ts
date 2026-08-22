@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 
-import type { getConfig } from './src/app/backend/server-load-config';
+import type { getConfig } from './src/shared/config';
 
 // https://vite.dev/config/
 export default defineConfig(async () => {
@@ -17,7 +17,7 @@ export default defineConfig(async () => {
   } else {
     console.log('🚀 Iniciando servidor de desenvolvimento do frontend...');
 
-    const { getConfig } = await import('./src/app/backend/server-load-config');
+    const { getConfig } = await import('./src/shared/config');
 
     config = getConfig();
     const browserCommand = config.BROWSER || process.env.BROWSER;

@@ -4,8 +4,8 @@ import type { Express } from 'express';
 import fs from 'fs';
 import path from 'path';
 
+import { getConfig } from '../../../shared/config';
 import { logger as appLogger } from '../logger';
-import { getConfig } from '../server-load-config';
 
 type OpenEndpointFileRequest = {
   fileName?: string;

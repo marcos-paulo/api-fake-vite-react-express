@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { getConfig } from '../../backend/server-load-config';
+import { getConfig } from '../../../shared/config';
 
 // Mesma resolução/validação de caminho de src/app/backend/routes/open-endpoint-file-route.ts
 // (basename only, restrito ao diretório de endpoints do workspace ativo).
