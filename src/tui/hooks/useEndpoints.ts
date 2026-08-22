@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { Endpoint, Endpoints } from '../../types/endpoints.types';
 import { apiClient } from '../api-client';
+import { openInTmuxNvim } from '../open-in-tmux-nvim';
 import { useReloadSubscription } from './useReloadSubscription';
 
 export type LoadingState = 'idle' | 'fetching' | 'saving';
@@ -65,6 +66,14 @@ export function useEndpoints() {
   }, []);
 
   const onOpenEndpointFile = useCallback(async (fileName: string) => {
+    // Dentro de uma sessão tmux, abre o nvim numa aba nova em vez de pedir
+    // ao server pra abrir o VS Code — mantém o fluxo todo no terminal.
+    if (openInTmuxNvim(fileName)) {
+      setFeedbackMessage({ text: `Abrindo ${fileName} no nvim (aba do tmux)...`, type: 'info' });
+      setTimeout(() => setFeedbackMessage(null), FEEDBACK_AUTO_HIDE_MS);
+      return;
+    }
+
     try {
       await apiClient.post('/api/open-endpoint-file', { fileName });
       setFeedbackMessage({ text: `Abrindo ${fileName} no VS Code...`, type: 'info' });
