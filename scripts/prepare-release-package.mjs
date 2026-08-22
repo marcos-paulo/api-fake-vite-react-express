@@ -11,13 +11,7 @@ const packageScriptsDir = path.join(packageDir, 'scripts');
 
 const rootPackageJsonPath = path.join(rootDir, 'package.json');
 const rootReadmePath = path.join(rootDir, 'README.md');
-const compiledPostInstallPath = path.join(rootDir, 'dist', 'scripts', 'postinstall-add-script.mjs');
-const compiledLintConfigPostInstallPath = path.join(
-  rootDir,
-  'dist',
-  'scripts',
-  'postinstall-add-lint-config.mjs',
-);
+const compiledInitPath = path.join(rootDir, 'dist', 'bin', 'api-fake-init.mjs');
 const compiledDownloadPuppeteerPath = path.join(
   rootDir,
   'dist',
@@ -28,27 +22,22 @@ const tsconfigBaseSourcePath = path.join(rootDir, 'config', 'tsconfig-base.json'
 const prettierBaseSourcePath = path.join(rootDir, '.prettierrc');
 const editorconfigSourcePath = path.join(rootDir, '.editorconfig');
 const productionBinFileName = 'api-fake-prod.mjs';
+const initBinFileName = 'api-fake-init.mjs';
 
 function assertBuildArtifactsExist() {
   if (!fs.existsSync(sourceDistDir)) {
     throw new Error('Diretório dist não encontrado. Execute o build antes de preparar o pacote.');
   }
 
-  if (!fs.existsSync(compiledPostInstallPath)) {
+  if (!fs.existsSync(compiledInitPath)) {
     throw new Error(
-      'Script de postinstall compilado nao encontrado. Execute o build antes de preparar o pacote.',
+      'Script de "api-fake init" compilado nao encontrado. Execute o build antes de preparar o pacote.',
     );
   }
 
   if (!fs.existsSync(compiledDownloadPuppeteerPath)) {
     throw new Error(
       'Script de download do puppeteer compilado nao encontrado. Execute o build antes de preparar o pacote.',
-    );
-  }
-
-  if (!fs.existsSync(compiledLintConfigPostInstallPath)) {
-    throw new Error(
-      'Script de postinstall de lint/tsconfig compilado nao encontrado. Execute o build antes de preparar o pacote.',
     );
   }
 
@@ -78,14 +67,8 @@ function copyDistFiles() {
 }
 
 function copyCompiledScripts() {
-  fs.copyFileSync(
-    compiledPostInstallPath,
-    path.join(packageScriptsDir, 'postinstall-add-script.mjs'),
-  );
-  fs.copyFileSync(
-    compiledLintConfigPostInstallPath,
-    path.join(packageScriptsDir, 'postinstall-add-lint-config.mjs'),
-  );
+  // api-fake-init.mjs já é copiado junto com o resto de dist/bin por copyDistFiles();
+  // aqui só copiamos o que fica fora de dist/ (scripts/ é usado só pelo hook postinstall).
   fs.copyFileSync(
     compiledDownloadPuppeteerPath,
     path.join(packageScriptsDir, 'download-puppeteer.mjs'),
@@ -119,6 +102,7 @@ function buildPackageJson() {
     type: rootPackageJson.type,
     bin: {
       'api-fake': `./dist/bin/${productionBinFileName}`,
+      'api-fake-init': `./dist/bin/${initBinFileName}`,
     },
     types: './dist/types/index.d.ts',
     exports: {
@@ -140,8 +124,7 @@ function buildPackageJson() {
       'README.md',
     ],
     scripts: {
-      postinstall:
-        'node ./scripts/postinstall-add-script.mjs && node ./scripts/postinstall-add-lint-config.mjs && node ./scripts/download-puppeteer.mjs',
+      postinstall: 'node ./scripts/download-puppeteer.mjs',
     },
     dependencies: {
       ...rootPackageJson.dependencies,
