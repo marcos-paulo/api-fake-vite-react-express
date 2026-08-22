@@ -43,7 +43,7 @@
     "build:puppeteer": "tsup src/app/frontend/shells/puppeteer/main.ts --format esm --out-dir dist/puppeteer --tsconfig tsconfig.pack-puppeteer.json --external puppeteer --clean",
     "build:bin": "tsx src/release/build-bin.ts",
     "build:postinstall": "tsx src/release/build-postinstall.ts",
-    "build:electron": "tsup src/app/frontend/shells/electron/main.ts --format esm --out-dir dist/electron --tsconfig tsconfig.pack-electron.json",
+    "build:electron": "tsup src/app/frontend/shells/electron/main.ts --format esm --out-dir dist/electron --tsconfig tsconfig.pack-electron.json --external electron --clean",
     "build:tui": "tsup src/app/frontend/tui/main.tsx --format esm --out-dir dist/tui --tsconfig tsconfig.pack-tui.json --clean",
     "build:shared-config": "tsup src/shared/eslint-config.ts --format esm --out-dir dist/shared --tsconfig tsconfig.pack-shared-config.json --external eslint --external typescript-eslint --external eslint-plugin-simple-import-sort",
     "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:tui && npm run build:bin && npm run build:postinstall && npm run build:shared-config",
