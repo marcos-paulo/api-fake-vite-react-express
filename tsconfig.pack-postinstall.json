@@ -4,10 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "dist/scripts",
-    "rootDir": "src/postinstall",
+    "rootDir": "src/tooling/postinstall",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["src/postinstall"]
+  "include": ["src/tooling/postinstall"]
 }

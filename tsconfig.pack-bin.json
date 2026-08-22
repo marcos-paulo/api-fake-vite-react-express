@@ -4,10 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "dist/bin",
-    "rootDir": "src/bin",
+    "rootDir": "src/boot/bin",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["src/bin"]
+  "include": ["src/boot/bin"]
 }
