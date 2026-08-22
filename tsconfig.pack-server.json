@@ -4,10 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "dist/server",
-    "rootDir": "src/app/backend",
+    "rootDir": "src",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["src/app/backend"]
+  "include": ["src/app/backend", "src/shared"]
 }
