@@ -7,7 +7,7 @@ This template provides a minimal setup to get React working in Vite with HMR and
 O pacote `puppeteer` já baixa o Chrome sozinho no seu próprio `postinstall`. Quando o host
 padrão de download não é acessível diretamente (ex.: intranet com proxy), este pacote inclui
 um segundo script de `postinstall` (`scripts/download-puppeteer.mjs`, compilado a partir de
-`src/postinstall/download-puppeteer.ts`) capaz de apontar o download para um mirror interno.
+`src/tooling/postinstall/download-puppeteer.ts`) capaz de apontar o download para um mirror interno.
 
 Esse script só age quando o download automático do `puppeteer` foi explicitamente desativado
 — caso contrário, não faz nada (evita baixar o Chrome duas vezes). Para ativá-lo, no projeto

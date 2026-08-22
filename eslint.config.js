@@ -69,7 +69,7 @@ export default tseslint.config(
   // ---------------------------------------------------------------------------
   {
     files: [
-      'src/server/**/*.ts',
+      'src/app/backend/**/*.ts',
       'src/shared/**/*.ts',
       'root-endpoints/**/*.ts',
       'express-plugin.ts',
@@ -96,12 +96,13 @@ export default tseslint.config(
   // ---------------------------------------------------------------------------
   {
     files: [
-      'src/bin/**/*.ts',
-      'src/init/**/*.ts',
-      'src/postinstall/**/*.ts',
-      'src/puppeteer/**/*.ts',
-      'src/electron/**/*.ts',
-      'src/tui/**/*.{ts,tsx}',
+      'src/boot/**/*.ts',
+      'src/release/**/*.ts',
+      'src/tooling/init/**/*.ts',
+      'src/tooling/postinstall/**/*.ts',
+      'src/app/frontend/shells/puppeteer/**/*.ts',
+      'src/app/frontend/shells/electron/**/*.ts',
+      'src/app/frontend/tui/**/*.{ts,tsx}',
       'vite.config.ts',
     ],
     languageOptions: {

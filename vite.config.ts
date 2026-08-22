@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react-swc';
 import { defineConfig } from 'vite';
 
-import type { getConfig } from './src/server/server-load-config';
+import type { getConfig } from './src/app/backend/server-load-config';
 
 // https://vite.dev/config/
 export default defineConfig(async () => {
@@ -17,7 +17,7 @@ export default defineConfig(async () => {
   } else {
     console.log('🚀 Iniciando servidor de desenvolvimento do frontend...');
 
-    const { getConfig } = await import('./src/server/server-load-config');
+    const { getConfig } = await import('./src/app/backend/server-load-config');
 
     config = getConfig();
     const browserCommand = config.BROWSER || process.env.BROWSER;
@@ -43,9 +43,9 @@ export default defineConfig(async () => {
       //   src: "src",
       // },
     },
-    root: './src/client',
+    root: './src/app/frontend/web',
     build: {
-      outDir: '../../dist/client', // Define o diretório de saída do frontend
+      outDir: '../../../../dist/client', // Define o diretório de saída do frontend
       emptyOutDir: true, // Limpa o diretório de saída antes de cada build
     },
     define: config
