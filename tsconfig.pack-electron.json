@@ -4,10 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "dist/electron",
-    "rootDir": "src/electron",
+    "rootDir": "src/app/frontend/shells/electron",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["src/electron"]
+  "include": ["src/app/frontend/shells/electron"]
 }

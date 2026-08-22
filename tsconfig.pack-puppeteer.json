@@ -4,10 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "dist/puppeteer",
-    "rootDir": "src/puppeteer",
+    "rootDir": "src/app/frontend/shells/puppeteer",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true
   },
-  "include": ["src/puppeteer"]
+  "include": ["src/app/frontend/shells/puppeteer"]
 }
