@@ -101,6 +101,7 @@ export default tseslint.config(
       'src/postinstall/**/*.ts',
       'src/puppeteer/**/*.ts',
       'src/electron/**/*.ts',
+      'src/tui/**/*.{ts,tsx}',
       'vite.config.ts',
     ],
     languageOptions: {
