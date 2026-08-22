@@ -43,11 +43,11 @@
     "build:server": "tsup src/server/server.ts --format esm --dts --out-dir dist/server --tsconfig tsconfig.pack-server.json",
     "build:client": "vite build",
     "build:puppeteer": "tsup src/puppeteer/main.ts --format esm --out-dir dist/puppeteer --tsconfig tsconfig.pack-puppeteer.json --external puppeteer --clean",
-    "build:prod-bin": "node scripts/build-prod-bin.mjs",
+    "build:bin": "node scripts/build-bin.mjs",
     "build:postinstall": "node scripts/build-postinstall.mjs",
     "build:electron": "tsup src/electron/main.ts --format esm --out-dir dist/electron --tsconfig tsconfig.pack-electron.json",
     "build:shared-config": "tsup src/shared/eslint-config.ts --format esm --out-dir dist/shared --tsconfig tsconfig.pack-shared-config.json --external eslint --external typescript-eslint --external eslint-plugin-simple-import-sort",
-    "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:prod-bin && npm run build:postinstall && npm run build:shared-config",
+    "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:bin && npm run build:postinstall && npm run build:shared-config",
     "----PACKAGE--------": "------------------------------------------------------------------------",
     "package:prepare": "node ./scripts/prepare-release-package.mjs",
     "package:pack": "node scripts/release.mjs"

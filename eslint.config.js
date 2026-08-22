@@ -97,6 +97,7 @@ export default tseslint.config(
   {
     files: [
       'src/bin/**/*.ts',
+      'src/init/**/*.ts',
       'src/postinstall/**/*.ts',
       'src/puppeteer/**/*.ts',
       'src/electron/**/*.ts',
