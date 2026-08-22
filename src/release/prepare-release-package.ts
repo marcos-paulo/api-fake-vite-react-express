@@ -93,8 +93,37 @@ function copyEditorConfigBase() {
   fs.copyFileSync(editorconfigSourcePath, path.join(packageDir, 'editorconfig-base'));
 }
 
+// Pacotes que só são necessários para quem importa './eslint-config' ou
+// './prettier-config.json' — ficam em devDependencies na raiz (usados também para
+// lintar/formatar este próprio repo), mas viram peerDependencies opcionais no pacote
+// publicado, já que a maioria dos consumidores nunca usa esses exports e provavelmente
+// já tem sua própria versão de eslint/typescript instalada.
+const LINT_CONFIG_PEER_DEPENDENCY_NAMES = [
+  'eslint',
+  'eslint-plugin-simple-import-sort',
+  'prettier',
+  'typescript',
+  'typescript-eslint',
+];
+
+function buildPeerDependencies(rootPackageJson) {
+  const peerDependencies = {};
+  const peerDependenciesMeta = {};
+
+  for (const name of LINT_CONFIG_PEER_DEPENDENCY_NAMES) {
+    const version = rootPackageJson.devDependencies?.[name];
+    if (version) {
+      peerDependencies[name] = version;
+      peerDependenciesMeta[name] = { optional: true };
+    }
+  }
+
+  return { peerDependencies, peerDependenciesMeta };
+}
+
 function buildPackageJson() {
   const rootPackageJson = JSON.parse(fs.readFileSync(rootPackageJsonPath, 'utf-8'));
+  const { peerDependencies, peerDependenciesMeta } = buildPeerDependencies(rootPackageJson);
 
   return {
     name: rootPackageJson.name,
@@ -129,6 +158,8 @@ function buildPackageJson() {
     dependencies: {
       ...rootPackageJson.dependencies,
     },
+    peerDependencies,
+    peerDependenciesMeta,
     engines: rootPackageJson.engines,
   };
 }
