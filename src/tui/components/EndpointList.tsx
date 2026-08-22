@@ -60,6 +60,13 @@ const FIELD_INDENT = 4;
 // mesmo nó de texto que o nome e os badges (ver comentário lá), então aqui
 // entra como parte do texto medido, não como uma largura reduzida à parte.
 const NAME_PREFIX_WIDTH = 6;
+// paddingX aplicado na lista inteira (ver Box raiz do componente), pra a
+// seta de seleção (›) e o texto não ficarem colados na borda do terminal.
+// Precisa entrar no cálculo de largura disponível pra quebra de linha
+// abaixo — senão a altura estimada (usada pra decidir quantos itens cabem
+// na tela) diverge da altura real renderizada, reintroduzindo o "piscar"
+// que o cálculo de altura exata deste arquivo existe pra evitar.
+const LIST_PADDING_X = 1;
 
 // Quantas linhas o Ink realmente usaria pra desenhar `text` num campo com
 // `maxWidth` colunas — mesmo algoritmo que o Ink usa internamente
@@ -114,21 +121,34 @@ function estimateRowHeight(
 }
 
 // Linhas fixas fora das seções da lista: título (2), barra de filtro (3),
-// margem acima da lista (1), margem abaixo da seção "Habilitados" (1) e a
-// status bar (6). Diferente de uma constante "chutada", isso é a soma exata
-// do que sempre é renderizado — nunca varia com o conteúdo da lista.
-const FIXED_CHROME_LINES = 2 + 3 + 1 + 1 + 6;
+// margem acima da lista (1) e a status bar (6). Diferente de uma constante
+// "chutada", isso é a soma exata do que sempre é renderizado — nunca varia
+// com o conteúdo da lista. A margem abaixo de cada seção mora dentro do
+// slot "↓ abaixo" (ver SECTION_CHROME_LINES), não aqui.
+const FIXED_CHROME_LINES = 2 + 3 + 1 + 6;
 
 // Linhas que uma seção (Habilitados/Desabilitados) ocupa fora dos próprios
-// itens: o cabeçalho, mais a mensagem "Nenhum endpoint..." (quando vazia) ou
-// os slots fixos "↑ acima"/"↓ abaixo" (quando não) — esses slots são
-// renderizados sempre que a seção tem itens, ficando em branco quando não há
-// nada escondido pra cima/baixo, em vez de sumir da tela. Isso evita que o
-// resto do layout (próxima seção, status bar) pule de posição só porque um
-// indicador apareceu/desapareceu durante a rolagem.
-function sectionChromeLines(sectionLength: number): number {
-  return 1 + (sectionLength === 0 ? 1 : 4);
-}
+// itens: o cabeçalho, mais o slot "↓ abaixo" — reaproveitado também pra
+// mensagem "Nenhum endpoint..." quando a seção está vazia, em vez de um
+// texto solto com formatação própria — e o slot "↑ acima", seguindo sempre
+// o padrão título/item, linha em branco, contador, linha em branco,
+// título/item. Cada slot só é renderizado quando tem algo real pra dizer OU
+// quando há pelo menos 1 row visível na seção (nesse caso os dois aparecem,
+// mesmo que um deles fique em branco, pra manter a altura estável durante a
+// rolagem). Com 0 rows visíveis a seção só pode estar inteiramente antes da
+// janela (só "↓ abaixo" tem contador > 0) ou inteiramente depois dela (só
+// "↑ acima" tem contador > 0) — nunca as duas ao mesmo tempo — então só o
+// slot que tem contador de verdade é mostrado, sozinho, com margem dos dois
+// lados; o outro (que ficaria vazio à toa) nem é renderizado, pra não
+// sobrar um vão duplo entre o cabeçalho/próxima seção e o texto. Pior caso
+// (usado aqui): há pelo menos 1 row visível, os dois slots aparecem — "↑
+// acima" com margem dos dois lados (3 linhas: branco+texto+branco) e "↓
+// abaixo" só com margem depois (2 linhas: texto+branco), já que a margem de
+// antes vem de graça do marginBottom da última row. Reservar sempre esse
+// pior caso (6, não o caso reduzido) evita que o resto do layout pule de
+// posição por causa de indicadores aparecendo/desaparecendo durante a
+// rolagem.
+const SECTION_CHROME_LINES = 1 + 5;
 
 // Janela de rolagem estável: em vez de recentralizar a lista inteira a cada
 // mudança de foco (o que fazia a quantidade de itens visíveis, e portanto a
@@ -197,7 +217,8 @@ export const EndpointList = ({
   onCycleHandler,
   onOpenEndpointFile,
 }: EndpointListProps) => {
-  const { rows, columns } = useTerminalSize();
+  const { rows, columns: terminalColumns } = useTerminalSize();
+  const columns = Math.max(terminalColumns - LIST_PADDING_X * 2, 0);
   const allEndpoints = endpoints?.listEndpoints ?? [];
   const { enabled, disabled } = partitionEndpoints(allEndpoints, pendingChanges);
   const flatList = [...enabled, ...disabled];
@@ -232,8 +253,7 @@ export const EndpointList = ({
   );
 
   const windowStartRef = useRef(0);
-  const chromeLines =
-    FIXED_CHROME_LINES + sectionChromeLines(enabled.length) + sectionChromeLines(disabled.length);
+  const chromeLines = FIXED_CHROME_LINES + SECTION_CHROME_LINES * 2;
   const budget = Math.max(rows - chromeLines, 0);
   const heights = flatList.map((endpoint) =>
     estimateRowHeight(
@@ -258,14 +278,13 @@ export const EndpointList = ({
   );
 
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="column" marginBottom={1}>
+    <Box flexDirection="column" paddingX={LIST_PADDING_X}>
+      <Box flexDirection="column">
         <Text bold color="green">
           Habilitados ({enabled.length})
         </Text>
-        {enabled.length === 0 && <Text dimColor>  Nenhum endpoint habilitado</Text>}
-        {enabled.length > 0 && (
-          <Box marginTop={1}>
+        {(visibleEnabled.length > 0 || enabledWindow.hiddenAbove > 0) && (
+          <Box marginTop={1} marginBottom={1}>
             <Text dimColor>
               {enabledWindow.hiddenAbove > 0 ? `  ↑ +${enabledWindow.hiddenAbove} acima` : ' '}
             </Text>
@@ -283,10 +302,14 @@ export const EndpointList = ({
             pendingHandlerKey={pendingHandlerChanges[endpoint.fileName]}
           />
         ))}
-        {enabled.length > 0 && (
-          <Box marginTop={1}>
+        {(enabled.length === 0 || visibleEnabled.length > 0 || enabledWindow.hiddenBelow > 0) && (
+          <Box marginTop={visibleEnabled.length === 0 ? 1 : 0} marginBottom={1}>
             <Text dimColor>
-              {enabledWindow.hiddenBelow > 0 ? `  ↓ +${enabledWindow.hiddenBelow} abaixo` : ' '}
+              {enabled.length === 0
+                ? '  Nenhum endpoint habilitado'
+                : enabledWindow.hiddenBelow > 0
+                  ? `  ↓ +${enabledWindow.hiddenBelow} abaixo`
+                  : ' '}
             </Text>
           </Box>
         )}
@@ -296,9 +319,8 @@ export const EndpointList = ({
         <Text bold color="gray">
           Desabilitados ({disabled.length})
         </Text>
-        {disabled.length === 0 && <Text dimColor>  Nenhum endpoint desabilitado</Text>}
-        {disabled.length > 0 && (
-          <Box marginTop={1}>
+        {(visibleDisabled.length > 0 || disabledWindow.hiddenAbove > 0) && (
+          <Box marginTop={1} marginBottom={1}>
             <Text dimColor>
               {disabledWindow.hiddenAbove > 0 ? `  ↑ +${disabledWindow.hiddenAbove} acima` : ' '}
             </Text>
@@ -316,10 +338,14 @@ export const EndpointList = ({
             pendingHandlerKey={pendingHandlerChanges[endpoint.fileName]}
           />
         ))}
-        {disabled.length > 0 && (
-          <Box marginTop={1}>
+        {(disabled.length === 0 || visibleDisabled.length > 0 || disabledWindow.hiddenBelow > 0) && (
+          <Box marginTop={visibleDisabled.length === 0 ? 1 : 0} marginBottom={1}>
             <Text dimColor>
-              {disabledWindow.hiddenBelow > 0 ? `  ↓ +${disabledWindow.hiddenBelow} abaixo` : ' '}
+              {disabled.length === 0
+                ? '  Nenhum endpoint desabilitado'
+                : disabledWindow.hiddenBelow > 0
+                  ? `  ↓ +${disabledWindow.hiddenBelow} abaixo`
+                  : ' '}
             </Text>
           </Box>
         )}

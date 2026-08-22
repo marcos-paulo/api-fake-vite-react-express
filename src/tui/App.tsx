@@ -6,6 +6,7 @@ import { FilterInput } from './components/FilterInput';
 import { StatusBar } from './components/StatusBar';
 import { useEndpointFilter } from './hooks/useEndpointFilter';
 import { useEndpoints } from './hooks/useEndpoints';
+import { useTerminalSize } from './hooks/useTerminalSize';
 
 type Mode = 'list' | 'filter';
 
@@ -25,6 +26,7 @@ export const App = () => {
   } = useEndpoints();
 
   const { filterText, setFilterText, filteredEndpoints } = useEndpointFilter(endpoints);
+  const { rows } = useTerminalSize();
 
   const [mode, setMode] = useState<Mode>('list');
   const [focusedFileName, setFocusedFileName] = useState<string | null>(null);
@@ -81,7 +83,7 @@ export const App = () => {
   );
 
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" height={rows}>
       <Box marginBottom={1}>
         <Text bold color="cyanBright">
           api-fake — TUI
@@ -90,7 +92,7 @@ export const App = () => {
 
       <FilterInput value={filterText} isActive={mode === 'filter'} onChange={setFilterText} />
 
-      <Box marginTop={1}>
+      <Box flexDirection="column" flexGrow={1} marginTop={1}>
         <EndpointList
           endpoints={filteredEndpoints}
           isActive={mode === 'list'}
