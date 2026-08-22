@@ -1,33 +1,49 @@
 #!/usr/bin/env node
 
-import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import waitOn from 'wait-on';
-
 import { getConfig } from '../../shared/config';
+import { ProcessSupervisor, spawnManagedProcess, waitForPort } from '../process-supervisor';
+import { getShell, isShellId, listShellIds, type ShellDefinition, shells } from '../shells-registry';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function parseShellArg(): ShellDefinition {
+  const flag = process.argv.find((arg) => arg.startsWith('--shell='));
+  const requested = flag?.split('=')[1] ?? process.env.API_FAKE_SHELL ?? 'puppeteer';
+
+  if (!isShellId(requested)) {
+    console.error(`Shell desconhecido: "${requested}". Shells válidos: ${listShellIds().join(', ')}`);
+    process.exit(1);
+  }
+
+  const shell = getShell(requested);
+
+  if (!shell.prodReady) {
+    const readyIds = listShellIds().filter((id) => shells[id].prodReady);
+    console.error(
+      `O shell "${shell.id}" ainda não tem um caminho de produção suportado.\n` +
+        `Shells prontos pra produção: ${readyIds.join(', ')}.`,
+    );
+    process.exit(1);
+  }
+
+  return shell;
+}
+
+const shell = parseShellArg();
 
 // Resolve a raiz do pacote em dois cenarios:
 // 1) build local (saida em dist/bin)
 // 2) pacote instalado em node_modules (entrada em bin)
-// Camada extra e opcional, paralela ao shell padrão (Puppeteer) — não vira o
-// comportamento principal. Ativada só com --tui / API_FAKE_UI=tui.
-const useTui = process.argv.includes('--tui') || process.env.API_FAKE_UI === 'tui';
-
 function resolvePackageRoot() {
   const candidates = [path.resolve(__dirname, '..'), path.resolve(__dirname, '..', '..')];
-  const uiDistDir = useTui ? 'tui' : 'puppeteer';
 
   return (
-    candidates.find((candidate) => {
-      const distServer = path.join(candidate, 'dist', 'server', 'server.js');
-      const distUi = path.join(candidate, 'dist', uiDistDir, 'main.js');
-      return fs.existsSync(distServer) && fs.existsSync(distUi);
-    }) ?? candidates[0]
+    candidates.find((candidate) => fs.existsSync(path.join(candidate, 'dist', 'server', 'server.js'))) ??
+    candidates[0]
   );
 }
 
@@ -39,10 +55,16 @@ const workDir = process.cwd();
 process.env.API_FAKE_WORKDIR = process.env.API_FAKE_WORKDIR ?? workDir;
 
 const serverEntry = path.join(pkgRoot, 'dist', 'server', 'server.js');
-const uiEntry = path.join(pkgRoot, 'dist', useTui ? 'tui' : 'puppeteer', 'main.js');
+const uiEntry = shell.prodUiEntry ? path.join(pkgRoot, 'dist', shell.prodUiEntry) : null;
+const clientEntry = path.join(pkgRoot, 'dist', 'client', 'index.html');
 
 function assertBuildArtifacts() {
-  const missingFiles = [serverEntry, uiEntry].filter((filePath) => !fs.existsSync(filePath));
+  const required = [
+    serverEntry,
+    ...(uiEntry ? [uiEntry] : []),
+    ...(shell.needsWebFrontend ? [clientEntry] : []),
+  ];
+  const missingFiles = required.filter((filePath) => !fs.existsSync(filePath));
 
   if (missingFiles.length > 0) {
     console.error(
@@ -54,90 +76,50 @@ function assertBuildArtifacts() {
 }
 
 const config = getConfig();
-const serverPort = config.API_PORT;
-// Garante que os filhos (server + UI) herdem o mesmo contexto de execucao.
-// process.env.API_FAKE_WORKDIR ja foi resolvido acima (respeita um valor
-// externo pre-existente antes de cair para workDir) — nao sobrescrever aqui.
 const env = { ...process.env, NODE_ENV: 'production' };
 
-let serverProcess: ChildProcess | null = null;
-let uiProcess: ChildProcess | null = null;
-let shuttingDown = false;
-
-function stopChild(child: ChildProcess | null, signal: NodeJS.Signals = 'SIGTERM') {
-  if (child && !child.killed) {
-    child.kill(signal);
-  }
-}
-
-function shutdown(exitCode = 0) {
-  if (shuttingDown) {
-    return;
-  }
-
-  shuttingDown = true;
-  stopChild(uiProcess);
-  stopChild(serverProcess);
-  process.exit(exitCode);
-}
+const supervisor = new ProcessSupervisor();
+supervisor.registerSignalHandlers();
 
 async function start() {
   // Falha cedo se os artefatos de release nao foram gerados.
   assertBuildArtifacts();
 
-  console.log(`📦 Iniciando api-fake em modo produção com ${useTui ? 'TUI' : 'Puppeteer'}...`);
+  console.log(`📦 Iniciando api-fake em modo produção com ${shell.label}...`);
 
   // A TUI ocupa o terminal com renderização em tela cheia (raw mode do Ink) —
-  // logs do backend escritos ali por cima corrompem a tela. O Puppeteer nao
-  // usa o terminal, entao so redireciona o backend quando useTui.
-  if (useTui) {
-    const backendLogPath = path.join(process.env.API_FAKE_WORKDIR ?? workDir, 'api-fake-tui-backend.log');
-    const backendLogStream = fs.createWriteStream(backendLogPath, { flags: 'a' });
-    console.log(`📄 Logs do backend redirecionados para: ${backendLogPath}`);
+  // logs do backend escritos ali por cima corrompem a tela. Os demais shells
+  // não usam o terminal pra UI, então o backend herda o stdio normalmente.
+  const backendLogPath = shell.ttyExclusive
+    ? path.join(process.env.API_FAKE_WORKDIR ?? workDir, 'api-fake-tui-backend.log')
+    : undefined;
 
-    serverProcess = spawn(process.execPath, [serverEntry], {
-      cwd: pkgRoot,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      env,
-    });
-    serverProcess.stdout?.pipe(backendLogStream);
-    serverProcess.stderr?.pipe(backendLogStream);
-  } else {
-    serverProcess = spawn(process.execPath, [serverEntry], {
-      cwd: pkgRoot,
-      stdio: 'inherit',
-      env,
-    });
+  if (backendLogPath) {
+    console.log(`📄 Logs do backend redirecionados para: ${backendLogPath}`);
   }
 
-  serverProcess.on('exit', (code) => {
-    if (!shuttingDown) {
-      shutdown(code ?? 0);
-    }
-  });
-
-  // Espera o servidor HTTP subir antes de abrir a UI (Puppeteer ou TUI),
-  // evitando corrida na inicializacao.
-  await waitOn({
-    resources: [`tcp:127.0.0.1:${serverPort}`],
-    timeout: 30000,
-  });
-
-  uiProcess = spawn(process.execPath, [uiEntry], {
+  const serverProcess = spawnManagedProcess({
+    command: process.execPath,
+    args: [serverEntry],
     cwd: pkgRoot,
-    stdio: 'inherit',
     env,
+    logFilePath: backendLogPath,
   });
+  supervisor.track(serverProcess);
 
-  uiProcess.on('exit', (code) => {
-    shutdown(code ?? 0);
-  });
+  // Espera o servidor HTTP subir antes de abrir a UI, evitando corrida na
+  // inicialização.
+  await waitForPort(config.API_PORT);
+
+  if (uiEntry) {
+    const uiProcess = spawnManagedProcess({ command: process.execPath, args: [uiEntry], cwd: pkgRoot, env });
+    supervisor.track(uiProcess);
+  } else {
+    console.log(`✔ Servidor pronto em http://localhost:${config.API_PORT} — abra no navegador.`);
+  }
 }
-
-process.on('SIGINT', () => shutdown(0));
-process.on('SIGTERM', () => shutdown(0));
 
 start().catch((error) => {
   console.error('Erro ao iniciar api-fake em modo produção.', error);
-  shutdown(1);
+  supervisor.shutdown(1);
 });
