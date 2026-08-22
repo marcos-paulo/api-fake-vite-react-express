@@ -120,12 +120,14 @@ function estimateRowHeight(
 const FIXED_CHROME_LINES = 2 + 3 + 1 + 1 + 6;
 
 // Linhas que uma seção (Habilitados/Desabilitados) ocupa fora dos próprios
-// itens: o cabeçalho, mais ou a mensagem "Nenhum endpoint..." (quando vazia)
-// ou até 2 indicadores "↑/↓ +N" (quando não). Reservar sempre o pior caso
-// evita que esses indicadores apareçam de surpresa e estourem o orçamento
-// calculado antes deles — o que empurraria o título pra fora da tela.
+// itens: o cabeçalho, mais a mensagem "Nenhum endpoint..." (quando vazia) ou
+// os slots fixos "↑ acima"/"↓ abaixo" (quando não) — esses slots são
+// renderizados sempre que a seção tem itens, ficando em branco quando não há
+// nada escondido pra cima/baixo, em vez de sumir da tela. Isso evita que o
+// resto do layout (próxima seção, status bar) pule de posição só porque um
+// indicador apareceu/desapareceu durante a rolagem.
 function sectionChromeLines(sectionLength: number): number {
-  return 1 + (sectionLength === 0 ? 1 : 2);
+  return 1 + (sectionLength === 0 ? 1 : 4);
 }
 
 // Janela de rolagem estável: em vez de recentralizar a lista inteira a cada
@@ -262,8 +264,12 @@ export const EndpointList = ({
           Habilitados ({enabled.length})
         </Text>
         {enabled.length === 0 && <Text dimColor>  Nenhum endpoint habilitado</Text>}
-        {enabledWindow.hiddenAbove > 0 && (
-          <Text dimColor>  ↑ +{enabledWindow.hiddenAbove} acima</Text>
+        {enabled.length > 0 && (
+          <Box marginTop={1}>
+            <Text dimColor>
+              {enabledWindow.hiddenAbove > 0 ? `  ↑ +${enabledWindow.hiddenAbove} acima` : ' '}
+            </Text>
+          </Box>
         )}
         {visibleEnabled.map((endpoint) => (
           <EndpointRow
@@ -277,8 +283,12 @@ export const EndpointList = ({
             pendingHandlerKey={pendingHandlerChanges[endpoint.fileName]}
           />
         ))}
-        {enabledWindow.hiddenBelow > 0 && (
-          <Text dimColor>  ↓ +{enabledWindow.hiddenBelow} abaixo</Text>
+        {enabled.length > 0 && (
+          <Box marginTop={1}>
+            <Text dimColor>
+              {enabledWindow.hiddenBelow > 0 ? `  ↓ +${enabledWindow.hiddenBelow} abaixo` : ' '}
+            </Text>
+          </Box>
         )}
       </Box>
 
@@ -287,8 +297,12 @@ export const EndpointList = ({
           Desabilitados ({disabled.length})
         </Text>
         {disabled.length === 0 && <Text dimColor>  Nenhum endpoint desabilitado</Text>}
-        {disabledWindow.hiddenAbove > 0 && (
-          <Text dimColor>  ↑ +{disabledWindow.hiddenAbove} acima</Text>
+        {disabled.length > 0 && (
+          <Box marginTop={1}>
+            <Text dimColor>
+              {disabledWindow.hiddenAbove > 0 ? `  ↑ +${disabledWindow.hiddenAbove} acima` : ' '}
+            </Text>
+          </Box>
         )}
         {visibleDisabled.map((endpoint) => (
           <EndpointRow
@@ -302,8 +316,12 @@ export const EndpointList = ({
             pendingHandlerKey={pendingHandlerChanges[endpoint.fileName]}
           />
         ))}
-        {disabledWindow.hiddenBelow > 0 && (
-          <Text dimColor>  ↓ +{disabledWindow.hiddenBelow} abaixo</Text>
+        {disabled.length > 0 && (
+          <Box marginTop={1}>
+            <Text dimColor>
+              {disabledWindow.hiddenBelow > 0 ? `  ↓ +${disabledWindow.hiddenBelow} abaixo` : ' '}
+            </Text>
+          </Box>
         )}
       </Box>
     </Box>
