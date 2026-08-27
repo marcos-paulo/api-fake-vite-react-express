@@ -1,7 +1,7 @@
 {
   "name": "api-fake",
   "private": true,
-  "version": "1.2.1",
+  "version": "1.3.0-rc.4",
   "type": "module",
   "types": "./src/types/index.ts",
   "exports": {
@@ -18,7 +18,8 @@
   "bin": {
     "api-fake-browser": "./bin/api-fake-browser.mjs",
     "api-fake-puppeteer": "./bin/api-fake-puppeteer.mjs",
-    "api-fake-electron": "./bin/api-fake-electron.mjs"
+    "api-fake-electron": "./bin/api-fake-electron.mjs",
+    "api-fake-tui": "./bin/api-fake-tui.mjs"
   },
   "scripts": {
     "----CLIENTE--------": "------------------------------------------------------------------------",
@@ -30,10 +31,13 @@
     "puppeteer:dev": "wait-on tcp:3343 && NODE_ENV=development tsx ./src/puppeteer/main.ts",
     "----ELECTRON-------": "------------------------------------------------------------------------",
     "electron:dev": "wait-on tcp:3343 && NODE_ENV=development electron --ozone-platform=x11 --disable-gpu dist/electron/main.js",
+    "----TUI-------------": "------------------------------------------------------------------------",
+    "tui:dev": "wait-on tcp:3342 && NODE_ENV=development tsx --tsconfig tsconfig.pack-tui.json ./src/tui/main.tsx",
     "----DEV-SCRIPTS----": "------------------------------------------------------------------------",
     "postinstall": "tsx src/postinstall/download-puppeteer.ts",
     "dev:with:puppeteer": "concurrently --handle-input --default-input-target 0 --names \"BACKEND,FRONTEND,PUPPETEER\" --prefix-colors \"blue,green,cyan\" --kill-others \"npm:server:dev:watch\" \"npm:client:dev:wait\" \"npm:puppeteer:dev\"",
     "dev:with:electron": "concurrently --handle-input --default-input-target 0 --names \"BACKEND,FRONTEND,ELECTRON\" --prefix-colors \"blue,green,cyan\" --kill-others \"npm:server:dev:watch\" \"npm:client:dev:wait\" \"npm:electron:dev\"",
+    "dev:with:tui": "node scripts/dev-tui.mjs",
     "dev:browser": "concurrently --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail \"npm:server:dev:watch\" \"npm:client:dev:wait\"",
     "lint": "eslint .",
     "prettier:check": "prettier --check .",
@@ -46,8 +50,9 @@
     "build:bin": "node scripts/build-bin.mjs",
     "build:postinstall": "node scripts/build-postinstall.mjs",
     "build:electron": "tsup src/electron/main.ts --format esm --out-dir dist/electron --tsconfig tsconfig.pack-electron.json",
+    "build:tui": "tsup src/tui/main.tsx --format esm --out-dir dist/tui --tsconfig tsconfig.pack-tui.json --clean",
     "build:shared-config": "tsup src/shared/eslint-config.ts --format esm --out-dir dist/shared --tsconfig tsconfig.pack-shared-config.json --external eslint --external typescript-eslint --external eslint-plugin-simple-import-sort",
-    "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:bin && npm run build:postinstall && npm run build:shared-config",
+    "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:tui && npm run build:bin && npm run build:postinstall && npm run build:shared-config",
     "----PACKAGE--------": "------------------------------------------------------------------------",
     "package:prepare": "node ./scripts/prepare-release-package.mjs",
     "package:pack": "node scripts/release.mjs"
@@ -61,6 +66,9 @@
     "eslint": "^9.15.0",
     "eslint-plugin-simple-import-sort": "^13.0.0",
     "express": "^4.21.2",
+    "ink": "^5.2.0",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
     "prettier": "^3.9.6",
     "puppeteer": "^24.43.1",
     "react": "^18.3.1",
@@ -68,7 +76,8 @@
     "remove": "^0.1.5",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.15.0",
-    "wait-on": "^9.0.3"
+    "wait-on": "^9.0.3",
+    "wrap-ansi": "^7.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
