@@ -13,6 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { getConfig } from '../../shared/config';
+import { ensureLogsDir } from '../../shared/logs-dir';
 import { ProcessSupervisor, spawnManagedProcess, waitForPort } from '../process-supervisor';
 import { getShell, isShellId, listShellIds } from '../shells-registry';
 
@@ -39,8 +40,9 @@ async function start() {
     // multiplexa stdio entre processos e quebra isso ("Raw mode is not
     // supported"). Por isso aqui o backend roda em background com logs
     // redirecionados pra arquivo, e só a TUI fica dona do terminal.
-    const backendLogPath = path.join(repoRoot, 'api-fake-tui-backend.dev.log');
-    console.log(`🚀 Iniciando backend em background para a TUI — logs em: ${backendLogPath}`);
+    const logsDir = ensureLogsDir(repoRoot);
+    const backendLogPath = path.join(logsDir, 'backend.dev.log');
+    console.log(`🚀 Iniciando backend em background para a TUI — logs em: ${logsDir}`);
 
     const backend = spawnManagedProcess({
       command: 'npm',

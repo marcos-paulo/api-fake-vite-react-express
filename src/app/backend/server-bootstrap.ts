@@ -49,6 +49,13 @@ const registerShutdownHandlers = () => {
     cleanupEndpoints();
     process.exit(1);
   });
+
+  // Handlers async sem try/catch (ex.: rotas que fazem await sem tratar erro)
+  // caem aqui em vez de virar um 500 rastreável pelo global-error-handler — sem
+  // isso, o erro só aparecia como warning genérico do Node, fora de qualquer log.
+  process.on('unhandledRejection', (reason) => {
+    serverLog.error('Unhandled Rejection detectada', reason);
+  });
 };
 
 export function startServerBootstrap(app: Express, port: number) {
