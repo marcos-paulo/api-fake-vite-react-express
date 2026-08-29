@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { getConfig } from '../../shared/config';
+import { ensureLogsDir } from '../../shared/logs-dir';
 import { ProcessSupervisor, spawnManagedProcess, waitForPort } from '../process-supervisor';
 import { getShell, isShellId, listShellIds, type ShellDefinition, shells } from '../shells-registry';
 
@@ -90,12 +91,11 @@ async function start() {
   // A TUI ocupa o terminal com renderização em tela cheia (raw mode do Ink) —
   // logs do backend escritos ali por cima corrompem a tela. Os demais shells
   // não usam o terminal pra UI, então o backend herda o stdio normalmente.
-  const backendLogPath = shell.ttyExclusive
-    ? path.join(process.env.API_FAKE_WORKDIR ?? workDir, 'api-fake-tui-backend.log')
-    : undefined;
+  const logsDir = shell.ttyExclusive ? ensureLogsDir(process.env.API_FAKE_WORKDIR ?? workDir) : null;
+  const backendLogPath = logsDir ? path.join(logsDir, 'backend.log') : undefined;
 
-  if (backendLogPath) {
-    console.log(`📄 Logs do backend redirecionados para: ${backendLogPath}`);
+  if (logsDir) {
+    console.log(`📄 Logs da TUI (backend + frontend) redirecionados para: ${logsDir}`);
   }
 
   const serverProcess = spawnManagedProcess({

@@ -31,11 +31,11 @@ export function registerGlobalErrorHandler(app: Express) {
   app.use(
     (
       err: ConventionalError | Error | unknown,
-      _req: Request,
+      req: Request,
       res: Response,
       _next: NextFunction,
     ) => {
-      const log = appLogger.startSection('HTTP Global Error Handler');
+      const log = appLogger.startSection(`HTTP Global Error Handler: ${req.method} ${req.path}`);
       try {
         if (!err) {
           log.error('[Global Error Handler] No error object provided');
