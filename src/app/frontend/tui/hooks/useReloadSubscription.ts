@@ -17,9 +17,11 @@ export function useReloadSubscription(onReload: () => void) {
       abortController = new AbortController();
 
       try {
+        console.log(`[sse] --> GET ${apiBaseUrl}/api/events`);
         const response = await fetch(`${apiBaseUrl}/api/events`, {
           signal: abortController.signal,
         });
+        console.log(`[sse] <-- GET /api/events -> ${response.status}`);
         const reader = response.body?.getReader();
         if (!reader) throw new Error('Resposta SSE sem corpo');
 
@@ -36,6 +38,7 @@ export function useReloadSubscription(onReload: () => void) {
 
           for (const event of events) {
             if (event.startsWith('data: reload')) {
+              console.log('[sse] evento "reload" recebido, refazendo fetch dos endpoints');
               onReload();
             }
           }

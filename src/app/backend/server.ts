@@ -6,6 +6,7 @@ import { registerCorsMiddleware } from './middleware/cors-middleware';
 import { registerDynamicEndpointsMiddleware } from './middleware/dynamic-endpoints-middleware';
 import { registerGlobalErrorHandler } from './middleware/global-error-handler';
 import { registerProductionStaticMiddleware } from './middleware/production-static-middleware';
+import { registerRequestLoggerMiddleware } from './middleware/request-logger-middleware';
 import { registerChangeActiveHandlerRoute } from './routes/change-active-handler-route';
 import { registerChangeStateEndpointRoute } from './routes/change-state-endpoint-route';
 import { registerEndpointsRoute } from './routes/endpoints-route';
@@ -20,6 +21,8 @@ export const app = express();
 const CLIENT_APP_PORT = getConfig().API_PORT ?? 3000;
 
 createServerEndpointsManager();
+
+registerRequestLoggerMiddleware(app);
 
 app.use(express.json());
 
