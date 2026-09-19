@@ -14,7 +14,7 @@ import {
 import type { Endpoint, Endpoints } from '../../types/endpoints.types';
 import { registerEndpointModuleResolver } from './endpoint-module-resolver';
 import { LoadingGate } from './loading-gate';
-import { logger as appLogger } from './logger';
+import { appLogger } from './logging/logger-app';
 
 registerEndpointModuleResolver();
 

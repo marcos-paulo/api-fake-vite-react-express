@@ -77,7 +77,7 @@ function assertBuildArtifacts() {
 }
 
 const config = getConfig();
-const env = { ...process.env, NODE_ENV: 'production' };
+const env = { ...process.env, NODE_ENV: 'production', API_FAKE_SHELL: shell.id };
 
 const supervisor = new ProcessSupervisor();
 supervisor.registerSignalHandlers();

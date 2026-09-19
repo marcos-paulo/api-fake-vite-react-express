@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 
 import { endpointsServer } from '../dynamic-endpoints';
-import { requestLogger } from '../request-file-logger';
+import { requestLogger } from '../logging/logger-requests';
 
 const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 

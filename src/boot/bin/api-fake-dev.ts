@@ -48,6 +48,7 @@ async function start() {
       command: 'npm',
       args: ['run', 'server:dev:watch'],
       cwd: repoRoot,
+      env: { ...process.env, API_FAKE_SHELL: shell.id },
       shell: true,
       logFilePath: backendLogPath,
     });
@@ -70,7 +71,13 @@ async function start() {
   }
 
   console.log(`🚀 Iniciando api-fake no ${shell.label}...`);
-  const dev = spawnManagedProcess({ command: 'npm', args: ['run', shell.devScript], cwd: repoRoot, shell: true });
+  const dev = spawnManagedProcess({
+    command: 'npm',
+    args: ['run', shell.devScript],
+    cwd: repoRoot,
+    env: { ...process.env, API_FAKE_SHELL: shell.id },
+    shell: true,
+  });
   supervisor.track(dev);
 }
 

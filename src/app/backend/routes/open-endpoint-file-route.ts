@@ -5,7 +5,7 @@ import fs from 'fs';
 import path from 'path';
 
 import { getConfig } from '../../../shared/config';
-import { requestLogger } from '../request-file-logger';
+import { requestLogger } from '../logging/logger-requests';
 
 type OpenEndpointFileRequest = {
   fileName?: string;

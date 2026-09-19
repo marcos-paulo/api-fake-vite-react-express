@@ -1,6 +1,6 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 
-import { requestLogger } from '../request-file-logger';
+import { requestLogger } from '../logging/logger-requests';
 
 type ConventionalError = {
   error: Error;
