@@ -2,9 +2,9 @@ import type { Express } from 'express';
 
 import type { Endpoint } from '../../../types/endpoints.types';
 import { endpointsServer } from '../dynamic-endpoints';
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
-const startRouteLog = (route: string) => appLogger.startSection(`HTTP ${route}`);
+const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 
 export function registerChangeStateEndpointRoute(app: Express) {
   app.post<Endpoint[], string>('/api/changeStateEndpoint', (req, res, next) => {

@@ -1,6 +1,6 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
 type ConventionalError = {
   error: Error;
@@ -35,7 +35,9 @@ export function registerGlobalErrorHandler(app: Express) {
       res: Response,
       _next: NextFunction,
     ) => {
-      const log = appLogger.startSection(`HTTP Global Error Handler: ${req.method} ${req.path}`);
+      const log = requestLogger.startSection(
+        `HTTP Global Error Handler: ${req.method} ${req.path}`,
+      );
       try {
         if (!err) {
           log.error('[Global Error Handler] No error object provided');

@@ -1,13 +1,13 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
 // createLogger em vez de startSection/endSection: requests são concorrentes
 // (e /api/events fica aberto indefinidamente pro SSE), e o Logger usa uma
 // pilha compartilhada pra indentação — abrir/fechar "seção" por request faria
 // requests concorrentes baguncarem a indentação umas das outras (ou, no caso
 // do SSE, prender o indentador de todo mundo enquanto a conexão fica aberta).
-const httpLog = appLogger.createLogger('http', 0);
+const httpLog = requestLogger.createLogger('http', 0);
 
 export function registerRequestLoggerMiddleware(app: Express) {
   app.use((req: Request, res: Response, next: NextFunction) => {

@@ -1,13 +1,13 @@
 import type { Express, Response } from 'express';
 
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
-const startRouteLog = (route: string) => appLogger.startSection(`HTTP ${route}`);
+const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 
 const sseClients = new Set<Response>();
 
 export const notifySseClients = () => {
-  const log = appLogger.startSection('HTTP SSE notify');
+  const log = requestLogger.startSection('HTTP SSE notify');
   try {
     log.info(`[SSE] Notificando ${sseClients.size} cliente(s) conectado(s)`);
     for (const client of sseClients) {

@@ -1,9 +1,9 @@
 import type { Express } from 'express';
 
 import { endpointsServer } from '../dynamic-endpoints';
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
-const startRouteLog = (route: string) => appLogger.startSection(`HTTP ${route}`);
+const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 
 type ChangeActiveHandlerEntry = {
   fileName?: string;
