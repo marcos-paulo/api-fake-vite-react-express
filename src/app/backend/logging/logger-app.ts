@@ -28,7 +28,7 @@ const appLogWriters: LogWriter[] = isTuiShell
 
 // Logger de inicialização/seções internas do servidor (dynamic-endpoints.ts,
 // server-bootstrap.ts, production-static-middleware.ts) — grava em
-// logs/backend(.dev).log.
+// .logs/api-fake/backend(.dev).log.
 export const appLogger = new Logger(appLogWriters);
 
 export { backendLogFilePath };

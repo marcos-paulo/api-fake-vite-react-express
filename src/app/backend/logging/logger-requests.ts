@@ -12,9 +12,9 @@ const logFilePath = path.join(
 // Logger dedicado a tudo que acontece durante o ciclo de uma requisição HTTP —
 // rotas (routes/*.ts), dynamic-endpoints-middleware.ts e
 // global-error-handler.ts importam este módulo (em vez de logger-app.ts) pra
-// que as seções "HTTP <rota>" caiam sempre em logs/requests(.dev).log,
+// que as seções "HTTP <rota>" caiam sempre em .logs/api-fake/requests(.dev).log,
 // isoladas dos logs de inicialização/seções internas do servidor em
-// logs/backend(.dev).log. Diferente do logger do app, este não escreve no
+// .logs/api-fake/backend(.dev).log. Diferente do logger do app, este não escreve no
 // console em nenhum shell — o volume de log por requisição só cabe no
 // arquivo.
 export const requestLogger = new Logger([createFileWriter(logFilePath)]);
