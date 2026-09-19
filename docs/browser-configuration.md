@@ -132,7 +132,7 @@ A configuração do browser é lida nesta ordem (primeira encontrada é usada):
 
 ```bash
 # Ver configuração atual
-cat api-fake.config.json | grep BROWSER
+cat .config/api-fake/api-fake.config.json | grep BROWSER
 ```
 
 ### O VS Code não oferece o Simple Browser

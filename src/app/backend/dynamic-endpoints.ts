@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 
-import { configValidators, getConfig } from '../../shared/config';
+import { configValidators, getConfig, getWorkDir } from '../../shared/config';
 import {
   type EnabledEndpointRecord,
   type EndpointHandlerFn,
@@ -56,12 +56,26 @@ class ServerEndpoints {
     this.envs.activeWorkspace,
   );
 
+  // Fica em .config/api-fake/<workspace> na raiz do consumidor (não dentro do
+  // próprio workspace) pra manter todo estado gerado pelo api-fake junto num
+  // só lugar, com um subdiretório por workspace pra não misturar o estado de
+  // habilitados/handlers ativos entre workspaces diferentes.
+  private readonly workspaceConfigDir = path.join(
+    getWorkDir(),
+    '.config',
+    'api-fake',
+    this.envs.activeWorkspace,
+  );
+
   private readonly initialEnabledEndpointsFilePath = path.join(
-    this.workspacePath,
+    this.workspaceConfigDir,
     'initialEnabledEndpoints.json',
   );
 
-  private readonly activeHandlersFilePath = path.join(this.workspacePath, 'activeHandlers.json');
+  private readonly activeHandlersFilePath = path.join(
+    this.workspaceConfigDir,
+    'activeHandlers.json',
+  );
 
   private logger = appLogger;
 
@@ -71,6 +85,7 @@ class ServerEndpoints {
 
   constructor() {
     const log = this.logger.startSection('ServerEndpoints - constructor', true);
+    fs.mkdirSync(this.workspaceConfigDir, { recursive: true });
     log.step('Inicializando observadores de arquivos');
     this.initializeWatchers();
     log.endSection();
