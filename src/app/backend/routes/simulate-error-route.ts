@@ -1,8 +1,8 @@
 import type { Express } from 'express';
 
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
-const startRouteLog = (route: string) => appLogger.startSection(`HTTP ${route}`);
+const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 
 export function registerSimulateErrorRoute(app: Express) {
   app.get('/api/simulate-error', (_req, _res) => {

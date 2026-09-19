@@ -1,9 +1,9 @@
 import type { Express, Request, Response } from 'express';
 
 import { endpointsServer } from '../dynamic-endpoints';
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
-const startRouteLog = (route: string) => appLogger.startSection(`HTTP ${route}`);
+const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 
 export function registerDynamicEndpointsMiddleware(app: Express) {
   app.use((req: Request, res: Response, next) => {

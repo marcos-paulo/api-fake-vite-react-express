@@ -5,8 +5,20 @@ const LIGHT_YELLOW = '\x1b[93m';
 const MAGENTA = '\x1b[35m';
 const RESET = '\x1b[0m';
 
+// Ponto de saída de uma linha de log, injetável no construtor — permite criar
+// um Logger que escreve em outro lugar além do console (ver
+// request-file-logger.ts, que instancia um Logger gravando direto num arquivo
+// em vez de passar pelo stdout/stderr compartilhado do processo).
+export type LogWriter = (level: 'info' | 'warn' | 'error', message: string, cause?: unknown) => void;
+
+const consoleWriter: LogWriter = (level, message, cause) => {
+  console[level](message, ...(cause !== undefined ? [cause] : []));
+};
+
 export class Logger {
   private stack: string[] = [];
+
+  constructor(private write: LogWriter = consoleWriter) {}
 
   addToStack(context: string) {
     this.stack.push(context);
@@ -37,20 +49,17 @@ export class Logger {
     const spaces = ' '.repeat(level * 2);
 
     const header = () => {
-      console.info(`${spaces}${CYAN}[${methodName}]${RESET}`);
+      this.write('info', `${spaces}${CYAN}[${methodName}]${RESET}`);
     };
 
     return {
       header,
-      step: (message: string) => console.info(`${spaces} ${MAGENTA}◆ ${message}${RESET}`),
-      info: (message: string) => console.info(`${spaces} → ${message}`),
-      warn: (message: string) => console.warn(`${spaces} ${LIGHT_YELLOW}⚠ ${message}${RESET}`),
-      success: (message: string) => console.info(`${spaces} ${LIGHT_GREEN}✔ ${message}${RESET}`),
+      step: (message: string) => this.write('info', `${spaces} ${MAGENTA}◆ ${message}${RESET}`),
+      info: (message: string) => this.write('info', `${spaces} → ${message}`),
+      warn: (message: string) => this.write('warn', `${spaces} ${LIGHT_YELLOW}⚠ ${message}${RESET}`),
+      success: (message: string) => this.write('info', `${spaces} ${LIGHT_GREEN}✔ ${message}${RESET}`),
       error: (message: string, cause?: unknown) =>
-        console.error(
-          `${spaces} ${RED}✗ ${message}${RESET}`,
-          ...(cause !== undefined ? [cause] : []),
-        ),
+        this.write('error', `${spaces} ${RED}✗ ${message}${RESET}`, cause),
       endSection: () => this.endSection(),
     };
   }

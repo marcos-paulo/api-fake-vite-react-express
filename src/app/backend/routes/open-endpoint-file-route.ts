@@ -5,13 +5,13 @@ import fs from 'fs';
 import path from 'path';
 
 import { getConfig } from '../../../shared/config';
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
 type OpenEndpointFileRequest = {
   fileName?: string;
 };
 
-const startRouteLog = (route: string) => appLogger.startSection(`HTTP ${route}`);
+const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 
 export function registerOpenEndpointFileRoute(app: Express) {
   app.post('/api/open-endpoint-file', (req, res) => {

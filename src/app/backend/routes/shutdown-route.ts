@@ -1,8 +1,8 @@
 import type { Express } from 'express';
 
-import { logger as appLogger } from '../logger';
+import { requestLogger } from '../request-file-logger';
 
-const startRouteLog = (route: string) => appLogger.startSection(`HTTP ${route}`);
+const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 
 export function registerShutdownRoute(app: Express) {
   app.post('/api/shutdown', (_req, res) => {
