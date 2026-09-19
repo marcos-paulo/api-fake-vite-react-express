@@ -2,7 +2,16 @@ import fs from 'fs';
 import path from 'path';
 
 const workDir = process.env.API_FAKE_WORKDIR ?? process.cwd();
-const configFile = path.join(workDir, 'api-fake.config.json');
+
+export function getWorkDir(): string {
+  return workDir;
+}
+
+// `.config/api-fake` (não só `.config`) pra não colidir com uso que o próprio
+// projeto consumidor já faça dessa pasta — mesmo raciocínio de `.logs/api-fake`
+// em shared/logs-dir.ts.
+const configDir = path.join(workDir, '.config', 'api-fake');
+const configFile = path.join(configDir, 'api-fake.config.json');
 
 const defaultConfig = {
   APP_PORT: 3343,
@@ -62,6 +71,7 @@ function syncConfigFile() {
   const arquivoExiste = fs.existsSync(configFile);
 
   if (hasMissingKeys) {
+    fs.mkdirSync(configDir, { recursive: true });
     fs.writeFileSync(configFile, JSON.stringify(merged, null, 2));
     if (!arquivoExiste) {
       console.log(`Arquivo api-fake.config.json criado em: ${configFile}`);
