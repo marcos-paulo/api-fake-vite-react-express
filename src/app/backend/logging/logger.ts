@@ -5,20 +5,23 @@ const LIGHT_YELLOW = '\x1b[93m';
 const MAGENTA = '\x1b[35m';
 const RESET = '\x1b[0m';
 
-// Ponto de saída de uma linha de log, injetável no construtor — permite criar
-// um Logger que escreve em outro lugar além do console (ver
-// request-file-logger.ts, que instancia um Logger gravando direto num arquivo
-// em vez de passar pelo stdout/stderr compartilhado do processo).
+// Ponto de saída de uma linha de log — um Logger pode ter vários, escritos em
+// sequência (ver Logger.write abaixo). Permite, por exemplo, gravar a mesma
+// linha no console e num arquivo ao mesmo tempo.
 export type LogWriter = (level: 'info' | 'warn' | 'error', message: string, cause?: unknown) => void;
 
-const consoleWriter: LogWriter = (level, message, cause) => {
-  console[level](message, ...(cause !== undefined ? [cause] : []));
-};
-
+// Classe interna da camada de logging — quem precisa logar não usa Logger
+// diretamente, e sim uma das instâncias já prontas exportadas por
+// logger-app.ts (log do app/inicialização) ou logger-requests.ts (log por
+// requisição HTTP), cada uma com seus próprios writers.
 export class Logger {
   private stack: string[] = [];
 
-  constructor(private write: LogWriter = consoleWriter) {}
+  constructor(private writers: LogWriter[]) {}
+
+  private write(level: 'info' | 'warn' | 'error', message: string, cause?: unknown) {
+    for (const writer of this.writers) writer(level, message, cause);
+  }
 
   addToStack(context: string) {
     this.stack.push(context);
@@ -64,5 +67,3 @@ export class Logger {
     };
   }
 }
-
-export const logger = new Logger();

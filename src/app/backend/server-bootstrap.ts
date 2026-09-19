@@ -1,7 +1,7 @@
 import type { Express } from 'express';
 
 import { endpointsServer, startServerEndpointsManager } from './dynamic-endpoints';
-import { logger as appLogger } from './logger';
+import { appLogger } from './logging/logger-app';
 import { notifySseClients } from './routes/events-route';
 
 const serverLog = appLogger.createLogger('server', 0);

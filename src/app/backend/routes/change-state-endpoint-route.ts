@@ -2,7 +2,7 @@ import type { Express } from 'express';
 
 import type { Endpoint } from '../../../types/endpoints.types';
 import { endpointsServer } from '../dynamic-endpoints';
-import { requestLogger } from '../request-file-logger';
+import { requestLogger } from '../logging/logger-requests';
 
 const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 

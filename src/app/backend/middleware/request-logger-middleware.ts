@@ -1,6 +1,6 @@
 import type { Express, NextFunction, Request, Response } from 'express';
 
-import { requestLogger } from '../request-file-logger';
+import { requestLogger } from '../logging/logger-requests';
 
 // createLogger em vez de startSection/endSection: requests são concorrentes
 // (e /api/events fica aberto indefinidamente pro SSE), e o Logger usa uma

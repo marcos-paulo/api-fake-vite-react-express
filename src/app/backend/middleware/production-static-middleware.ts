@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { logger as appLogger } from '../logger';
+import { appLogger } from '../logging/logger-app';
 
 export function registerProductionStaticMiddleware(app: express.Express) {
   if (process.env['VITE']) {

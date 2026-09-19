@@ -1,6 +1,6 @@
 import type { Express } from 'express';
 
-import { requestLogger } from '../request-file-logger';
+import { requestLogger } from '../logging/logger-requests';
 
 const startRouteLog = (route: string) => requestLogger.startSection(`HTTP ${route}`);
 
