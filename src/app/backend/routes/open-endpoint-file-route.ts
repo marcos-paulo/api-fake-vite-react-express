@@ -1,10 +1,8 @@
 import { spawn } from 'node:child_process';
 
 import type { Express } from 'express';
-import fs from 'fs';
-import path from 'path';
 
-import { getConfig } from '../../../shared/config';
+import { resolveEndpointFilePath } from '../../../shared/resolve-endpoint-file-path';
 import { requestLogger } from '../logging/logger-requests';
 
 type OpenEndpointFileRequest = {
@@ -27,29 +25,22 @@ export function registerOpenEndpointFileRoute(app: Express) {
         return res.status(400).json({ error: 'Apenas arquivos .ts e .js são permitidos' });
       }
 
-      const normalizedFileName = path.basename(fileName);
-      const workspacePath = path.resolve(
-        getConfig().WORKSPACES_ROOT_PATH,
-        getConfig().ACTIVE_WORKSPACE,
-      );
-      const endpointsDir = path.resolve(workspacePath, 'endpoints');
-      const endpointFilePath = path.resolve(endpointsDir, normalizedFileName);
+      const resolved = resolveEndpointFilePath(fileName);
 
-      if (!endpointFilePath.startsWith(`${endpointsDir}${path.sep}`)) {
-        return res.status(400).json({ error: 'Caminho de arquivo inválido' });
+      if (!resolved.ok) {
+        if (resolved.reason === 'invalid-path') {
+          return res.status(400).json({ error: 'Caminho de arquivo inválido' });
+        }
+        return res.status(404).json({ error: `Arquivo não encontrado: ${fileName}` });
       }
 
-      if (!fs.existsSync(endpointFilePath)) {
-        return res.status(404).json({ error: `Arquivo não encontrado: ${normalizedFileName}` });
-      }
-
-      const codeProcess = spawn('code', ['-g', endpointFilePath], {
+      const codeProcess = spawn('code', ['-g', resolved.absolutePath], {
         detached: true,
         stdio: 'ignore',
       });
       codeProcess.unref();
 
-      log.info(`REQUEST: /api/open-endpoint-file -> ${endpointFilePath}`);
+      log.info(`REQUEST: /api/open-endpoint-file -> ${resolved.absolutePath}`);
       return res.status(200).json({ ok: true });
     } finally {
       log.endSection();

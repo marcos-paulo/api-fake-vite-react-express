@@ -107,7 +107,7 @@ class ServerEndpoints {
     if (!fs.existsSync(endpointsDir)) {
       fs.mkdirSync(endpointsDir, { recursive: true });
     }
-    fs.watch(endpointsDir, (_eventType, filename) => {
+    fs.watch(endpointsDir, { recursive: true }, (_eventType, filename) => {
       if (!filename || !/\.(ts|js)$/.test(filename)) {
         log.info(`[WATCHER] Ignorado (não é .ts/.js): ${filename}`);
         return;
@@ -678,11 +678,12 @@ class ServerEndpoints {
     }
 
     try {
-      files = fs.readdirSync(resolvedDir);
+      // recursive: true também retorna entradas de subpastas (ex: "sub/foo.ts"), já
+      // como caminho relativo a resolvedDir — é esse valor que vira fileName.
+      files = fs.readdirSync(resolvedDir, { recursive: true }) as string[];
       files = files.filter((file) => {
-        const filePath = path.join(resolvedDir, file);
-        // Verifica se é um arquivo e tem extensão .ts ou .js
-        return /\.(ts|js)$/.test(filePath);
+        // Verifica se é um arquivo e tem extensão .ts ou .js (subpastas não batem)
+        return /\.(ts|js)$/.test(file);
       });
     } catch (error) {
       log.error(`Erro ao ler os arquivos do diretório de endpoints: ${resolvedDir}`, error);
