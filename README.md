@@ -42,11 +42,12 @@ pacote publicado realmente precisa) e `npm pack` (gera o `.tgz` em `dist-target/
 ### Gerando e publicando uma release completa
 
 ```bash
-npm run package:publish             # bump de patch (padrão)
-npm run package:publish -- minor    # ou major
+npm run release             # bump de patch (padrão)
+npm run release -- minor    # ou major
 ```
 
-Passo a passo (`src/release/publish-package.ts`):
+Passo a passo (`src/release/full-release.ts` chama `publish-package.ts` e depois
+`publish-to-consumers.ts`):
 
 1. Exige working tree limpo — garante que o pacote publicado corresponde a um commit
    real, nunca a um work-in-progress.
@@ -61,16 +62,53 @@ Passo a passo (`src/release/publish-package.ts`):
    então nunca sobra arquivo de versão antiga junto.
 5. Publica esse commit (force push) neste repo, branch `pacote-compilado` (`origin`) —
    pra clonar em qualquer máquina e instalar sem compilar nada ali.
+6. Publica essa mesma branch (force push) em cada projeto consumidor configurado — ver
+   "Publicando nos projetos consumidores" abaixo pra detalhes e configuração.
 
-Não existe publicação em registry npm — a distribuição é sempre via essa branch git com
-o `.tgz` já commitado dentro.
+Não existe publicação em registry npm — a distribuição é sempre via branches git com o
+`.tgz` já commitado dentro.
 
-Publicar o pacote nos projetos consumidores **não** é feito por este script — é manual,
-fora daqui.
+O commit + tag do bump de versão (passo 2) ficam só locais — nada aqui dá push sozinho
+na branch de desenvolvimento (só nas branches de distribuição dos passos 5 e 6). Ao
+final da execução, o passo 2 lembra o comando: `git push origin HEAD --follow-tags`.
 
-O commit + tag do bump de versão (passo 2) ficam só locais — o script não dá push
-sozinho na branch de desenvolvimento (só na branch de distribuição do passo 5). Ao final
-da execução ele lembra o comando: `git push origin HEAD --follow-tags`.
+Os passos 1–5 (`npm run package:publish`) e o passo 6 (`npm run
+package:publish-consumers`) também podem ser rodados sozinhos, sem passar por `npm run
+release` — útil, por exemplo, pra só re-publicar nos consumidores sem gerar uma versão
+nova.
+
+### Publicando nos projetos consumidores
+
+```bash
+npm run package:publish-consumers
+```
+
+Exige que a branch `pacote-compilado` já exista localmente (rode `npm run
+package:publish`, ou `npm run release`, antes). `src/release/publish-to-consumers.ts`
+pega essa mesma branch — sem buildar nada de novo — e publica (force push) em cada
+consumidor configurado:
+
+- Local — direto pro `.git` do consumidor (útil quando ele é uma pasta irmã neste
+  disco).
+- GitHub — pro remote `origin` de cada consumidor, pra quem clonar o consumidor numa
+  outra máquina também conseguir buscar a branch.
+
+Em ambos os casos, a branch de destino é `lib-externa/<nome-deste-pacote>` (hoje,
+`lib-externa/api-fake`).
+
+Quais consumidores existem (nome + caminho local) é informação específica de
+máquina/ambiente, não pertence ao histórico deste repo — fica em
+`release-consumers.local.json`, na raiz, **fora do git** (`.gitignore`). Se o arquivo não
+existir, o script cria um com um template (`_example: true`, ignorado na hora de
+publicar) e para, pra você preencher com os consumidores reais antes de rodar de novo:
+
+```json
+{
+  "consumers": [
+    { "_example": true, "name": "nome-do-consumidor", "path": "../caminho/para/o/projeto-consumidor" }
+  ]
+}
+```
 
 ### Instalando o pacote já compilado (sem buildar nada)
 
