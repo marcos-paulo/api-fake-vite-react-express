@@ -50,7 +50,8 @@
     "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:tui && npm run build:bin && npm run build:postinstall && npm run build:shared-config",
     "----PACKAGE--------": "------------------------------------------------------------------------",
     "package:prepare": "tsx src/release/prepare-release-package.ts",
-    "package:pack": "tsx src/release/release.ts"
+    "package:pack": "tsx src/release/release.ts",
+    "package:publish": "tsx src/release/publish-package.ts"
   },
   "dependencies": {
     "axios": "^1.7.8",
