@@ -38,3 +38,7 @@ dist-target
 .env
 
 api-fake.config.json
+release-consumers.local.json
+
+# Vive só na branch órfã claude-md, fora do histórico de código
+CLAUDE.md

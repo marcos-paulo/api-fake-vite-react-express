@@ -49,9 +49,11 @@
     "build:shared-config": "tsup src/shared/eslint-config.ts --format esm --out-dir dist/shared --tsconfig tsconfig.pack-shared-config.json --external eslint --external typescript-eslint --external eslint-plugin-simple-import-sort",
     "build": "npm run build:types && npm run build:server && npm run build:client && npm run build:puppeteer && npm run build:tui && npm run build:bin && npm run build:postinstall && npm run build:shared-config",
     "----PACKAGE--------": "------------------------------------------------------------------------",
+    "release": "tsx src/release/full-release.ts",
     "package:prepare": "tsx src/release/prepare-release-package.ts",
     "package:pack": "tsx src/release/release.ts",
-    "package:publish": "tsx src/release/publish-package.ts"
+    "package:publish": "tsx src/release/publish-package.ts",
+    "package:publish-consumers": "tsx src/release/publish-to-consumers.ts"
   },
   "dependencies": {
     "axios": "^1.7.8",
