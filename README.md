@@ -23,6 +23,64 @@ Alternativamente, um `.puppeteerrc.cjs` com `module.exports = { skipDownload: tr
 **raiz do projeto que está instalando** (não dentro deste pacote) tem o mesmo efeito de
 desativar o download automático — o host do mirror continua vindo das env vars acima.
 
+## 📦 Build e Empacotamento
+
+### Build
+
+```bash
+npm run build   # build completo: tipos -> server -> client -> puppeteer -> tui -> bin -> postinstall -> shared-config
+```
+
+Cada etapa individual (`build:types`, `build:server`, `build:client`, `build:puppeteer`,
+`build:tui`, `build:bin`, `build:postinstall`, `build:shared-config`) também pode ser
+rodada sozinha, útil quando você está iterando só numa parte.
+
+`npm run package:pack` (chamado pelo passo de release abaixo) faz o build completo mais
+`package:prepare` (monta `dist-package/` com um `package.json` reduzido, só com o que o
+pacote publicado realmente precisa) e `npm pack` (gera o `.tgz` em `dist-target/`).
+
+### Gerando e publicando uma release completa
+
+```bash
+npm run package:publish             # bump de patch (padrão)
+npm run package:publish -- minor    # ou major
+```
+
+Passo a passo (`src/release/publish-package.ts`):
+
+1. Exige working tree limpo — garante que o pacote publicado corresponde a um commit
+   real, nunca a um work-in-progress.
+2. Sobe a versão do `package.json` de verdade, via `npm version <patch|minor|major>`
+   (padrão `patch`) — isso já cria commit + tag no histórico deste repo. Versão real e
+   permanente, não um sufixo descartável.
+3. Roda o pipeline de empacotamento existente (`npm run package:pack`): builda tudo,
+   monta `dist-package/` e gera o `.tgz` em `dist-target/` via `npm pack`.
+4. Copia esse `.tgz` — nome com a versão embutida (ex.: `api-fake-1.4.0.tgz`, o próprio
+   nome que `npm pack` já gera) — pra um commit novo, numa branch órfã, dentro de um
+   worktree temporário em `.worktrees/`. A branch é recriada do zero a cada execução,
+   então nunca sobra arquivo de versão antiga junto.
+5. Publica esse commit (force push) neste repo, branch `pacote-compilado` (`origin`) —
+   pra clonar em qualquer máquina e instalar sem compilar nada ali.
+
+Não existe publicação em registry npm — a distribuição é sempre via essa branch git com
+o `.tgz` já commitado dentro.
+
+Publicar o pacote nos projetos consumidores **não** é feito por este script — é manual,
+fora daqui.
+
+O commit + tag do bump de versão (passo 2) ficam só locais — o script não dá push
+sozinho na branch de desenvolvimento (só na branch de distribuição do passo 5). Ao final
+da execução ele lembra o comando: `git push origin HEAD --follow-tags`.
+
+### Instalando o pacote já compilado (sem buildar nada)
+
+Numa VDI ou máquina nova:
+
+```bash
+git clone --branch pacote-compilado --single-branch <url-do-repo> pacote-api-fake
+npm install ./pacote-api-fake/api-fake-*.tgz
+```
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh

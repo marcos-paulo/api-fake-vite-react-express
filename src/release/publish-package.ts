@@ -6,10 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { runNpmScript } from './run-tools';
 
 // Publica o pacote empacotado (.tgz) numa branch órfã deste repo, pra poder
-// ser clonada e instalada em qualquer máquina sem compilar nada ali — mesmo
-// padrão adotado no iib-comunicacao (scripts/publicar-pacote-compilado.sh),
-// exceto pela distribuição pros projetos consumidores: aqui isso fica de fora
-// de propósito, é feito manualmente por quem publica.
+// ser clonada e instalada em qualquer máquina sem compilar nada ali. A
+// distribuição pros projetos consumidores fica de fora de propósito — é
+// feita manualmente por quem publica.
 //
 // Versão REAL e permanente a cada execução, via `npm version <patch|minor|major>`
 // — cria commit + tag de verdade no histórico deste repo (não um sufixo
