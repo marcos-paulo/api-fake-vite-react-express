@@ -26,7 +26,7 @@ export function saveStoredToken(token: string) {
 
 let memoryToken: string | null = null;
 
-// Os shells puppeteer/electron abrem a janela em `<url>#token=...` (eles leem o arquivo do
+// Os shells puppeteer/tauri abrem a janela em `<url>#token=...` (eles leem o arquivo do
 // token): guarda e limpa o fragmento pra o token não ficar na barra de endereço.
 function consumeTokenFromUrlFragment() {
   const match = /(?:^#|&)token=([^&]+)/.exec(window.location.hash);

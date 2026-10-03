@@ -17,7 +17,7 @@ const consoleWriter: LogWriter = (level, message, cause) => {
 // A TUI (Ink) toma conta do terminal inteiro (alt screen + raw mode) — se o
 // logger do app escrevesse no console enquanto ela roda, corromperia a tela.
 // Por isso, quando o shell ativo é a TUI, o log do app vai só pro arquivo;
-// nos demais shells (browser, puppeteer, electron — processos "externos" que
+// nos demais shells (browser, puppeteer, tauri — processos "externos" que
 // não disputam o terminal com o backend), vai pros dois: arquivo e console.
 // `API_FAKE_SHELL` é setado pelos scripts de boot (api-fake-dev.ts /
 // api-fake-prod.ts) ao subir o processo do backend.

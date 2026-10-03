@@ -1,4 +1,4 @@
-export type ShellId = 'browser' | 'puppeteer' | 'electron' | 'tauri' | 'tui';
+export type ShellId = 'browser' | 'puppeteer' | 'tauri' | 'tui';
 
 export type ShellDefinition = {
   id: ShellId;
@@ -17,12 +17,6 @@ export type ShellDefinition = {
   // Se true, o shell precisa ser o único dono do TTY do processo (raw mode do
   // Ink) — não pode compartilhar stdio com outro processo via concurrently.
   ttyExclusive: boolean;
-  // Shells sem caminho de produção suportado ainda. O electron depende de um
-  // runtime nativo pesado por plataforma que este pacote nunca baixou/empacotou
-  // automaticamente (não está nem entre as dependencies publicadas, de propósito
-  // — ver Fase 1 da refatoração) nem faz parte do `npm run build` agregado; fica
-  // só como shell de desenvolvimento até esse suporte existir de verdade.
-  prodReady: boolean;
 };
 
 export const shells: Record<ShellId, ShellDefinition> = {
@@ -33,7 +27,6 @@ export const shells: Record<ShellId, ShellDefinition> = {
     prodUiEntry: null,
     needsWebFrontend: true,
     ttyExclusive: false,
-    prodReady: true,
   },
   puppeteer: {
     id: 'puppeteer',
@@ -42,16 +35,6 @@ export const shells: Record<ShellId, ShellDefinition> = {
     prodUiEntry: 'puppeteer/main.js',
     needsWebFrontend: true,
     ttyExclusive: false,
-    prodReady: true,
-  },
-  electron: {
-    id: 'electron',
-    label: 'Electron',
-    devScript: 'dev:with:electron',
-    prodUiEntry: 'electron/main.js',
-    needsWebFrontend: true,
-    ttyExclusive: false,
-    prodReady: false,
   },
   // Janela nativa via binário Rust/Tauri (native/api-fake-tauri), commitado em native-bin/ — o
   // pacote publicado já o leva pronto. Exige webkit2gtk-4.1 e glibc >= 2.34 na máquina de quem
@@ -63,7 +46,6 @@ export const shells: Record<ShellId, ShellDefinition> = {
     prodUiEntry: 'tauri/main.js',
     needsWebFrontend: true,
     ttyExclusive: false,
-    prodReady: true,
   },
   tui: {
     id: 'tui',
@@ -72,7 +54,6 @@ export const shells: Record<ShellId, ShellDefinition> = {
     prodUiEntry: 'tui/main.js',
     needsWebFrontend: false,
     ttyExclusive: true,
-    prodReady: true,
   },
 };
 

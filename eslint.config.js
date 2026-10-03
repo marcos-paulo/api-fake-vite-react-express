@@ -112,7 +112,6 @@ export default tseslint.config(
       'src/tooling/postinstall/**/*.ts',
       'src/app/frontend/shells/puppeteer/**/*.ts',
       'src/app/frontend/shells/tauri/**/*.ts',
-      'src/app/frontend/shells/electron/**/*.ts',
       'src/app/frontend/tui/**/*.{ts,tsx}',
       'vite.config.ts',
     ],

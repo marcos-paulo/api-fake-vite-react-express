@@ -1,7 +1,7 @@
 # api-fake-tauri
 
 Janela nativa (Tauri v2 + WebKitGTK) que encapsula a interface web do api-fake. É o shell
-`tauri`: um jeito de abrir a mesma interface do `browser`/`puppeteer`/`electron`, sem
+`tauri`: um jeito de abrir a mesma interface do `browser`/`puppeteer`, sem
 navegador externo e sem baixar Chromium.
 
 O binário **não** sobe servidor nenhum. Ele só abre uma janela apontando pra interface que o

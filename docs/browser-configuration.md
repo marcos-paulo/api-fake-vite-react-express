@@ -53,7 +53,7 @@ BROWSER_ARGS=
 ### **Opção 3: Via variável de ambiente temporária**
 
 ```bash
-BROWSER=vscode npm run dev:without:electron
+BROWSER=vscode npm run dev:browser
 ```
 
 ---
@@ -163,8 +163,7 @@ E manualmente abra o link quando o Vite mostrar no terminal.
 {
   "dev-vite": "vite", // Usa config do BROWSER
   "dev-vite-browser": "VSCODE_SIMPLE_BROWSER=true vite", // Força VS Code
-  "dev:browser": "concurrently ...", // Backend + Frontend (auto-open)
-  "dev:without:electron": "concurrently ..." // Backend + Frontend (sem Electron)
+  "dev:browser": "concurrently ..." // Backend + Frontend (auto-open)
 }
 ```
 

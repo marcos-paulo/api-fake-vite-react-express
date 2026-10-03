@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { getConfig } from '../../shared/config';
 import { ensureLogsDir } from '../../shared/logs-dir';
 import { ProcessSupervisor, spawnManagedProcess, waitForPort } from '../process-supervisor';
-import { getShell, isShellId, listShellIds, type ShellDefinition, shells } from '../shells-registry';
+import { getShell, isShellId, listShellIds, type ShellDefinition } from '../shells-registry';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,18 +20,7 @@ function parseShellArg(): ShellDefinition {
     process.exit(1);
   }
 
-  const shell = getShell(requested);
-
-  if (!shell.prodReady) {
-    const readyIds = listShellIds().filter((id) => shells[id].prodReady);
-    console.error(
-      `O shell "${shell.id}" ainda não tem um caminho de produção suportado.\n` +
-        `Shells prontos pra produção: ${readyIds.join(', ')}.`,
-    );
-    process.exit(1);
-  }
-
-  return shell;
+  return getShell(requested);
 }
 
 const shell = parseShellArg();

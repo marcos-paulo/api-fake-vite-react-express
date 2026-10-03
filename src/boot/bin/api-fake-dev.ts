@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Ponto único de entrada pra rodar qualquer shell em desenvolvimento:
 //
-//   npm run dev -- browser|puppeteer|electron|tui
+//   npm run dev -- browser|puppeteer|tauri|tui
 //
 // Substitui os antigos bin/api-fake-*.mjs da raiz do repo (um arquivo quase
 // idêntico por shell) e scripts/dev-tui.mjs (spawn manual só pra TUI, por causa

@@ -33,7 +33,7 @@ fn maximizada_padrao() -> bool {
 }
 
 /// Contrato: `api-fake-tauri`, com o JSON de entrada pelo stdin -- ver README.md desta
-/// pasta. Um processo por execução, igual aos outros shells (puppeteer/electron): o
+/// pasta. Um processo por execução, igual aos outros shells (puppeteer): o
 /// processo termina quando a janela é fechada, e quem chamou (o shell em Node) encerra
 /// junto.
 fn main() {
