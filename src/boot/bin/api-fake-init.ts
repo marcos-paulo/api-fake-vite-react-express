@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { setupAgentIntegration } from '../../tooling/init/setup-agent-integration';
+import { setupGitignore } from '../../tooling/init/setup-gitignore';
 import { setupLintConfig } from '../../tooling/init/setup-lint-config';
 import { setupPackageScripts } from '../../tooling/init/setup-package-scripts';
 
@@ -21,5 +22,6 @@ console.log('[api-fake] Inicializando projeto...');
 setupPackageScripts(targetDir);
 setupLintConfig(targetDir, packageRootDir);
 setupAgentIntegration(targetDir);
+setupGitignore(targetDir);
 
 console.log('[api-fake] Inicialização concluída.');

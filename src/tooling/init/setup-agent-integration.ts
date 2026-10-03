@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { readJsonFile, writeJsonFileIfChanged } from './json-file';
+
 const AGENT_SCRIPT_COMMAND = 'npm run api-fake:agent --';
 
 const MARKER_START = '<!-- api-fake:agent:start -->';
@@ -49,10 +51,23 @@ const SETTINGS_PERMISSIONS = {
   ],
 };
 
+const INSTRUCTIONS_FILE_CANDIDATES = ['AGENTS.md', 'CLAUDE.md'];
+
+function hasBlock(content: string): boolean {
+  return content.includes(MARKER_START);
+}
+
+// O bloco pode estar em qualquer um dos dois arquivos (a pessoa pode ter criado o AGENTS.md
+// depois de uma execução que escreveu no CLAUDE.md): atualiza onde ele já está, em vez de
+// duplicar. Só adiciona se não estiver em nenhum. Sem nenhum dos dois, cria o AGENTS.md.
 function pickInstructionsFile(targetDir: string): string {
-  const candidates = ['AGENTS.md', 'CLAUDE.md'];
-  const existing = candidates.find((fileName) => fs.existsSync(path.join(targetDir, fileName)));
-  return path.join(targetDir, existing ?? 'AGENTS.md');
+  const existing = INSTRUCTIONS_FILE_CANDIDATES.map((fileName) =>
+    path.join(targetDir, fileName),
+  ).filter((filePath) => fs.existsSync(filePath));
+
+  const withBlock = existing.find((filePath) => hasBlock(fs.readFileSync(filePath, 'utf-8')));
+
+  return withBlock ?? existing[0] ?? path.join(targetDir, 'AGENTS.md');
 }
 
 function setupInstructionsBlock(targetDir: string) {
@@ -62,6 +77,14 @@ function setupInstructionsBlock(targetDir: string) {
 
   const start = current.indexOf(MARKER_START);
   const end = current.indexOf(MARKER_END);
+
+  if (start !== -1 && end === -1) {
+    console.warn(
+      `[api-fake] "${fileName}" tem o marcador de início do bloco do agente, mas não o de fim. ` +
+        'Não foi alterado: corrija os marcadores e rode o init de novo.',
+    );
+    return;
+  }
 
   if (start !== -1 && end > start) {
     const updated =
@@ -76,8 +99,13 @@ function setupInstructionsBlock(targetDir: string) {
     return;
   }
 
-  const separator =
-    current && !current.endsWith('\n\n') ? (current.endsWith('\n') ? '\n' : '\n\n') : '';
+  const separator = current
+    ? current.endsWith('\n\n')
+      ? ''
+      : current.endsWith('\n')
+        ? '\n'
+        : '\n\n'
+    : '';
   fs.writeFileSync(filePath, `${current}${separator}${agentInstructionsBlock}`);
   console.log(`[api-fake] Bloco de instruções do agente adicionado em "${fileName}".`);
 }
@@ -87,53 +115,64 @@ function mergeUnique(existing: unknown, additions: string[]): string[] {
   return [...list, ...additions.filter((entry) => !list.includes(entry))];
 }
 
-function setupClaudePermissions(targetDir: string) {
+/** Devolve true se acrescentou alguma permissão. */
+function setupClaudePermissions(targetDir: string): boolean {
   const settingsPath = path.join(targetDir, '.claude', 'settings.json');
 
-  let settings: Record<string, unknown> = {};
+  const existingFile = fs.existsSync(settingsPath) ? readJsonFile(settingsPath) : null;
 
-  if (fs.existsSync(settingsPath)) {
-    try {
-      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8')) as Record<string, unknown>;
-    } catch {
-      console.warn(
-        '[api-fake] ".claude/settings.json" não é um JSON válido e não foi alterado. ' +
-          `Adicione manualmente em permissions.allow: ${SETTINGS_PERMISSIONS.allow.join(', ')} ` +
-          `e em permissions.deny: ${SETTINGS_PERMISSIONS.deny.join(', ')}.`,
-      );
-      return;
-    }
+  if (fs.existsSync(settingsPath) && !existingFile) {
+    console.warn(
+      '[api-fake] ".claude/settings.json" não é um JSON válido e não foi alterado. ' +
+        `Adicione manualmente em permissions.allow: ${SETTINGS_PERMISSIONS.allow.join(', ')} ` +
+        `e em permissions.deny: ${SETTINGS_PERMISSIONS.deny.join(', ')}.`,
+    );
+    return false;
   }
 
-  const permissions = (settings.permissions ?? {}) as Record<string, unknown>;
+  const file = existingFile ?? {
+    data: {} as Record<string, unknown>,
+    indent: 2,
+    endsWithNewline: true,
+    raw: '',
+  };
+
+  const permissions = (file.data.permissions ?? {}) as Record<string, unknown>;
   const allow = mergeUnique(permissions.allow, SETTINGS_PERMISSIONS.allow);
   const deny = mergeUnique(permissions.deny, SETTINGS_PERMISSIONS.deny);
 
   const changed =
-    JSON.stringify(allow) !== JSON.stringify(permissions.allow) ||
-    JSON.stringify(deny) !== JSON.stringify(permissions.deny);
+    allow.length !== (Array.isArray(permissions.allow) ? permissions.allow.length : 0) ||
+    deny.length !== (Array.isArray(permissions.deny) ? permissions.deny.length : 0);
 
-  if (!changed) return;
+  if (!changed) return false;
 
-  settings.permissions = { ...permissions, allow, deny };
+  file.data.permissions = { ...permissions, allow, deny };
   fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
-  fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`);
+  writeJsonFileIfChanged(settingsPath, file);
   console.log('[api-fake] Permissões do agente adicionadas em ".claude/settings.json".');
+  return true;
 }
 
 /**
  * Prepara o projeto consumidor para um agente de IA alternar handlers pelo CLI:
  * instruções (AGENTS.md/CLAUDE.md) e permissões do Claude Code. O script npm
- * `api-fake:agent` é criado em setup-package-scripts.ts, junto com os demais.
+ * `api-fake:agent` é criado em setup-package-scripts.ts, junto com os demais, e o
+ * .gitignore em setup-gitignore.ts.
+ *
+ * Idempotente: rodar de novo não altera nada e não imprime nada.
  */
 export function setupAgentIntegration(targetDir: string) {
   setupInstructionsBlock(targetDir);
-  setupClaudePermissions(targetDir);
+  const permissionsChanged = setupClaudePermissions(targetDir);
 
-  console.warn(
-    '[api-fake] Atenção: as permissões negam Edit/Write em ".config/api-fake/**" e a leitura do token ' +
-      'do painel em "~/.config/api-fake/**", mas não impedem leitura ou escrita via shell (cat, ' +
-      'echo...). Para fechar isso, negue também esses comandos nas permissões do seu agente, ' +
-      'ou rode-o em sandbox.',
-  );
+  // O aviso só faz sentido na execução que acabou de gravar as permissões.
+  if (permissionsChanged) {
+    console.warn(
+      '[api-fake] Atenção: as permissões negam Edit/Write em ".config/api-fake/**" e a leitura do token ' +
+        'do painel em "~/.config/api-fake/**", mas não impedem leitura ou escrita via shell (cat, ' +
+        'echo...). Para fechar isso, negue também esses comandos nas permissões do seu agente, ' +
+        'ou rode-o em sandbox.',
+    );
+  }
 }

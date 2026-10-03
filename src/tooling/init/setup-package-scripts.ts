@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { readJsonFile, writeJsonFileIfChanged } from './json-file';
+
 const typeKey = 'type';
 const typeValue = 'module';
 
@@ -12,18 +14,14 @@ export function setupPackageScripts(targetDir: string) {
     return;
   }
 
-  let packageJson: Record<string, unknown>;
+  const file = readJsonFile(targetPackageJsonPath);
 
-  try {
-    packageJson = JSON.parse(fs.readFileSync(targetPackageJsonPath, 'utf-8')) as Record<
-      string,
-      unknown
-    >;
-  } catch {
+  if (!file) {
     console.warn('[api-fake] Falha ao ler package.json do projeto destino.');
     return;
   }
 
+  const packageJson = file.data;
   const scriptsValue = packageJson.scripts;
   const scripts: Record<string, string> =
     scriptsValue && typeof scriptsValue === 'object'
@@ -31,12 +29,15 @@ export function setupPackageScripts(targetDir: string) {
       : {};
 
   function applyScript(key: string, value: string) {
-    if (scripts[key] && scripts[key] !== value) {
+    if (scripts[key] === value) return;
+
+    if (scripts[key]) {
       console.warn(`[api-fake] Script "${key}" ja existe no projeto destino e nao foi alterado.`);
-    } else if (scripts[key] !== value) {
-      scripts[key] = value;
-      console.log(`[api-fake] Script "${key}" adicionado ao package.json do projeto destino.`);
+      return;
     }
+
+    scripts[key] = value;
+    console.log(`[api-fake] Script "${key}" adicionado ao package.json do projeto destino.`);
   }
 
   applyScript('start', 'api-fake');
@@ -54,5 +55,5 @@ export function setupPackageScripts(targetDir: string) {
   }
 
   packageJson.scripts = scripts;
-  fs.writeFileSync(targetPackageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+  writeJsonFileIfChanged(targetPackageJsonPath, file);
 }
