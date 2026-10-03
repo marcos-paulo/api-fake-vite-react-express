@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createInterface } from 'node:readline/promises';
 
-import { BLOCK_MARKER_START, SKILL_NAME } from './agent-content';
+import { BLOCK_MARKER_START, SKILL_MANAGED_MARKER, SKILL_NAME } from './agent-content';
 
 export type AgentChoice = 'claude' | 'copilot' | 'both' | 'none';
 
@@ -14,6 +14,14 @@ function isAgentChoice(value: string): value is AgentChoice {
 
 function fileHasBlock(filePath: string): boolean {
   return fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8').includes(BLOCK_MARKER_START);
+}
+
+// Só conta como "já gerado" a skill com o marcador do init: uma skill escrita à mão com o mesmo
+// nome não indica que o init já rodou pra esse agente.
+function skillIsManaged(filePath: string): boolean {
+  return (
+    fs.existsSync(filePath) && fs.readFileSync(filePath, 'utf-8').includes(SKILL_MANAGED_MARKER)
+  );
 }
 
 function fromFlag(argv: string[]): AgentChoice | null | 'invalid' {
@@ -28,10 +36,10 @@ function fromFlag(argv: string[]): AgentChoice | null | 'invalid' {
 // os próprios arquivos dizem pra qual agente o init já rodou.
 export function detectAgents(targetDir: string): AgentChoice | null {
   const claude =
-    fs.existsSync(path.join(targetDir, '.claude', 'skills', SKILL_NAME, 'SKILL.md')) ||
+    skillIsManaged(path.join(targetDir, '.claude', 'skills', SKILL_NAME, 'SKILL.md')) ||
     fileHasBlock(path.join(targetDir, 'CLAUDE.md'));
   const copilot =
-    fs.existsSync(path.join(targetDir, '.github', 'skills', SKILL_NAME, 'SKILL.md')) ||
+    skillIsManaged(path.join(targetDir, '.github', 'skills', SKILL_NAME, 'SKILL.md')) ||
     fileHasBlock(path.join(targetDir, 'AGENTS.md'));
 
   if (claude && copilot) return 'both';

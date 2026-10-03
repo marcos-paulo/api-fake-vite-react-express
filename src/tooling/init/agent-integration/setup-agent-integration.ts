@@ -6,6 +6,7 @@ import {
   alwaysOnBlock,
   BLOCK_MARKER_END,
   BLOCK_MARKER_START,
+  SKILL_MANAGED_MARKER,
   SKILL_NAME,
   skillMarkdown,
 } from './agent-content';
@@ -64,21 +65,33 @@ function setupInstructionsBlock(targetDir: string, fileName: string): boolean {
   return true;
 }
 
-/** Skill do projeto (versionável, vale pra todo o time). Devolve true se gravou. */
-function setupProjectSkill(targetDir: string, skillsRelativeDir: string): boolean {
-  const skillFile = path.join(targetDir, skillsRelativeDir, SKILL_NAME, 'SKILL.md');
+type ProjectSkillResult = 'created' | 'updated' | 'unchanged' | 'foreign';
 
-  if (fs.existsSync(skillFile) && fs.readFileSync(skillFile, 'utf-8') === skillMarkdown) {
-    return false;
+/**
+ * Skill do projeto (versionável, vale pra todo o time). Só mexe em arquivo gerado pelo init (tem
+ * o marcador): uma skill escrita à mão no mesmo caminho nunca é sobrescrita — o resultado
+ * 'foreign' avisa quem chamou pra não linkar essa skill na pasta global.
+ */
+function setupProjectSkill(targetDir: string, skillsRelativeDir: string): ProjectSkillResult {
+  const relativeFile = path.join(skillsRelativeDir, SKILL_NAME, 'SKILL.md');
+  const skillFile = path.join(targetDir, relativeFile);
+  const existed = fs.existsSync(skillFile);
+  const current = existed ? fs.readFileSync(skillFile, 'utf-8') : '';
+
+  if (existed && !current.includes(SKILL_MANAGED_MARKER)) {
+    console.warn(
+      `[api-fake] "${relativeFile}" já existe e não foi gerado pelo api-fake-init. Não foi alterado. ` +
+        'Para usar a skill do api-fake, apague ou renomeie esse arquivo e rode o init de novo.',
+    );
+    return 'foreign';
   }
 
-  const existed = fs.existsSync(skillFile);
+  if (current === skillMarkdown) return 'unchanged';
+
   fs.mkdirSync(path.dirname(skillFile), { recursive: true });
   fs.writeFileSync(skillFile, skillMarkdown);
-  console.log(
-    `[api-fake] Skill ${existed ? 'atualizada' : 'criada'} em "${path.join(skillsRelativeDir, SKILL_NAME, 'SKILL.md')}".`,
-  );
-  return true;
+  console.log(`[api-fake] Skill ${existed ? 'atualizada' : 'criada'} em "${relativeFile}".`);
+  return existed ? 'updated' : 'created';
 }
 
 function mergeUnique(existing: unknown, additions: string[]): string[] {
@@ -126,17 +139,21 @@ function setupClaudePermissions(targetDir: string): boolean {
 }
 
 function setupClaude(targetDir: string) {
+  const skill = setupProjectSkill(targetDir, path.join('.claude', 'skills'));
   const changed = [
     setupInstructionsBlock(targetDir, 'CLAUDE.md'),
-    setupProjectSkill(targetDir, path.join('.claude', 'skills')),
+    skill === 'created' || skill === 'updated',
     setupClaudePermissions(targetDir),
   ];
 
-  linkGlobalSkill(
-    getGlobalTools().claude,
-    path.join(targetDir, '.claude', 'skills', SKILL_NAME),
-    changed.some(Boolean),
-  );
+  // Não linka na pasta global uma skill que não é a do api-fake.
+  if (skill !== 'foreign') {
+    linkGlobalSkill(
+      getGlobalTools().claude,
+      path.join(targetDir, '.claude', 'skills', SKILL_NAME),
+      changed.some(Boolean),
+    );
+  }
 
   // O aviso só faz sentido na execução que acabou de gravar algo.
   if (changed.some(Boolean)) {
@@ -149,16 +166,20 @@ function setupClaude(targetDir: string) {
 }
 
 function setupCopilot(targetDir: string) {
+  const skill = setupProjectSkill(targetDir, path.join('.github', 'skills'));
   const changed = [
     setupInstructionsBlock(targetDir, 'AGENTS.md'),
-    setupProjectSkill(targetDir, path.join('.github', 'skills')),
+    skill === 'created' || skill === 'updated',
   ];
 
-  linkGlobalSkill(
-    getGlobalTools().copilot,
-    path.join(targetDir, '.github', 'skills', SKILL_NAME),
-    changed.some(Boolean),
-  );
+  // Não linka na pasta global uma skill que não é a do api-fake.
+  if (skill !== 'foreign') {
+    linkGlobalSkill(
+      getGlobalTools().copilot,
+      path.join(targetDir, '.github', 'skills', SKILL_NAME),
+      changed.some(Boolean),
+    );
+  }
 
   // O init NÃO gera configuração de permissão do Copilot: o CLI usa flags de linha de comando e,
   // no VS Code, um arquivo de configuração versionado que libera comandos é um risco.
