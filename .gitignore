@@ -47,3 +47,5 @@ CLAUDE.md
 native/api-fake-tauri/target
 native/api-fake-tauri/.cargo-container-cache
 native/api-fake-tauri/gen
+
+.config
