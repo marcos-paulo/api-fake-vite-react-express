@@ -7,7 +7,17 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'dist-package', 'dist-target', 'node_modules', 'root-endpoints'] },
+  {
+    ignores: [
+      'dist',
+      'dist-package',
+      'dist-target',
+      'node_modules',
+      'root-endpoints',
+      'native/*/target',
+      'native/*/.cargo-container-cache',
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.strict],
     files: ['**/*.{ts,tsx}'],
@@ -101,6 +111,7 @@ export default tseslint.config(
       'src/tooling/init/**/*.ts',
       'src/tooling/postinstall/**/*.ts',
       'src/app/frontend/shells/puppeteer/**/*.ts',
+      'src/app/frontend/shells/tauri/**/*.ts',
       'src/app/frontend/shells/electron/**/*.ts',
       'src/app/frontend/tui/**/*.{ts,tsx}',
       'vite.config.ts',

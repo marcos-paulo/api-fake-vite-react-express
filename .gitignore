@@ -42,3 +42,8 @@ release-consumers.local.json
 
 # Vive só na branch órfã claude-md, fora do histórico de código
 CLAUDE.md
+
+# native/api-fake-tauri (Rust/Tauri) -- artefatos de build, não fonte (o binário final fica em native-bin/)
+native/api-fake-tauri/target
+native/api-fake-tauri/.cargo-container-cache
+native/api-fake-tauri/gen

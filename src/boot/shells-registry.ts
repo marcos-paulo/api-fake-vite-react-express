@@ -1,4 +1,4 @@
-export type ShellId = 'browser' | 'puppeteer' | 'electron' | 'tui';
+export type ShellId = 'browser' | 'puppeteer' | 'electron' | 'tauri' | 'tui';
 
 export type ShellDefinition = {
   id: ShellId;
@@ -52,6 +52,18 @@ export const shells: Record<ShellId, ShellDefinition> = {
     needsWebFrontend: true,
     ttyExclusive: false,
     prodReady: false,
+  },
+  // Janela nativa via binário Rust/Tauri (native/api-fake-tauri), commitado em native-bin/ — o
+  // pacote publicado já o leva pronto. Exige webkit2gtk-4.1 e glibc >= 2.34 na máquina de quem
+  // roda; sem isso o shell falha com uma mensagem apontando puppeteer/browser como alternativa.
+  tauri: {
+    id: 'tauri',
+    label: 'Tauri',
+    devScript: 'dev:with:tauri',
+    prodUiEntry: 'tauri/main.js',
+    needsWebFrontend: true,
+    ttyExclusive: false,
+    prodReady: true,
   },
   tui: {
     id: 'tui',

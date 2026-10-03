@@ -11,6 +11,7 @@ const packageScriptsDir = path.join(packageDir, 'scripts');
 
 const rootPackageJsonPath = path.join(rootDir, 'package.json');
 const rootReadmePath = path.join(rootDir, 'README.md');
+const nativeBinSourceDir = path.join(rootDir, 'native-bin');
 const compiledInitPath = path.join(rootDir, 'dist', 'bin', 'api-fake-init.mjs');
 const compiledDownloadPuppeteerPath = path.join(
   rootDir,
@@ -74,6 +75,19 @@ function copyCompiledScripts() {
     compiledDownloadPuppeteerPath,
     path.join(packageScriptsDir, 'download-puppeteer.mjs'),
   );
+}
+
+// Binário do shell tauri (gerado por `npm run build:native` e commitado em native-bin/). Sem
+// ele o pacote ainda funciona — o shell tauri é que falha, avisando e sugerindo outro shell.
+function copyNativeBin() {
+  if (!fs.existsSync(nativeBinSourceDir)) {
+    console.warn(
+      '[prepare-release-package] native-bin/ não existe: o shell tauri não vai funcionar no pacote.',
+    );
+    return;
+  }
+
+  fs.cpSync(nativeBinSourceDir, path.join(packageDir, 'native-bin'), { recursive: true });
 }
 
 function copyReadme() {
@@ -149,6 +163,7 @@ function buildPackageJson() {
     files: [
       'dist',
       'scripts',
+      'native-bin',
       'tsconfig-base.json',
       'prettier-config.json',
       'editorconfig-base',
@@ -179,6 +194,7 @@ function main() {
   copyDistFiles();
   copyCompiledScripts();
   copyReadme();
+  copyNativeBin();
   copyTsconfigBase();
   copyPrettierBase();
   copyEditorConfigBase();

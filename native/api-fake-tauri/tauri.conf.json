@@ -1,0 +1,18 @@
+{
+  "productName": "api-fake",
+  "version": "0.1.0",
+  "identifier": "br.com.api-fake.native",
+  "build": {
+    "frontendDist": "ui"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": []
+  }
+}
