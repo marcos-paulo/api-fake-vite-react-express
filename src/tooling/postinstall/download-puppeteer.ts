@@ -28,7 +28,7 @@ function isSkipDownloadEnvSet(): boolean {
 
 function isSkipDownloadConfigured(): boolean {
   // process.cwd() durante o postinstall de uma dependência aninhada é a pasta do
-  // próprio pacote instalado (ex.: node_modules/projeto-externo), não a raiz de quem
+  // próprio pacote instalado (ex.: node_modules/meu-pacote), não a raiz de quem
   // está de fato rodando `npm install`. INIT_CWD é quem aponta para essa raiz real —
   // é lá que faz sentido procurar um .puppeteerrc.cjs definido por quem consome o pacote.
   const searchRoot = process.env.INIT_CWD || process.cwd();
