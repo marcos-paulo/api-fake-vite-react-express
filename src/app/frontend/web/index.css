@@ -61,17 +61,28 @@ a:hover {
   color: var(--color-accent-hover);
 }
 
+html {
+  /* Sem isso o overflow do body sobe pra janela (regra do CSS quando o html é visible) e a
+     rolagem horizontal volta a ser da janela, não da caixa do body. */
+  overflow: hidden;
+}
+
+/* O body é a caixa do tamanho da janela. O container principal (#root) tem largura mínima de
+   1366px (1334px + o padding de 16px de cada lado): em janelas menores ele rola na horizontal
+   DENTRO do body. A rolagem vertical fica só nas listas (.flex-scroll-column-auto). */
 body {
   margin: 0;
+  box-sizing: border-box;
+  height: 100dvh;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  place-items: center;
-  padding: 16px;
-  min-width: 320px;
-  height: calc(100vh - 32px);
+  overflow-x: auto;
+  overflow-y: hidden;
 
   > :nth-child(1) {
-    width: calc(100vw - 32px);
+    flex: 1;
+    min-height: 0;
     min-width: calc(1366px - 32px);
   }
 }
