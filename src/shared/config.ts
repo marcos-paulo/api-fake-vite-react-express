@@ -16,7 +16,8 @@ const configFile = path.join(configDir, 'api-fake.config.json');
 const defaultConfig = {
   APP_PORT: 3343,
   API_PORT: 3342,
-  WORKSPACES_ROOT_PATH: 'src',
+  // relativo a `.config/api-fake` (onde fica este arquivo), não à raiz do projeto
+  WORKSPACES_ROOT_PATH: '../../src',
   ACTIVE_WORKSPACE: 'grupo-endpoints',
   PROXY_CONFIG_FILE: '',
   PROXY_CONFIG_FILE_ADDRESS_KEY: '',
@@ -47,7 +48,9 @@ function resolvePaths(cfg: Configs): Configs {
   const resolved = { ...cfg } as ConfigPaths;
   for (const key of pathKeys) {
     if (resolved[key]) {
-      resolved[key] = path.resolve(workDir, resolved[key]);
+      // Caminhos relativos valem a partir da pasta do próprio config (não do cwd nem da raiz
+      // do projeto): quem edita o arquivo enxerga o caminho relativo ao que está na tela.
+      resolved[key] = path.resolve(configDir, resolved[key]);
     }
   }
   return resolved as Configs;
