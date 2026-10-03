@@ -15,6 +15,10 @@ async function openWindow() {
   browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
+    // O Puppeteer liga o Chrome com --enable-automation por padrão, e é isso que mostra a barra
+    // "O Chrome está sendo controlado por um software de teste automatizado". Aqui o Puppeteer
+    // só abre a janela (não automatiza nada), então a barra só atrapalha.
+    ignoreDefaultArgs: ['--enable-automation'],
     // o token vai no fragmento (não sai do navegador) e o painel o guarda e limpa da URL
     args: [
       `--app=${targetUrl}#token=${encodeURIComponent(readOrCreatePanelToken())}`,
