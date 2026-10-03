@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { commitStaged, tagHead } from './commit-helper';
 import { runNpmScript } from './run-tools';
 
 // Publica o pacote empacotado (.tgz) numa branch órfã deste repo, pra poder
@@ -10,10 +11,11 @@ import { runNpmScript } from './run-tools';
 // distribuição pros projetos consumidores fica de fora de propósito — é
 // feita manualmente por quem publica.
 //
-// Versão REAL e permanente a cada execução, via `npm version <patch|minor|major>`
-// — cria commit + tag de verdade no histórico deste repo (não um sufixo
-// descartável). `npm version` já exige working tree limpo sozinho; a checagem
-// em assertCleanWorkingTree() só existe pra dar um erro mais cedo e mais claro.
+// Versão REAL e permanente a cada execução: `npm version <patch|minor|major>
+// --no-git-tag-version` altera package.json e package-lock.json, e o commit + a
+// tag anotada são feitos em seguida (commit-helper.ts) — de verdade, no histórico
+// deste repo (não um sufixo descartável). A checagem em assertCleanWorkingTree()
+// dá o erro de árvore suja mais cedo e mais claro.
 //
 // O commit + tag do bump ficam só LOCAIS nesta máquina — este script não dá
 // push na branch de desenvolvimento sozinho (só na branch de distribuição
@@ -57,11 +59,29 @@ function assertCleanWorkingTree() {
 
 function bumpVersion(bumpType: BumpType): string {
   console.log(`[publish-package] Bump de versão (${bumpType})...`);
-  execFileSync('npm', ['version', bumpType], { cwd: rootDir, stdio: 'inherit' });
+  execFileSync('npm', ['version', bumpType, '--no-git-tag-version'], {
+    cwd: rootDir,
+    stdio: 'inherit',
+  });
   const packageJson = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8')) as {
     version: string;
   };
-  return packageJson.version;
+  const { version } = packageJson;
+
+  try {
+    execFileSync('git', ['add', 'package.json', 'package-lock.json'], { cwd: rootDir });
+    commitStaged(version, rootDir);
+    tagHead(rootDir, `v${version}`, version);
+  } catch (error) {
+    // Não deixa o bump pela metade: volta package.json/package-lock.json ao que estava.
+    execFileSync('git', ['reset', '-q', 'HEAD', '--', 'package.json', 'package-lock.json'], {
+      cwd: rootDir,
+    });
+    execFileSync('git', ['checkout', '--', 'package.json', 'package-lock.json'], { cwd: rootDir });
+    throw error;
+  }
+
+  return version;
 }
 
 function buildAndPack(): string {
@@ -94,18 +114,21 @@ function publishToOrphanBranch(tarballFileName: string) {
     stdio: 'inherit',
   });
 
-  fs.copyFileSync(path.join(distTargetDir, tarballFileName), path.join(worktreeDir, tarballFileName));
+  fs.copyFileSync(
+    path.join(distTargetDir, tarballFileName),
+    path.join(worktreeDir, tarballFileName),
+  );
 
   execFileSync('git', ['add', tarballFileName], { cwd: worktreeDir, stdio: 'inherit' });
-  execFileSync('git', ['commit', '-m', `Pacote: ${tarballFileName}`], {
-    cwd: worktreeDir,
-    stdio: 'inherit',
-  });
+  commitStaged(`Pacote: ${tarballFileName}`, worktreeDir);
 
   console.log(`[publish-package] Enviando pro ${REMOTE}...`);
   execFileSync('git', ['push', REMOTE, BRANCH, '--force'], { cwd: worktreeDir, stdio: 'inherit' });
 
-  execFileSync('git', ['worktree', 'remove', '--force', worktreeDir], { cwd: rootDir, stdio: 'inherit' });
+  execFileSync('git', ['worktree', 'remove', '--force', worktreeDir], {
+    cwd: rootDir,
+    stdio: 'inherit',
+  });
 }
 
 function main() {
