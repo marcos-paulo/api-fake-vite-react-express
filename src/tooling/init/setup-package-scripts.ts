@@ -40,6 +40,7 @@ export function setupPackageScripts(targetDir: string) {
   }
 
   applyScript('start', 'api-fake');
+  applyScript('api-fake:agent', 'api-fake-agent');
   applyScript('lint', 'eslint .');
   applyScript('lint:fix', 'eslint . --fix');
   applyScript('prettier:check', 'prettier --check .');

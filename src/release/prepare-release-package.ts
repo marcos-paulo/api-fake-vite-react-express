@@ -23,6 +23,7 @@ const prettierBaseSourcePath = path.join(rootDir, '.prettierrc');
 const editorconfigSourcePath = path.join(rootDir, '.editorconfig');
 const productionBinFileName = 'api-fake-prod.mjs';
 const initBinFileName = 'api-fake-init.mjs';
+const agentBinFileName = 'api-fake-agent.mjs';
 
 function assertBuildArtifactsExist() {
   if (!fs.existsSync(sourceDistDir)) {
@@ -132,6 +133,7 @@ function buildPackageJson() {
     bin: {
       'api-fake': `./dist/bin/${productionBinFileName}`,
       'api-fake-init': `./dist/bin/${initBinFileName}`,
+      'api-fake-agent': `./dist/bin/${agentBinFileName}`,
     },
     types: './dist/types/index.d.ts',
     exports: {

@@ -1,10 +1,15 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
 
 import { getConfig } from '../../../shared/config';
+import { readOrCreatePanelToken } from '../../../shared/panel-token';
 
 export const apiBaseUrl = `http://127.0.0.1:${getConfig().API_PORT}`;
 
-export const apiClient = axios.create({ baseURL: apiBaseUrl });
+// A TUI é interface de humano e roda na máquina dele: lê o token do painel direto do arquivo.
+export const apiClient = axios.create({
+  baseURL: apiBaseUrl,
+  headers: { 'x-api-fake-token': readOrCreatePanelToken() },
+});
 
 type ConfigWithMetadata = InternalAxiosRequestConfig & { metadata?: { startedAt: number } };
 

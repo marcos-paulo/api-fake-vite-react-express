@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-import type { Endpoint } from '../../../../../types/endpoints.types';
+import type { AgentHandlerState, Endpoint } from '../../../../../types/endpoints.types';
 import { PendingBadge } from './PendingBadge';
 
 const S = {
@@ -140,6 +140,24 @@ const S = {
     fontSize: '0.8em',
   } satisfies CSSProperties,
 
+  agentBadge: {
+    color: 'var(--color-info)',
+    fontSize: '0.8em',
+    border: '1px solid var(--color-info)',
+    borderRadius: '4px',
+    padding: '1px 6px',
+  } satisfies CSSProperties,
+
+  agentActionButton: {
+    padding: '1px 8px',
+    borderRadius: '4px',
+    border: '1px solid var(--color-border-muted)',
+    backgroundColor: 'var(--color-surface-raised)',
+    color: 'var(--color-text)',
+    cursor: 'pointer',
+    fontSize: '0.75em',
+  } satisfies CSSProperties,
+
   handlerSelect: {
     padding: '2px 6px',
     borderRadius: '4px',
@@ -148,6 +166,12 @@ const S = {
     color: 'var(--color-text)',
     fontSize: '0.8em',
   } satisfies CSSProperties,
+};
+
+const AGENT_STATE_SUFFIX: Record<AgentHandlerState, string> = {
+  approved: ' · 🤖 agente pode ativar',
+  pending: ' · ⏳ aguarda aprovação',
+  blocked: '',
 };
 
 type EndpointItemProps = {
@@ -159,6 +183,8 @@ type EndpointItemProps = {
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
   onOpenEndpointFile: (fileName: string) => void;
   onChangeActiveHandler: (fileName: string, handlerKey: string) => void;
+  onRevertAgentHandler: (fileName: string) => void;
+  onRevokeAgentApproval: (fileName: string, handlerKey: string) => void;
 };
 
 export const EndpointItem = ({
@@ -170,8 +196,14 @@ export const EndpointItem = ({
   onAddPendingEndpoint,
   onOpenEndpointFile,
   onChangeActiveHandler,
+  onRevertAgentHandler,
+  onRevokeAgentApproval,
 }: EndpointItemProps) => {
   const isError = endpoint.loadError;
+  const selectedHandlerKey = pendingHandlerKey ?? endpoint.activeHandlerKey;
+  const selectedAgentState = endpoint.handlerOptions.find(
+    (option) => option.key === selectedHandlerKey,
+  )?.agentState;
 
   return (
     <li style={S.endpointItemStyle(isPending, isError)}>
@@ -248,16 +280,42 @@ export const EndpointItem = ({
           <span style={S.handlerSelectLabel}>Resposta:</span>
           <select
             style={S.handlerSelect}
-            value={pendingHandlerKey ?? endpoint.activeHandlerKey}
+            value={selectedHandlerKey}
             disabled={isLoading}
             onChange={(e) => onChangeActiveHandler(endpoint.fileName, e.target.value)}
           >
             {endpoint.handlerOptions.map((option) => (
               <option key={option.key} value={option.key}>
                 {option.description}
+                {AGENT_STATE_SUFFIX[option.agentState]}
               </option>
             ))}
           </select>
+          {endpoint.activeHandlerByAgent && (
+            <>
+              <span style={S.agentBadge}>🤖 escolhido por agente</span>
+              <button
+                type="button"
+                style={S.agentActionButton}
+                disabled={isLoading}
+                title="Volta para o handler que estava ativo antes da escolha do agente"
+                onClick={() => onRevertAgentHandler(endpoint.fileName)}
+              >
+                Reverter
+              </button>
+            </>
+          )}
+          {selectedAgentState === 'approved' && (
+            <button
+              type="button"
+              style={S.agentActionButton}
+              disabled={isLoading}
+              title="Tira a permissão do agente de ativar este handler"
+              onClick={() => onRevokeAgentApproval(endpoint.fileName, selectedHandlerKey)}
+            >
+              Revogar aprovação
+            </button>
+          )}
         </div>
       )}
     </li>

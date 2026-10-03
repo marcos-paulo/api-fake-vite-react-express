@@ -6,7 +6,11 @@ import { registerCorsMiddleware } from './middleware/cors-middleware';
 import { registerDynamicEndpointsMiddleware } from './middleware/dynamic-endpoints-middleware';
 import { registerGlobalErrorHandler } from './middleware/global-error-handler';
 import { registerProductionStaticMiddleware } from './middleware/production-static-middleware';
+import { registerRejectAgentActorMiddleware } from './middleware/reject-agent-actor-middleware';
 import { registerRequestLoggerMiddleware } from './middleware/request-logger-middleware';
+import { registerRequirePanelTokenMiddleware } from './middleware/require-panel-token-middleware';
+import { registerAgentRoutes } from './routes/agent-route';
+import { registerApprovalsRoutes } from './routes/approvals-route';
 import { registerChangeActiveHandlerRoute } from './routes/change-active-handler-route';
 import { registerChangeStateEndpointRoute } from './routes/change-state-endpoint-route';
 import { registerEndpointsRoute } from './routes/endpoints-route';
@@ -28,10 +32,15 @@ app.use(express.json());
 
 registerCorsMiddleware(app);
 
+registerRejectAgentActorMiddleware(app);
+registerRequirePanelTokenMiddleware(app);
+
 registerEventsRoute(app);
 registerEndpointsRoute(app);
 registerChangeStateEndpointRoute(app);
 registerChangeActiveHandlerRoute(app);
+registerAgentRoutes(app);
+registerApprovalsRoutes(app);
 registerOpenEndpointFileRoute(app);
 registerShutdownRoute(app);
 

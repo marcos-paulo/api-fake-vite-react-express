@@ -7,7 +7,11 @@ import { runTsup } from './run-tools';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const outDir = path.join(rootDir, 'dist', 'bin');
 
-const ENTRIES = ['src/boot/bin/api-fake-prod.ts', 'src/boot/bin/api-fake-init.ts'];
+const ENTRIES = [
+  'src/boot/bin/api-fake-prod.ts',
+  'src/boot/bin/api-fake-init.ts',
+  'src/boot/bin/api-fake-agent.ts',
+];
 
 function buildEntries() {
   runTsup(rootDir, [

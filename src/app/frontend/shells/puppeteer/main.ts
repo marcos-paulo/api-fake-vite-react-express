@@ -1,6 +1,7 @@
 import puppeteer, { type Browser } from 'puppeteer';
 
 import { getConfig } from '../../../../shared/config';
+import { readOrCreatePanelToken } from '../../../../shared/panel-token';
 
 const isDev = process.env.NODE_ENV === 'development';
 const clientPort = getConfig().APP_PORT;
@@ -14,7 +15,11 @@ async function openWindow() {
   browser = await puppeteer.launch({
     headless: false,
     defaultViewport: null,
-    args: [`--app=${targetUrl}`, '--start-maximized'],
+    // o token vai no fragmento (não sai do navegador) e o painel o guarda e limpa da URL
+    args: [
+      `--app=${targetUrl}#token=${encodeURIComponent(readOrCreatePanelToken())}`,
+      '--start-maximized',
+    ],
   });
 
   if (isDev) {

@@ -4,9 +4,17 @@ export type EndpointMethod = 'get' | 'post' | 'put' | 'delete';
 
 export type EndpointHandlerFn = (req: Request, res: Response) => void;
 
+/**
+ * Declaração do autor do handler: "pode ser elegível a ser ativado por um agente de IA".
+ * Omitido equivale a 'denied'. Sozinho não libera nada — o agente só ativa o handler
+ * depois que um humano o aprova no painel (ver `AgentHandlerState`).
+ */
+export type AgentControl = 'allowed' | 'denied';
+
 export type EndpointHandlerEntry = {
   description: string;
   handler: EndpointHandlerFn;
+  agentControl?: AgentControl;
 };
 
 export type EndpointHandlersMap = Record<string, EndpointHandlerEntry>;
@@ -19,6 +27,8 @@ type EndpointBase = {
   localhostAddress: string;
   method: EndpointMethod;
   tags?: string[];
+  /** Vale só para o formato legado (`handler` único), que vira o handler "default". */
+  agentControl?: AgentControl;
 };
 
 export type EndpointObject = EndpointBase &
@@ -54,8 +64,13 @@ function isEndpoint(
     !!endpoint.method &&
     ['get', 'post', 'put', 'delete'].includes(endpoint.method) &&
     hasValidTags &&
+    isValidAgentControl(endpoint.agentControl) &&
     isValidHandlersShape(endpoint.handler, endpoint.handlers)
   );
+}
+
+function isValidAgentControl(agentControl: unknown): boolean {
+  return agentControl === undefined || agentControl === 'allowed' || agentControl === 'denied';
 }
 
 function isValidHandlersShape(handler: unknown, handlers: unknown): boolean {
@@ -77,8 +92,12 @@ function isValidHandlersMap(handlers: unknown): handlers is EndpointHandlersMap 
     entries.length > 0 &&
     entries.every((entry) => {
       if (!entry || typeof entry !== 'object') return false;
-      const { description, handler } = entry as Partial<EndpointHandlerEntry>;
-      return typeof description === 'string' && typeof handler === 'function';
+      const { description, handler, agentControl } = entry as Partial<EndpointHandlerEntry>;
+      return (
+        typeof description === 'string' &&
+        typeof handler === 'function' &&
+        isValidAgentControl(agentControl)
+      );
     })
   );
 }
@@ -99,7 +118,11 @@ export function getEndpointHandlersMap(endpoint: EndpointObject): EndpointHandle
   }
 
   return {
-    default: { description: raw.description, handler: raw.handler as EndpointHandlerFn },
+    default: {
+      description: raw.description,
+      handler: raw.handler as EndpointHandlerFn,
+      agentControl: raw.agentControl,
+    },
   };
 }
 

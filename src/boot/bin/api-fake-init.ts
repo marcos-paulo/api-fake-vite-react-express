@@ -2,6 +2,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { setupAgentIntegration } from '../../tooling/init/setup-agent-integration';
 import { setupLintConfig } from '../../tooling/init/setup-lint-config';
 import { setupPackageScripts } from '../../tooling/init/setup-package-scripts';
 
@@ -19,5 +20,6 @@ console.log('[api-fake] Inicializando projeto...');
 
 setupPackageScripts(targetDir);
 setupLintConfig(targetDir, packageRootDir);
+setupAgentIntegration(targetDir);
 
 console.log('[api-fake] Inicialização concluída.');

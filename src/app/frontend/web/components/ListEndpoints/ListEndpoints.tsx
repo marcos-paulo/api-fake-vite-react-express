@@ -23,6 +23,8 @@ type ListEndpointsProps = {
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
   onOpenEndpointFile: (fileName: string) => void;
   onChangeActiveHandler: (fileName: string, handlerKey: string) => void;
+  onRevertAgentHandler: (fileName: string) => void;
+  onRevokeAgentApproval: (fileName: string, handlerKey: string) => void;
 };
 
 export const ListEndpoints = ({
@@ -33,6 +35,8 @@ export const ListEndpoints = ({
   onAddPendingEndpoint,
   onOpenEndpointFile,
   onChangeActiveHandler,
+  onRevertAgentHandler,
+  onRevokeAgentApproval,
 }: ListEndpointsProps) => {
   const allEndpoints = endpoints?.listEndpoints ?? [];
 
@@ -74,6 +78,8 @@ export const ListEndpoints = ({
             onAddPendingEndpoint={onAddPendingEndpoint}
             onOpenEndpointFile={onOpenEndpointFile}
             onChangeActiveHandler={onChangeActiveHandler}
+            onRevertAgentHandler={onRevertAgentHandler}
+            onRevokeAgentApproval={onRevokeAgentApproval}
             isLoading={isLoading}
           />
         ))}
@@ -93,6 +99,8 @@ export const ListEndpoints = ({
             onAddPendingEndpoint={onAddPendingEndpoint}
             onOpenEndpointFile={onOpenEndpointFile}
             onChangeActiveHandler={onChangeActiveHandler}
+            onRevertAgentHandler={onRevertAgentHandler}
+            onRevokeAgentApproval={onRevokeAgentApproval}
             isLoading={isLoading}
           />
         ))}

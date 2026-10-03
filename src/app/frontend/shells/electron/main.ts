@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { getConfig } from '../../../../shared/config';
+import { readOrCreatePanelToken } from '../../../../shared/panel-token';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -29,7 +30,10 @@ function createWindow() {
   if (isDev) {
     console.log('🚀 Carregando aplicação em modo desenvolvimento...');
     console.log(`🔌 Porta do cliente: ${clientPort}`);
-    mainWindow.loadURL(`http://localhost:${clientPort}`);
+    // o token vai no fragmento: o painel o guarda e limpa da URL
+    mainWindow.loadURL(
+      `http://localhost:${clientPort}#token=${encodeURIComponent(readOrCreatePanelToken())}`,
+    );
     // mainWindow.webContents.openDevTools();
   } else {
     console.log('📦 Carregando aplicação em modo produção...');

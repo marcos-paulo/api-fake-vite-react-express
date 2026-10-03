@@ -4,6 +4,7 @@ import path from 'path';
 import { configValidators, getConfig, getWorkDir } from '../../shared/config';
 import {
   type EnabledEndpointRecord,
+  type EndpointHandlerEntry,
   type EndpointHandlerFn,
   type EndpointObject,
   getEndpointHandlersMap,
@@ -11,7 +12,18 @@ import {
   type LoadedModule,
   type ModuleEndpoint,
 } from '../../types/dynamic-endpoints.types';
-import type { Endpoint, Endpoints } from '../../types/endpoints.types';
+import type {
+  AgentHandlerState,
+  Endpoint,
+  Endpoints,
+  HandlerOption,
+} from '../../types/endpoints.types';
+import {
+  AgentApprovalStore,
+  AgentControlError,
+  AgentSelectionStore,
+  readHandlerSource,
+} from './agent-control';
 import { registerEndpointModuleResolver } from './endpoint-module-resolver';
 import { LoadingGate } from './loading-gate';
 import { appLogger } from './logging/logger-app';
@@ -75,6 +87,14 @@ class ServerEndpoints {
   private readonly activeHandlersFilePath = path.join(
     this.workspaceConfigDir,
     'activeHandlers.json',
+  );
+
+  private readonly agentApprovals = new AgentApprovalStore(
+    path.join(this.workspaceConfigDir, 'agentApprovals.json'),
+  );
+
+  private readonly agentSelections = new AgentSelectionStore(
+    path.join(this.workspaceConfigDir, 'agentSelections.json'),
   );
 
   private logger = appLogger;
@@ -415,6 +435,7 @@ class ServerEndpoints {
           duplicateFiles: [],
           handlerOptions: [],
           activeHandlerKey: '',
+          activeHandlerByAgent: false,
         });
 
         if (enabled) {
@@ -442,19 +463,37 @@ class ServerEndpoints {
       const handlersMap = getEndpointHandlersMap(endpoint);
       const handlerKeys = Object.keys(handlersMap);
       const storedHandlerKey = this.activeHandlerSelections[fileName];
-      const activeHandlerKey = handlerKeys.includes(storedHandlerKey)
+      let activeHandlerKey = handlerKeys.includes(storedHandlerKey)
         ? storedHandlerKey
         : handlerKeys[0];
+
+      const handlerOptions: HandlerOption[] = handlerKeys.map((key) => ({
+        key,
+        description: handlersMap[key].description,
+        agentControl: handlersMap[key].agentControl ?? 'denied',
+        agentState: this.getAgentHandlerState(fileName, key, handlersMap[key]),
+      }));
+
+      // Handler escolhido por agente que deixou de estar aprovado (código editado, aprovação
+      // revogada ou flag removida): não segue servindo código sem revisão — volta pra última
+      // escolha humana.
+      const agentSelection = this.agentSelections.selections[fileName];
+      const activeState = handlerOptions.find((option) => option.key === activeHandlerKey);
+      if (agentSelection && activeState?.agentState !== 'approved') {
+        const fallbackKey = handlerKeys.includes(agentSelection.previousKey)
+          ? agentSelection.previousKey
+          : handlerKeys[0];
+        log.warn(
+          `${fileName}: handler "${activeHandlerKey}" (escolhido por agente) não está mais aprovado, voltando para "${fallbackKey}"`,
+        );
+        activeHandlerKey = fallbackKey;
+        this.agentSelections.clear(fileName);
+      }
 
       // auto-cura: chave salva não existe mais (endpoint foi editado) — regrava a escolhida
       if (activeHandlerKey !== storedHandlerKey) {
         this.activeHandlerSelections[fileName] = activeHandlerKey;
       }
-
-      const handlerOptions = handlerKeys.map((key) => ({
-        key,
-        description: handlersMap[key].description,
-      }));
 
       if (enabled) {
         this.enabledEndpointModules.push({
@@ -478,6 +517,7 @@ class ServerEndpoints {
         duplicateFiles: [],
         handlerOptions,
         activeHandlerKey,
+        activeHandlerByAgent: this.agentSelections.has(fileName),
       });
     }
 
@@ -550,6 +590,8 @@ class ServerEndpoints {
 
       const activeHandlers = activeHandlerSelectionsData || this.activeHandlerSelections;
       fs.writeFileSync(this.activeHandlersFilePath, JSON.stringify(activeHandlers, null, 2));
+
+      this.agentSelections.save();
     } catch (error) {
       log.error(`Erro ao salvar os arquivos de configuração: ${this.envs.proxyConfigFile}`, error);
     }
@@ -603,6 +645,8 @@ class ServerEndpoints {
       }
 
       this.activeHandlerSelections[fileName] = handlerKey;
+      // escolha humana: o handler ativo deixa de ser "do agente"
+      this.agentSelections.clear(fileName);
     }
 
     this.buildEnabledEndpointList();
@@ -613,6 +657,242 @@ class ServerEndpoints {
     this.notifyReload();
 
     log.endSection();
+  }
+
+  private getAgentHandlerState(
+    fileName: string,
+    handlerKey: string,
+    entry: EndpointHandlerEntry,
+  ): AgentHandlerState {
+    if (entry.agentControl !== 'allowed') {
+      return 'blocked';
+    }
+
+    const { hash } = readHandlerSource(entry.handler);
+    return this.agentApprovals.isApproved(fileName, handlerKey, hash) ? 'approved' : 'pending';
+  }
+
+  private findLoadedEndpoint(target: string) {
+    const loaded = this.loadedModules.filter(
+      (module) => module.fileName === target || module.endpoint?.serverAddress === target,
+    );
+    const exact = loaded.filter((module) => module.fileName === target);
+    const matches = exact.length > 0 ? exact : loaded;
+
+    if (matches.length === 0) {
+      throw new AgentControlError(`Endpoint não encontrado: ${target}`, 404);
+    }
+    if (matches.length > 1) {
+      throw new AgentControlError(
+        `"${target}" é ambíguo (${matches.map((m) => m.fileName).join(', ')}). Use o fileName.`,
+        409,
+      );
+    }
+
+    const [{ endpoint, fileName, loadError }] = matches;
+    if (loadError || !endpoint) {
+      throw new AgentControlError(`Endpoint com erro de carregamento: ${fileName}`, 409);
+    }
+
+    return { endpoint, fileName };
+  }
+
+  async listForAgent() {
+    await this.loadingGate.wait();
+
+    return this.endpoints.listEndpoints.map((endpoint) => ({
+      endpoint: endpoint.fileName,
+      serverAddress: endpoint.serverAddress,
+      method: endpoint.method,
+      enabled: endpoint.enabled,
+      loadError: endpoint.loadError,
+      activeHandler: endpoint.activeHandlerKey,
+      activeHandlerByAgent: endpoint.activeHandlerByAgent,
+      handlers: endpoint.handlerOptions.map((option) => ({
+        name: option.key,
+        state: option.agentState,
+        // handler bloqueado: o agente sabe que existe, mas não vê detalhes
+        ...(option.agentState === 'blocked' ? {} : { description: option.description }),
+      })),
+    }));
+  }
+
+  async agentSetHandler(target: string, handlerKey: string) {
+    const log = this.logger.startSection('agentSetHandler');
+
+    try {
+      // o agente costuma editar o arquivo e chamar logo em seguida: espera reload em andamento
+      await this.loadingGate.wait();
+
+      const { endpoint, fileName } = this.findLoadedEndpoint(target);
+      const handlersMap = getEndpointHandlersMap(endpoint);
+      const entry = handlersMap[handlerKey];
+
+      if (!entry) {
+        throw new AgentControlError(
+          `Handler "${handlerKey}" não existe em ${fileName} (existentes: ${Object.keys(handlersMap).join(', ')}). Se acabou de editar o arquivo, aguarde o reload e tente de novo.`,
+          404,
+        );
+      }
+
+      if (!this.enabledAddresses.some((record) => record.fileName === fileName)) {
+        throw new AgentControlError(
+          `Endpoint ${fileName} está desligado. Ligar endpoint é decisão humana: peça para ligar no painel.`,
+          409,
+        );
+      }
+
+      const state = this.getAgentHandlerState(fileName, handlerKey, entry);
+      if (state === 'blocked') {
+        throw new AgentControlError(
+          `Handler "${handlerKey}" de ${fileName} não permite ativação por agente (agentControl). Peça a um humano para ativá-lo no painel.`,
+          403,
+        );
+      }
+      if (state === 'pending') {
+        throw new AgentControlError(
+          `Handler "${handlerKey}" de ${fileName} está pendente de aprovação humana (novo ou alterado). Peça para aprovar no painel.`,
+          403,
+        );
+      }
+
+      const previousKey = this.activeHandlerSelections[fileName];
+      if (previousKey === handlerKey) {
+        return;
+      }
+
+      this.agentSelections.set(fileName, previousKey);
+      this.activeHandlerSelections[fileName] = handlerKey;
+      log.warn(`[AGENTE] ${fileName}: handler "${previousKey}" -> "${handlerKey}"`);
+
+      this.buildEnabledEndpointList();
+      this.saveConfigFile();
+      this.notifyReload();
+    } finally {
+      log.endSection();
+    }
+  }
+
+  getPendingApprovals() {
+    const pending: {
+      fileName: string;
+      handlerKey: string;
+      description: string;
+      hash: string;
+      source: string;
+      approvedSource: string | null;
+    }[] = [];
+
+    for (const { endpoint, fileName } of this.loadedModules) {
+      if (!endpoint) continue;
+
+      for (const [handlerKey, entry] of Object.entries(getEndpointHandlersMap(endpoint))) {
+        if (this.getAgentHandlerState(fileName, handlerKey, entry) !== 'pending') continue;
+
+        const { hash, source } = readHandlerSource(entry.handler);
+        pending.push({
+          fileName,
+          handlerKey,
+          description: entry.description,
+          hash,
+          source,
+          approvedSource: this.agentApprovals.get(fileName, handlerKey)?.source ?? null,
+        });
+      }
+    }
+
+    return pending;
+  }
+
+  /**
+   * Aprovação humana. O `hash` enviado é o do código que a pessoa viu no painel: se o
+   * arquivo mudou entre a revisão e o clique, a aprovação é recusada (409).
+   */
+  approveHandlers(items: { fileName: string; handlerKey: string; hash: string }[]) {
+    const log = this.logger.startSection('approveHandlers');
+
+    try {
+      const validated = items.map(({ fileName, handlerKey, hash }) => {
+        const { endpoint } = this.findLoadedEndpoint(fileName);
+        const entry = getEndpointHandlersMap(endpoint)[handlerKey];
+
+        if (!entry) {
+          throw new AgentControlError(`Handler "${handlerKey}" não existe em ${fileName}`, 404);
+        }
+        if (entry.agentControl !== 'allowed') {
+          throw new AgentControlError(
+            `Handler "${handlerKey}" de ${fileName} não declara agentControl: 'allowed'`,
+            400,
+          );
+        }
+
+        const current = readHandlerSource(entry.handler);
+        if (current.hash !== hash) {
+          throw new AgentControlError(
+            `O código de "${handlerKey}" em ${fileName} mudou depois da revisão. Revise de novo.`,
+            409,
+          );
+        }
+
+        return { fileName, handlerKey, current };
+      });
+
+      for (const { fileName, handlerKey, current } of validated) {
+        this.agentApprovals.approve(fileName, handlerKey, current);
+        log.success(`Aprovado: ${fileName} / ${handlerKey}`);
+      }
+
+      this.buildEnabledEndpointList();
+      this.saveConfigFile();
+      this.notifyReload();
+    } finally {
+      log.endSection();
+    }
+  }
+
+  revokeHandlers(items: { fileName: string; handlerKey: string }[]) {
+    const log = this.logger.startSection('revokeHandlers');
+
+    try {
+      for (const { fileName, handlerKey } of items) {
+        this.agentApprovals.revoke(fileName, handlerKey);
+        log.warn(`Aprovação revogada: ${fileName} / ${handlerKey}`);
+      }
+
+      // se o handler revogado estava ativo por escolha do agente, o build volta o anterior
+      this.buildEnabledEndpointList();
+      this.saveConfigFile();
+      this.notifyReload();
+    } finally {
+      log.endSection();
+    }
+  }
+
+  /** Desfaz a escolha do agente: volta ao handler que estava ativo antes dela. */
+  revertAgentHandler(fileName: string) {
+    const log = this.logger.startSection('revertAgentHandler');
+
+    try {
+      const selection = this.agentSelections.selections[fileName];
+      if (!selection) {
+        throw new AgentControlError(`O handler de ${fileName} não foi escolhido por agente`, 409);
+      }
+
+      const { endpoint } = this.findLoadedEndpoint(fileName);
+      const handlerKeys = Object.keys(getEndpointHandlersMap(endpoint));
+
+      this.activeHandlerSelections[fileName] = handlerKeys.includes(selection.previousKey)
+        ? selection.previousKey
+        : handlerKeys[0];
+      this.agentSelections.clear(fileName);
+      log.warn(`${fileName}: escolha do agente revertida`);
+
+      this.buildEnabledEndpointList();
+      this.saveConfigFile();
+      this.notifyReload();
+    } finally {
+      log.endSection();
+    }
   }
 
   private enableEndpoint(fileName: string, serverAddress: string, localhostAddress: string) {
