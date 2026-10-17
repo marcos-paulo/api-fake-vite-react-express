@@ -12,7 +12,6 @@ export function registerProductionStaticMiddleware(app: express.Express) {
 
   serverLog.info('Servidor Express rodando em modo produção');
   app.use((req, res, next) => {
-    serverLog.info(`Servindo arquivos estáticos de: ${frontendFiles}`);
     return express.static(frontendFiles)(req, res, (err) => {
       if (err) {
         serverLog.error('Error serving static files', err);
