@@ -86,13 +86,17 @@ export const EndpointItem = ({
           <span className={styles.fileName}>
             <Icon name="file" size={12} /> {endpoint.fileName}
           </span>
-          {!isError &&
-            endpoint.tags.map((tag) => (
-              <span key={`${endpoint.fileName}-${tag}`} className={styles.tag}>
-                #{tag}
-              </span>
-            ))}
         </div>
+
+        {!isError && endpoint.tags.length > 0 && (
+          <ul className={styles.tagsRow} aria-label="Tags">
+            {endpoint.tags.map((tag) => (
+              <li key={`${endpoint.fileName}-${tag}`} className={styles.tag}>
+                #{tag}
+              </li>
+            ))}
+          </ul>
+        )}
 
         {hasHandlerChoice && (
           <HandlerPicker
