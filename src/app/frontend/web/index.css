@@ -1,46 +1,70 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Inter, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  font-size: 15px;
 
   color-scheme: dark;
 
-  /* === Paleta de Cores === */
+  /* === Tokens de design — paleta Nord (nordtheme.com), sempre escura === */
+  /* Polar Night: nord0 #2e3440 · nord1 #3b4252 · nord2 #434c5e · nord3 #4c566a */
+  /* Snow Storm:  nord4 #d8dee9 · nord5 #e5e9f0 · nord6 #eceff4 */
+  /* Frost: nord7 #8fbcbb · nord8 #88c0d0 · nord9 #81a1c1 · nord10 #5e81ac */
+  /* Aurora: nord11 #bf616a · nord12 #d08770 · nord13 #ebcb8b · nord14 #a3be8c · nord15 #b48ead */
 
-  /* Backgrounds */
-  --color-bg: #121212;
-  --color-surface: #1e1e1e;
-  --color-surface-raised: #2a2a2a;
+  /* Backgrounds (camadas: fundo < cartão < elemento elevado < hover) */
+  --color-bg: #2e3440;
+  --color-surface: #3b4252;
+  --color-surface-raised: #434c5e;
+  --color-surface-hover: #4c566a;
 
   /* Borders */
-  --color-border: #444;
-  --color-border-subtle: #333;
-  --color-border-muted: rgba(128, 128, 128, 0.4);
+  --color-border: #5a657d;
+  --color-border-subtle: #434c5e;
+  --color-border-muted: rgba(216, 222, 233, 0.16);
 
   /* Text */
-  --color-text: rgba(255, 255, 255, 0.87);
-  --color-text-secondary: #e0e0e0;
-  --color-text-muted: #bbb;
-  --color-text-dim: #888;
-  --color-text-disabled: #777;
+  --color-text: #eceff4;
+  --color-text-secondary: #e5e9f0;
+  --color-text-muted: #d8dee9;
+  --color-text-dim: #a7b1c4;
+  --color-text-disabled: #7b88a1;
 
-  /* Accent */
-  --color-accent: #646cff;
-  --color-accent-hover: #535bf2;
-  --color-accent-spinner: #3498db;
+  /* Accent (Frost) */
+  --color-accent: #88c0d0;
+  --color-accent-hover: #9fcfdc;
+  --color-accent-bg: rgba(136, 192, 208, 0.16);
+  --color-accent-spinner: #88c0d0;
+  --color-on-accent: #2e3440;
 
-  /* Semantic */
-  --color-success: #4caf50;
-  --color-error: #f44336;
-  --color-info: #2196f3;
-  --color-warning: #e6a800;
-  --color-warning-bg: rgba(230, 168, 0, 0.15);
+  /* Semantic (Aurora; o vermelho é clareado para manter contraste de texto sobre o fundo) */
+  --color-success: #a3be8c;
+  --color-success-bg: rgba(163, 190, 140, 0.14);
+  --color-error: #d9808a;
+  --color-error-bg: rgba(191, 97, 106, 0.18);
+  --color-info: #81a1c1;
+  --color-info-bg: rgba(129, 161, 193, 0.16);
+  --color-warning: #ebcb8b;
+  --color-warning-bg: rgba(235, 203, 139, 0.14);
+  --color-duplicate: #d08770;
+
+  /* Métodos HTTP */
+  --color-method-get: #a3be8c;
+  --color-method-post: #ebcb8b;
+  --color-method-put: #81a1c1;
+  --color-method-delete: #d9808a;
 
   /* States */
-  --color-disabled-bg: #444;
+  --color-disabled-bg: #4c566a;
+  --color-overlay-backdrop: rgba(36, 41, 51, 0.65);
 
-  /* Overlay */
-  --color-overlay-backdrop: rgba(0, 0, 0, 0.5);
+  /* Forma e movimento */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-pill: 999px;
+  --shadow-raised: 0 6px 20px rgba(23, 27, 34, 0.45);
+  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, 'SFMono-Regular', Menlo, monospace;
 
   color: var(--color-text);
   background-color: var(--color-bg);
@@ -49,6 +73,30 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* O app ocupa a janela inteira; só a lista rola (ver App.module.css). */
+#root {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
 a {
@@ -61,115 +109,80 @@ a:hover {
   color: var(--color-accent-hover);
 }
 
-html {
-  /* Sem isso o overflow do body sobe pra janela (regra do CSS quando o html é visible) e a
-     rolagem horizontal volta a ser da janela, não da caixa do body. */
-  overflow: hidden;
-}
-
-/* O body é a caixa do tamanho da janela. O container principal (#root) tem largura mínima de
-   1366px (1334px + o padding de 16px de cada lado): em janelas menores ele rola na horizontal
-   DENTRO do body. A rolagem vertical fica só nas listas (.flex-scroll-column-auto). */
-body {
-  margin: 0;
-  box-sizing: border-box;
-  height: 100dvh;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  > :nth-child(1) {
-    flex: 1;
-    min-height: 0;
-    min-width: calc(1366px - 32px);
-  }
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: var(--color-surface-raised);
-  color: var(--color-text);
   cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: var(--color-accent);
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
 }
 
-/* Animations for loading feedback */
+button:disabled,
+select:disabled {
+  cursor: not-allowed;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Barras de rolagem discretas (o webview do Tauri usa o estilo do sistema por padrão) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
+  to {
     transform: rotate(360deg);
   }
 }
 
 @keyframes slideIn {
   from {
-    transform: translateX(100%);
+    transform: translateY(-8px);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 1;
   }
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: var(--color-text);
-    background-color: var(--color-bg);
+@keyframes slideUp {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
   }
-  a:hover {
-    color: var(--color-accent-hover);
-  }
-  button {
-    background-color: var(--color-surface-raised);
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 
-.flex-scroll-column-hidden {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: hidden;
-  min-height: 0;
-  gap: 16px;
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
 }
 
-.flex-scroll-row-hidden {
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  overflow-y: hidden;
-  min-height: 0;
-  gap: 16px;
-  /* align-items: flex-start; */
-}
-
-.flex-scroll-column-auto {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  min-height: 0;
-  gap: 16px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

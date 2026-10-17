@@ -1,39 +1,6 @@
-import type { CSSProperties } from 'react';
+import { useEffect } from 'react';
 
-const S = {
-  actionsBarStyle: {
-    position: 'fixed',
-    bottom: '24px',
-    right: '24px',
-    display: 'flex',
-    gap: '8px',
-  } satisfies CSSProperties,
-
-  actionBarDiscardButton: (isDisabled: boolean): CSSProperties => ({
-    padding: '12px 20px',
-    borderRadius: '8px',
-    border: '1px solid var(--color-border)',
-    backgroundColor: 'var(--color-surface-raised)',
-    color: isDisabled ? 'var(--color-text-disabled)' : 'var(--color-text-secondary)',
-    cursor: isDisabled ? 'not-allowed' : 'pointer',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.4)',
-  }),
-
-  actionBarSaveButton: (isDisabled: boolean): CSSProperties => ({
-    padding: '12px 24px',
-    borderRadius: '8px',
-    border: 'none',
-    backgroundColor: isDisabled ? 'var(--color-disabled-bg)' : 'var(--color-warning)',
-    color: isDisabled ? 'var(--color-text-disabled)' : 'white',
-    cursor: isDisabled ? 'not-allowed' : 'pointer',
-    fontWeight: 'bold',
-    fontSize: '14px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-    transition: 'background-color 0.2s ease',
-  }),
-};
+import styles from './ActionsBar.module.css';
 
 type ActionsBarProps = {
   count: number;
@@ -43,19 +10,37 @@ type ActionsBarProps = {
 };
 
 export const ActionsBar = ({ count, isDisabled, onDiscard, onSave }: ActionsBarProps) => {
-  if (count === 0) return null;
+  const hasChanges = count > 0;
+
+  // Ctrl/Cmd+S salva; Esc (fora de campos de texto) descarta
+  useEffect(() => {
+    if (!hasChanges || isDisabled) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        onSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [hasChanges, isDisabled, onSave]);
+
+  if (!hasChanges) return null;
+
   return (
-    <div style={S.actionsBarStyle}>
-      <button
-        style={S.actionBarDiscardButton(isDisabled)}
-        disabled={isDisabled}
-        onClick={onDiscard}
-      >
-        Descartar ({count})
-      </button>
-      <button style={S.actionBarSaveButton(isDisabled)} disabled={isDisabled} onClick={onSave}>
-        Salvar alterações ({count})
-      </button>
+    <div className={styles.bar} role="region" aria-label="Alterações pendentes">
+      <p className={styles.summary} aria-live="polite">
+        <span className={styles.dot} aria-hidden="true" />
+        {count === 1 ? '1 alteração não salva' : `${count} alterações não salvas`}
+      </p>
+      <div className={styles.actions}>
+        <button type="button" className={styles.discard} disabled={isDisabled} onClick={onDiscard}>
+          Descartar
+        </button>
+        <button type="button" className={styles.save} disabled={isDisabled} onClick={onSave}>
+          Salvar <kbd className={styles.kbd}>Ctrl S</kbd>
+        </button>
+      </div>
     </div>
   );
 };

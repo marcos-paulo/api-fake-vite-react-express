@@ -1,0 +1,139 @@
+.panel {
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 4px;
+}
+
+.toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-warning);
+  font-weight: 600;
+  text-align: left;
+}
+
+.toggle:hover {
+  background: var(--color-warning-bg);
+}
+
+.chevron {
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+
+.toggle[aria-expanded='true'] .chevron {
+  transform: rotate(180deg);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: 0 12px 12px;
+}
+
+.item {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-muted);
+}
+
+.itemHeader strong,
+.fileName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.itemHeader {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.fileName {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-text-dim);
+}
+
+.description {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-muted);
+}
+
+.approve {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 12px;
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-success);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.approve:hover {
+  background: var(--color-success-bg);
+}
+
+.codeColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 800px) {
+  .codeColumns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.codeLabel {
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-dim);
+}
+
+.code {
+  max-height: 200px;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error {
+  margin: 0;
+  padding: 0 14px 10px;
+  color: var(--color-error);
+  font-size: 0.85rem;
+}

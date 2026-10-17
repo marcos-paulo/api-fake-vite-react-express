@@ -8,6 +8,9 @@ export type LoadingState = 'idle' | 'fetching' | 'saving';
 export type FeedbackMessage = {
   text: string;
   type: 'success' | 'error' | 'info';
+  // Mensagem de rotina (ex.: cada recarga ao vivo). Shells com feedback visual próprio
+  // (a web usa uma barra de progresso) podem ignorá-la; a TUI continua mostrando.
+  quiet?: boolean;
 };
 
 const FEEDBACK_AUTO_HIDE_MS = 3000;
@@ -36,13 +39,13 @@ export function useEndpoints({
 
   const handleFetchStart = useCallback(() => {
     setLoadingState('fetching');
-    setFeedbackMessage({ text: 'Carregando endpoints...', type: 'info' });
+    setFeedbackMessage({ text: 'Carregando endpoints...', type: 'info', quiet: true });
   }, []);
 
   const handleFetchSuccess = useCallback((response: AxiosResponse<Endpoints>) => {
     if (response.status === 200) {
       setEndpoints(response.data);
-      setFeedbackMessage({ text: 'Endpoints carregados com sucesso!', type: 'success' });
+      setFeedbackMessage({ text: 'Endpoints carregados com sucesso!', type: 'success', quiet: true });
     }
   }, []);
 

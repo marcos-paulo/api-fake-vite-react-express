@@ -1,0 +1,30 @@
+.badge {
+  --method-color: var(--color-text-dim);
+
+  flex: 0 0 auto;
+  min-width: 54px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--method-color) 45%, transparent);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--method-color) 14%, transparent);
+  color: var(--method-color);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.badge[data-method='get'] {
+  --method-color: var(--color-method-get);
+}
+.badge[data-method='post'] {
+  --method-color: var(--color-method-post);
+}
+.badge[data-method='put'] {
+  --method-color: var(--color-method-put);
+}
+.badge[data-method='delete'] {
+  --method-color: var(--color-method-delete);
+}

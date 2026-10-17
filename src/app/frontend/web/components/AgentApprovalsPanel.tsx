@@ -1,92 +1,8 @@
-import type { CSSProperties } from 'react';
+import { useState } from 'react';
 
 import type { PendingApproval } from '../hooks/useAgentApprovals';
-
-const S = {
-  panel: {
-    flex: '0 0 auto',
-    width: '100%',
-    boxSizing: 'border-box',
-    maxHeight: '35vh',
-    overflowY: 'auto',
-    margin: '0 0 8px 0',
-    padding: '6px 10px',
-    border: '1px solid var(--color-warning)',
-    backgroundColor: 'var(--color-warning-bg)',
-    borderRadius: '4px',
-  } satisfies CSSProperties,
-
-  header: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '8px',
-    fontWeight: 'bold',
-    color: 'var(--color-warning)',
-  } satisfies CSSProperties,
-
-  item: {
-    marginTop: '8px',
-    paddingTop: '8px',
-    borderTop: '1px solid var(--color-border-muted)',
-  } satisfies CSSProperties,
-
-  itemHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    flexWrap: 'wrap',
-  } satisfies CSSProperties,
-
-  fileName: {
-    fontFamily: 'monospace',
-    fontSize: '0.85em',
-    opacity: 0.8,
-  } satisfies CSSProperties,
-
-  codeColumns: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
-    gap: '8px',
-    marginTop: '4px',
-  } satisfies CSSProperties,
-
-  codeLabel: {
-    fontSize: '0.75em',
-    opacity: 0.7,
-  } satisfies CSSProperties,
-
-  code: {
-    margin: 0,
-    padding: '6px',
-    maxHeight: '160px',
-    overflow: 'auto',
-    fontSize: '0.8em',
-    backgroundColor: 'var(--color-surface)',
-    border: '1px solid var(--color-border-subtle)',
-    borderRadius: '4px',
-    whiteSpace: 'pre-wrap',
-    wordBreak: 'break-word',
-  } satisfies CSSProperties,
-
-  approveButton: {
-    marginLeft: 'auto',
-    padding: '2px 10px',
-    borderRadius: '4px',
-    border: '1px solid var(--color-success)',
-    backgroundColor: 'transparent',
-    color: 'var(--color-success)',
-    cursor: 'pointer',
-    fontSize: '0.85em',
-    fontWeight: 'bold',
-  } satisfies CSSProperties,
-
-  error: {
-    marginTop: '6px',
-    color: 'var(--color-error)',
-    fontSize: '0.85em',
-  } satisfies CSSProperties,
-};
+import styles from './AgentApprovalsPanel.module.css';
+import { Icon } from './Icon';
 
 type AgentApprovalsPanelProps = {
   pendingApprovals: PendingApproval[];
@@ -99,46 +15,79 @@ export const AgentApprovalsPanel = ({
   errorMessage,
   onApprove,
 }: AgentApprovalsPanelProps) => {
+  // Recolhido por padrão: o aviso chama atenção sem empurrar a lista para baixo
+  const [isExpanded, setIsExpanded] = useState(false);
+
   if (pendingApprovals.length === 0 && !errorMessage) return null;
 
+  const count = pendingApprovals.length;
+
   return (
-    <section style={S.panel}>
-      <div style={S.header}>
-        <span>
-          🤖 Handlers aguardando aprovação para uso por agente ({pendingApprovals.length})
-        </span>
-        {pendingApprovals.length > 1 && (
-          <button style={S.approveButton} onClick={() => onApprove(pendingApprovals)}>
+    <section className={styles.panel} aria-label="Aprovações pendentes para agente">
+      <div className={styles.header}>
+        <button
+          type="button"
+          className={styles.toggle}
+          aria-expanded={isExpanded}
+          aria-controls="agent-approvals-list"
+          onClick={() => setIsExpanded((expanded) => !expanded)}
+        >
+          <Icon name="robot" size={16} />
+          <span>
+            {count === 1
+              ? '1 handler aguarda sua aprovação para uso por agente'
+              : `${count} handlers aguardam sua aprovação para uso por agente`}
+          </span>
+          <Icon name="chevron" size={16} className={styles.chevron} />
+        </button>
+        {count > 1 && (
+          <button
+            type="button"
+            className={styles.approve}
+            onClick={() => onApprove(pendingApprovals)}
+          >
             Aprovar todos
           </button>
         )}
       </div>
 
-      {pendingApprovals.map((item) => (
-        <div key={`${item.fileName}/${item.handlerKey}`} style={S.item}>
-          <div style={S.itemHeader}>
-            <strong>{item.handlerKey}</strong>
-            <span style={S.fileName}>📄 {item.fileName}</span>
-            <span>{item.description}</span>
-            <button style={S.approveButton} onClick={() => onApprove([item])}>
-              Aprovar
-            </button>
-          </div>
+      {isExpanded && (
+        <div id="agent-approvals-list" className={styles.list}>
+          {pendingApprovals.map((item) => (
+            <article key={`${item.fileName}/${item.handlerKey}`} className={styles.item}>
+              <div className={styles.itemHeader}>
+                <strong>{item.handlerKey}</strong>
+                <span className={styles.fileName}>
+                  <Icon name="file" size={12} /> {item.fileName}
+                </span>
+                <span className={styles.description}>{item.description}</span>
+                <button type="button" className={styles.approve} onClick={() => onApprove([item])}>
+                  <Icon name="check" size={14} /> Aprovar
+                </button>
+              </div>
 
-          <div style={S.codeColumns}>
-            <div>
-              <div style={S.codeLabel}>Aprovado antes</div>
-              <pre style={S.code}>{item.approvedSource ?? '(handler novo — nunca aprovado)'}</pre>
-            </div>
-            <div>
-              <div style={S.codeLabel}>Código atual</div>
-              <pre style={S.code}>{item.source}</pre>
-            </div>
-          </div>
+              <div className={styles.codeColumns}>
+                <div>
+                  <div className={styles.codeLabel}>Aprovado antes</div>
+                  <pre className={styles.code}>
+                    {item.approvedSource ?? '(handler novo — nunca aprovado)'}
+                  </pre>
+                </div>
+                <div>
+                  <div className={styles.codeLabel}>Código atual</div>
+                  <pre className={styles.code}>{item.source}</pre>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
-      ))}
+      )}
 
-      {errorMessage && <div style={S.error}>{errorMessage}</div>}
+      {errorMessage && (
+        <p className={styles.error} role="alert">
+          {errorMessage}
+        </p>
+      )}
     </section>
   );
 };

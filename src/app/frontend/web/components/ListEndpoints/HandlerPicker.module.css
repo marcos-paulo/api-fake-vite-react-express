@@ -1,0 +1,174 @@
+.picker {
+  min-width: 0;
+  margin: 6px 0 0;
+  padding: 10px 0 0;
+  border: none;
+  border-top: 1px dashed var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Rótulo do grupo: visível como título pequeno, lido pelo leitor de tela como <legend> */
+.legend {
+  padding: 0;
+  color: var(--color-text-dim);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.option {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+  cursor: pointer;
+}
+
+/* Rádio real, escondido só visualmente (continua focável e operável por teclado) */
+.radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface-raised);
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.option:hover .pill {
+  border-color: var(--color-accent);
+}
+
+.radio:checked + .pill {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.radio:focus-visible + .pill {
+  box-shadow: var(--focus-ring);
+}
+
+.radio:disabled + .pill {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Nunca trunca: nomes de mock costumam compartilhar prefixo e diferir só no fim (..._v1 / ..._v2),
+   então cortar com reticências esconderia justamente o trecho que os distingue. */
+.key {
+  min-width: 0;
+  font-family: var(--font-mono);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+/* Marca qual handler está de fato ativo no servidor (o selecionado pode ser só uma mudança pendente) */
+.activeDot {
+  flex: 0 0 auto;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+
+.agentIcon {
+  flex: 0 0 auto;
+  color: var(--color-text-dim);
+}
+
+.option[data-agent='approved'] .agentIcon {
+  color: var(--color-success);
+}
+
+.option[data-agent='pending'] .agentIcon {
+  color: var(--color-warning);
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.description {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.stateChip {
+  --chip-color: var(--color-info);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 8px;
+  border: 1px solid color-mix(in srgb, var(--chip-color) 50%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--chip-color) 12%, transparent);
+  color: var(--chip-color);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.stateChip[data-agent='approved'] {
+  --chip-color: var(--color-success);
+}
+
+.stateChip[data-agent='pending'] {
+  --chip-color: var(--color-warning);
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-accent);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.linkButton:hover:not(:disabled) {
+  background: var(--color-accent-bg);
+}
