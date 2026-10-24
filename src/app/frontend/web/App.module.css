@@ -1,6 +1,7 @@
 /* Estrutura: cabeçalho fixo / lista rolável / barra de salvar docada. Sem largura mínima: o
    conteúdo se adapta à janela (o Tauri abre em qualquer tamanho). */
 .header {
+  position: relative; /* ancora o popover de aprovações (AgentApprovalsPanel) */
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;

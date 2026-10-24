@@ -69,6 +69,46 @@ export default function App() {
   }, []);
   const handleClearTags = useCallback(() => setTagSelection(EMPTY_TAG_SELECTION), []);
 
+  const getEndpointLabel = useCallback(
+    (fileName: string) => {
+      const endpoint = endpoints?.listEndpoints.find((item) => item.fileName === fileName);
+      return endpoint?.title || endpoint?.serverAddress || fileName;
+    },
+    [endpoints],
+  );
+
+  // Rola até o card do endpoint e o destaca por um instante. Se um filtro o esconde, limpa os
+  // filtros e tenta de novo depois do próximo render.
+  const handleViewEndpoint = useCallback(
+    (fileName: string) => {
+      const findCard = () =>
+        Array.from(document.querySelectorAll<HTMLElement>('[data-file-name]')).find(
+          (element) => element.dataset.fileName === fileName,
+        );
+      const reveal = (card: HTMLElement) => {
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        card.scrollIntoView({
+          block: 'center',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth',
+        });
+        card.dataset.highlight = 'true';
+        window.setTimeout(() => delete card.dataset.highlight, 2000);
+      };
+
+      const card = findCard();
+      if (card) return reveal(card);
+
+      setFilterText('');
+      setStatusFilter('all');
+      handleClearTags();
+      window.setTimeout(() => {
+        const revealed = findCard();
+        if (revealed) reveal(revealed);
+      }, 100);
+    },
+    [setFilterText, handleClearTags],
+  );
+
   // Cada faceta (estado, tag) conta sobre o resultado das outras: o número num chip/aba é
   // o que o clique mudaria.
   const searchResult = filteredEndpoints?.listEndpoints;
@@ -114,6 +154,13 @@ export default function App() {
           <p className={styles.summary}>
             {statusCounts.enabled} de {endpoints?.listEndpoints.length ?? 0} endpoints habilitados
           </p>
+          <AgentApprovalsPanel
+            pendingApprovals={pendingApprovals}
+            errorMessage={errorMessage}
+            onApprove={approveHandlers}
+            getEndpointLabel={getEndpointLabel}
+            onViewEndpoint={handleViewEndpoint}
+          />
         </div>
         <FilterBar
           value={filterText}
@@ -137,12 +184,6 @@ export default function App() {
 
       <main className={styles.main}>
         <div className={styles.content}>
-          <AgentApprovalsPanel
-            pendingApprovals={pendingApprovals}
-            errorMessage={errorMessage}
-            onApprove={approveHandlers}
-          />
-
           <ListEndpoints
             endpoints={visibleEndpoints}
             statusFilter={statusFilter}

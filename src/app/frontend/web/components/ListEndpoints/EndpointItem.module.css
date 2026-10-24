@@ -16,6 +16,28 @@
   background: var(--color-surface-hover);
 }
 
+/* Destaque temporário ao chegar pelo "Ver endpoint" do diálogo de aprovações */
+.item[data-highlight='true'] {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 2px;
+  animation: highlightFade 2s ease-out forwards;
+}
+
+@keyframes highlightFade {
+  70% {
+    outline-color: var(--color-warning);
+  }
+  to {
+    outline-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item[data-highlight='true'] {
+    animation: none;
+  }
+}
+
 .item[data-state='on'] {
   border-left-color: var(--color-success);
 }

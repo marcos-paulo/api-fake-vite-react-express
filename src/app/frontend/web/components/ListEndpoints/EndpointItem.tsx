@@ -43,6 +43,7 @@ export const EndpointItem = ({
   return (
     <li
       className={styles.item}
+      data-file-name={endpoint.fileName}
       data-has-title={!isError && !!endpoint.title}
       data-state={isError ? 'error' : isPending ? 'pending' : displayEnabled ? 'on' : 'off'}
     >
