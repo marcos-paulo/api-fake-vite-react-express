@@ -125,3 +125,56 @@
   background: var(--color-error-bg);
   color: var(--color-error);
 }
+
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sortLabel {
+  color: var(--color-text-dim);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sortSelect {
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.sortSelect:hover {
+  border-color: var(--color-text-dim);
+}
+
+.sortSelect:focus-visible {
+  border-color: var(--color-accent);
+}
+
+.sortDirection {
+  display: inline-flex;
+  padding: 6px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+/* O chevron aponta para baixo; crescente aponta para cima */
+.sortDirection[data-direction='asc'] svg {
+  transform: rotate(180deg);
+}
+
+.sortDirection:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.sortDirection:disabled {
+  opacity: 0.4;
+}

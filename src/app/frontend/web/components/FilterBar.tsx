@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 import styles from './FilterBar.module.css';
 import { Icon } from './Icon';
+import { SORT_OPTIONS, type SortKey, type SortState } from './ListEndpoints/sortEndpoints';
 import type { StatusFilter } from './ListEndpoints/statusFilter';
 
 const STATUS_TABS: { value: StatusFilter; label: string }[] = [
@@ -17,6 +18,8 @@ type FilterBarProps = {
   statusFilter: StatusFilter;
   statusCounts: Record<StatusFilter, number>;
   onStatusChange: (status: StatusFilter) => void;
+  sort: SortState;
+  onSortChange: (sort: SortState) => void;
 };
 
 export const FilterBar = ({
@@ -25,8 +28,11 @@ export const FilterBar = ({
   statusFilter,
   statusCounts,
   onStatusChange,
+  sort,
+  onSortChange,
 }: FilterBarProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const sortSelectId = useId();
 
   // "/" ou Ctrl/Cmd+K focam a busca, como nas ferramentas de desenvolvedor mais comuns
   useEffect(() => {
@@ -89,6 +95,42 @@ export const FilterBar = ({
             <span className={styles.tabCount}>{statusCounts[tabValue]}</span>
           </button>
         ))}
+      </div>
+
+      <div className={styles.sort}>
+        <label className={styles.sortLabel} htmlFor={sortSelectId}>
+          Ordenar
+        </label>
+        <select
+          id={sortSelectId}
+          className={styles.sortSelect}
+          value={sort.key}
+          onChange={(e) => onSortChange({ ...sort, key: e.target.value as SortKey })}
+        >
+          {SORT_OPTIONS.map(({ value: optionValue, label }) => (
+            <option key={optionValue} value={optionValue}>
+              {label}
+            </option>
+          ))}
+        </select>
+        {/* No padrão não há o que inverter */}
+        <button
+          type="button"
+          className={styles.sortDirection}
+          data-direction={sort.direction}
+          disabled={sort.key === 'default'}
+          aria-label={sort.direction === 'asc' ? 'Ordem crescente' : 'Ordem decrescente'}
+          title={
+            sort.direction === 'asc'
+              ? 'Crescente (A–Z). Clique para inverter'
+              : 'Decrescente (Z–A). Clique para inverter'
+          }
+          onClick={() =>
+            onSortChange({ ...sort, direction: sort.direction === 'asc' ? 'desc' : 'asc' })
+          }
+        >
+          <Icon name="chevron" size={16} />
+        </button>
       </div>
     </div>
   );

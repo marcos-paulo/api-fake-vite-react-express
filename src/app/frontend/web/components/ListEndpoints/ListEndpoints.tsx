@@ -3,12 +3,14 @@ import { EmptyMessage } from './EmptyMessage';
 import { EndpointItem } from './EndpointItem';
 import { EndpointSection } from './EndpointSection';
 import styles from './ListEndpoints.module.css';
+import { sortEndpoints, type SortState } from './sortEndpoints';
 import { matchesStatus, type StatusFilter } from './statusFilter';
 import type { TagSelection } from './tagFilter';
 
 type ListEndpointsProps = {
   endpoints: Endpoints | null;
   statusFilter: StatusFilter;
+  sort: SortState;
   tagSelection: TagSelection;
   onToggleTag: (tag: string, forceExclude?: boolean) => void;
   hasActiveSearch: boolean;
@@ -25,6 +27,7 @@ type ListEndpointsProps = {
 export const ListEndpoints = ({
   endpoints,
   statusFilter,
+  sort,
   tagSelection,
   onToggleTag,
   hasActiveSearch,
@@ -37,9 +40,13 @@ export const ListEndpoints = ({
   onRevertAgentHandler,
   onRevokeAgentApproval,
 }: ListEndpointsProps) => {
-  const visible = (endpoints?.listEndpoints ?? []).filter((ep) => matchesStatus(ep, statusFilter));
+  const visible = sortEndpoints(
+    (endpoints?.listEndpoints ?? []).filter((ep) => matchesStatus(ep, statusFilter)),
+    sort,
+  );
 
-  // Erros primeiro dentro de cada grupo, para não ficarem escondidos no fim da lista
+  // Erros primeiro dentro de cada grupo, para não ficarem escondidos no fim da lista (o filter
+  // preserva a ordem escolhida)
   const sortErrorsFirst = (list: Endpoint[]) => [
     ...list.filter((ep) => ep.loadError),
     ...list.filter((ep) => !ep.loadError),

@@ -7,6 +7,11 @@ import { FeedbackToast } from './components/FeedbackToast';
 import { FilterBar } from './components/FilterBar';
 import { ListEndpoints } from './components/ListEndpoints';
 import {
+  readStoredSort,
+  type SortState,
+  storeSort,
+} from './components/ListEndpoints/sortEndpoints';
+import {
   countByStatus,
   matchesStatus,
   type StatusFilter,
@@ -49,6 +54,12 @@ export default function App() {
 
   const { filterText, setFilterText, filteredEndpoints } = useEndpointFilter(endpoints);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [sort, setSort] = useState<SortState>(readStoredSort);
+
+  const handleSortChange = useCallback((next: SortState) => {
+    setSort(next);
+    storeSort(next);
+  }, []);
 
   const [tagSelection, setTagSelection] = useState<TagSelection>(EMPTY_TAG_SELECTION);
   const [tagMode, setTagMode] = useState<TagMatchMode>('all');
@@ -110,6 +121,8 @@ export default function App() {
           statusFilter={statusFilter}
           statusCounts={statusCounts}
           onStatusChange={setStatusFilter}
+          sort={sort}
+          onSortChange={handleSortChange}
         />
         <TagFilter
           tags={tagCounts}
@@ -133,6 +146,7 @@ export default function App() {
           <ListEndpoints
             endpoints={visibleEndpoints}
             statusFilter={statusFilter}
+            sort={sort}
             tagSelection={tagSelection}
             hasActiveSearch={filterText.trim() !== '' || countSelectedTags(tagSelection) > 0}
             onToggleTag={handleToggleTag}
