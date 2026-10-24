@@ -1,11 +1,28 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 
 import { Icon } from './Icon';
 import type { TagCount, TagMatchMode } from './ListEndpoints/tagFilter';
 import styles from './TagFilter.module.css';
 
-// Acima disso a linha recolhe: tags demais viram um muro de chips que empurra a lista pra baixo
-const COLLAPSED_LIMIT = 10;
+const EXPANDED_STORAGE_KEY = 'api-fake:tag-filter-expanded';
+
+// Recolhido por padrão: a lista cresce com o projeto e não pode empurrar os endpoints pra baixo.
+// A escolha fica por visitante (localStorage); sem storage (janela privada) cai no padrão.
+function readStoredExpanded(): boolean {
+  try {
+    return localStorage.getItem(EXPANDED_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function storeExpanded(isExpanded: boolean) {
+  try {
+    localStorage.setItem(EXPANDED_STORAGE_KEY, isExpanded ? '1' : '0');
+  } catch {
+    // sem storage disponível: só não lembra da escolha
+  }
+}
 
 type TagFilterProps = {
   tags: TagCount[];
@@ -16,6 +33,28 @@ type TagFilterProps = {
   onClear: () => void;
 };
 
+type TagChipProps = {
+  tag: string;
+  count?: number;
+  isSelected: boolean;
+  onToggle: (tag: string) => void;
+};
+
+const TagChip = ({ tag, count, isSelected, onToggle }: TagChipProps) => (
+  <button
+    type="button"
+    className={styles.chip}
+    aria-pressed={isSelected}
+    data-empty={count === 0 && !isSelected ? true : undefined}
+    title={isSelected ? `Remover a tag ${tag} do filtro` : `Filtrar pela tag ${tag}`}
+    onClick={() => onToggle(tag)}
+  >
+    <span className={styles.chipName}>#{tag}</span>
+    {count !== undefined && <span className={styles.chipCount}>{count}</span>}
+    {isSelected && <Icon name="close" size={12} className={styles.chipClose} />}
+  </button>
+);
+
 export const TagFilter = ({
   tags,
   selectedTags,
@@ -24,82 +63,90 @@ export const TagFilter = ({
   onModeChange,
   onClear,
 }: TagFilterProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(readStoredExpanded);
+  const panelId = useId();
 
   if (tags.length === 0) return null;
 
-  const isCollapsible = tags.length > COLLAPSED_LIMIT;
-  // Tags marcadas nunca ficam escondidas pelo recolhimento
-  const visibleTags =
-    isCollapsible && !isExpanded
-      ? tags.filter(({ tag }, index) => index < COLLAPSED_LIMIT || selectedTags.includes(tag))
-      : tags;
-  const hiddenCount = tags.length - visibleTags.length;
+  const handleToggleExpanded = () => {
+    const next = !isExpanded;
+    setIsExpanded(next);
+    storeExpanded(next);
+  };
+
+  const countsByTag = new Map(tags.map(({ tag, count }) => [tag, count]));
 
   return (
     <div className={styles.root} role="group" aria-label="Filtrar por tag">
-      <span className={styles.label}>Tags</span>
+      <div className={styles.row}>
+        <button
+          type="button"
+          className={styles.toggle}
+          aria-expanded={isExpanded}
+          aria-controls={panelId}
+          onClick={handleToggleExpanded}
+        >
+          <Icon name="chevron" size={16} className={styles.toggleIcon} />
+          Tags
+          <span className={styles.toggleCount} data-active={selectedTags.length > 0 || undefined}>
+            {selectedTags.length > 0 ? `${selectedTags.length} de ${tags.length}` : tags.length}
+          </span>
+        </button>
 
-      <ul className={styles.chips}>
-        {visibleTags.map(({ tag, count }) => {
-          const isSelected = selectedTags.includes(tag);
-          return (
-            <li key={tag}>
-              <button
-                type="button"
-                className={styles.chip}
-                aria-pressed={isSelected}
-                data-empty={count === 0 && !isSelected ? true : undefined}
-                title={isSelected ? `Remover a tag ${tag} do filtro` : `Filtrar pela tag ${tag}`}
-                onClick={() => onToggleTag(tag)}
-              >
-                <span className={styles.chipName}>#{tag}</span>
-                <span className={styles.chipCount}>{count}</span>
-                {isSelected && <Icon name="close" size={12} className={styles.chipClose} />}
-              </button>
-            </li>
-          );
-        })}
-        {isCollapsible && (
-          <li>
-            <button
-              type="button"
-              className={styles.more}
-              aria-expanded={isExpanded}
-              onClick={() => setIsExpanded((value) => !value)}
-            >
-              {isExpanded ? 'Mostrar menos' : `Mostrar todas (+${hiddenCount})`}
+        {/* Recolhido, as tags marcadas continuam visíveis e removíveis: o filtro ativo nunca some */}
+        {!isExpanded &&
+          selectedTags.map((tag) => (
+            <TagChip
+              key={tag}
+              tag={tag}
+              count={countsByTag.get(tag)}
+              isSelected
+              onToggle={onToggleTag}
+            />
+          ))}
+
+        {selectedTags.length > 0 && (
+          <div className={styles.actions}>
+            {selectedTags.length > 1 && (
+              <div className={styles.mode} role="group" aria-label="Combinar tags">
+                <button
+                  type="button"
+                  aria-pressed={mode === 'all'}
+                  title="O endpoint precisa ter todas as tags marcadas"
+                  onClick={() => onModeChange('all')}
+                >
+                  Todas
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={mode === 'any'}
+                  title="O endpoint precisa ter ao menos uma das tags marcadas"
+                  onClick={() => onModeChange('any')}
+                >
+                  Qualquer
+                </button>
+              </div>
+            )}
+            <button type="button" className={styles.clear} onClick={onClear}>
+              Limpar tags
             </button>
-          </li>
+          </div>
         )}
-      </ul>
+      </div>
 
-      {selectedTags.length > 0 && (
-        <div className={styles.actions}>
-          {selectedTags.length > 1 && (
-            <div className={styles.mode} role="group" aria-label="Combinar tags">
-              <button
-                type="button"
-                aria-pressed={mode === 'all'}
-                title="O endpoint precisa ter todas as tags marcadas"
-                onClick={() => onModeChange('all')}
-              >
-                Todas
-              </button>
-              <button
-                type="button"
-                aria-pressed={mode === 'any'}
-                title="O endpoint precisa ter ao menos uma das tags marcadas"
-                onClick={() => onModeChange('any')}
-              >
-                Qualquer
-              </button>
-            </div>
-          )}
-          <button type="button" className={styles.clear} onClick={onClear}>
-            Limpar tags
-          </button>
-        </div>
+      {isExpanded && (
+        <ul id={panelId} className={styles.panel}>
+          {tags.map(({ tag, count }) => (
+            <li key={tag}>
+              <TagChip
+                tag={tag}
+                count={count}
+                isSelected={selectedTags.includes(tag)}
+                onToggle={onToggleTag}
+              />
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
