@@ -53,6 +53,11 @@ export const AgentApprovalsPanel = ({
         type="button"
         className={styles.chip}
         aria-haspopup="dialog"
+        aria-label={
+          count === 1
+            ? '1 handler aguarda sua aprovação para uso por agente'
+            : `${count} handlers aguardam sua aprovação para uso por agente`
+        }
         title={
           count === 1
             ? '1 handler aguarda sua aprovação para uso por agente'
@@ -61,7 +66,12 @@ export const AgentApprovalsPanel = ({
         onClick={() => setIsOpen(true)}
       >
         <Icon name="robot" size={14} />
-        <span>{count === 1 ? '1 aguardando aprovação' : `${count} aguardando aprovação`}</span>
+        <span className={styles.chipLabel}>
+          {count === 1 ? '1 aguardando aprovação' : `${count} aguardando aprovação`}
+        </span>
+        <span className={styles.chipCount} aria-hidden="true">
+          {count}
+        </span>
       </button>
 
       <dialog

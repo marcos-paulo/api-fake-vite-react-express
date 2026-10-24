@@ -4,7 +4,7 @@ import styles from './App.module.css';
 import { ActionsBar } from './components/ActionsBar';
 import { AgentApprovalsPanel } from './components/AgentApprovalsPanel';
 import { FeedbackToast } from './components/FeedbackToast';
-import { FilterBar } from './components/FilterBar';
+import { type ActiveFilter, FilterBar } from './components/FilterBar';
 import { ListEndpoints } from './components/ListEndpoints';
 import {
   readStoredSort,
@@ -14,6 +14,7 @@ import {
 import {
   countByStatus,
   matchesStatus,
+  STATUS_TABS,
   type StatusFilter,
 } from './components/ListEndpoints/statusFilter';
 import {
@@ -23,9 +24,11 @@ import {
   EMPTY_TAG_SELECTION,
   isUntaggedSelected,
   matchesTags,
+  removeTagFromSelection,
   type TagMatchMode,
   type TagSelection,
   toggleTagSelection,
+  UNTAGGED,
 } from './components/ListEndpoints/tagFilter';
 import { LoadingBar } from './components/LoadingBar';
 import { PanelTokenGate } from './components/PanelTokenGate';
@@ -33,6 +36,7 @@ import { TagFilter } from './components/TagFilter';
 import { useAgentApprovals } from './hooks/useAgentApprovals';
 import { useEndpointFilter } from './hooks/useEndpointFilter';
 import { useEndpoints } from './hooks/useEndpoints';
+import { useMediaQuery } from './hooks/useMediaQuery';
 
 export default function App() {
   const {
@@ -140,6 +144,34 @@ export default function App() {
     [filteredEndpoints, tagFilteredEndpoints],
   );
 
+  const isCompact = useMediaQuery('(max-width: 640px)');
+
+  // Filtros ligados além da busca (que já aparece escrita no campo): vira chips removíveis
+  const activeFilters = useMemo(() => {
+    const filters: ActiveFilter[] = [];
+    if (statusFilter !== 'all') {
+      const label = STATUS_TABS.find((tab) => tab.value === statusFilter)?.label ?? statusFilter;
+      filters.push({ id: 'status', label, onRemove: () => setStatusFilter('all') });
+    }
+    const tagChips = [
+      ...tagSelection.included.map((tag) => ({ tag, prefix: '' })),
+      ...tagSelection.excluded.map((tag) => ({ tag, prefix: 'não ' })),
+    ];
+    for (const { tag, prefix } of tagChips) {
+      filters.push({
+        id: `tag:${prefix}${tag}`,
+        label: tag === UNTAGGED ? 'Sem tag' : `${prefix}#${tag}`,
+        onRemove: () => setTagSelection((current) => removeTagFromSelection(current, tag)),
+      });
+    }
+    return filters;
+  }, [statusFilter, tagSelection]);
+
+  const handleClearFilters = useCallback(() => {
+    setStatusFilter('all');
+    handleClearTags();
+  }, [handleClearTags]);
+
   const isBusy = loadingState !== 'idle';
 
   return (
@@ -170,16 +202,21 @@ export default function App() {
           onStatusChange={setStatusFilter}
           sort={sort}
           onSortChange={handleSortChange}
-        />
-        <TagFilter
-          tags={tagCounts}
-          untagged={untaggedTotal > 0 ? { count: untaggedCount } : null}
-          selection={tagSelection}
-          mode={tagMode}
-          onToggleTag={handleToggleTag}
-          onModeChange={setTagMode}
-          onClear={handleClearTags}
-        />
+          isCompact={isCompact}
+          activeFilters={activeFilters}
+          resultCount={statusCounts[statusFilter]}
+          onClearFilters={handleClearFilters}
+        >
+          <TagFilter
+            tags={tagCounts}
+            untagged={untaggedTotal > 0 ? { count: untaggedCount } : null}
+            selection={tagSelection}
+            mode={tagMode}
+            onToggleTag={handleToggleTag}
+            onModeChange={setTagMode}
+            onClear={handleClearTags}
+          />
+        </FilterBar>
       </header>
 
       <main className={styles.main}>

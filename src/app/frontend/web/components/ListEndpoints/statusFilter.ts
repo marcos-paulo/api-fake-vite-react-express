@@ -23,3 +23,11 @@ export function countByStatus(endpoints: Endpoint[]): Record<StatusFilter, numbe
     problem: endpoints.filter(statusMatchers.problem).length,
   };
 }
+
+/** Abas de estado, na ordem em que aparecem. */
+export const STATUS_TABS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'enabled', label: 'Habilitados' },
+  { value: 'disabled', label: 'Desabilitados' },
+  { value: 'problem', label: 'Com problema' },
+];

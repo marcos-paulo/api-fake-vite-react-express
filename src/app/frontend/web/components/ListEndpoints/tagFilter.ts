@@ -70,6 +70,15 @@ export function toggleTagSelection(
   return { included, excluded };
 }
 
+/** Tira a tag do filtro, esteja ela incluída ou excluída (o chip "×" do resumo de filtros ativos). */
+export function removeTagFromSelection(selection: TagSelection, tag: string): TagSelection {
+  if (tag === UNTAGGED) return EMPTY_TAG_SELECTION;
+  return {
+    included: selection.included.filter((item) => item !== tag),
+    excluded: selection.excluded.filter((item) => item !== tag),
+  };
+}
+
 export function matchesTags(
   endpoint: Endpoint,
   selection: TagSelection,

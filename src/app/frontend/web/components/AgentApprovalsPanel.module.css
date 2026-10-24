@@ -15,6 +15,26 @@
   filter: brightness(1.15);
 }
 
+.chipCount {
+  display: none;
+}
+
+/* Janela estreita: só o ícone e o número, empurrado para a ponta direita do título */
+@media (max-width: 640px) {
+  .chip {
+    margin-left: auto;
+    padding: 6px 10px;
+  }
+
+  .chipLabel {
+    display: none;
+  }
+
+  .chipCount {
+    display: inline;
+  }
+}
+
 /* <dialog> nativo: showModal() cuida do fundo escurecido, foco, Esc e rolagem atrás. */
 .dialog {
   width: min(960px, calc(100vw - 32px));

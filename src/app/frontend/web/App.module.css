@@ -49,6 +49,16 @@
 }
 
 @media (max-width: 640px) {
+  /* Título e chip na primeira linha; o resumo desce para a seguinte */
+  .titleRow {
+    flex-wrap: wrap;
+  }
+
+  .summary {
+    order: 1;
+    flex-basis: 100%;
+  }
+
   .header,
   .main {
     padding-left: 12px;
