@@ -11,7 +11,17 @@ import {
   matchesStatus,
   type StatusFilter,
 } from './components/ListEndpoints/statusFilter';
-import { countByTag, matchesTags, type TagMatchMode } from './components/ListEndpoints/tagFilter';
+import {
+  countByTag,
+  countSelectedTags,
+  countUntagged,
+  EMPTY_TAG_SELECTION,
+  isUntaggedSelected,
+  matchesTags,
+  type TagMatchMode,
+  type TagSelection,
+  toggleTagSelection,
+} from './components/ListEndpoints/tagFilter';
 import { LoadingBar } from './components/LoadingBar';
 import { PanelTokenGate } from './components/PanelTokenGate';
 import { TagFilter } from './components/TagFilter';
@@ -40,35 +50,39 @@ export default function App() {
   const { filterText, setFilterText, filteredEndpoints } = useEndpointFilter(endpoints);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagSelection, setTagSelection] = useState<TagSelection>(EMPTY_TAG_SELECTION);
   const [tagMode, setTagMode] = useState<TagMatchMode>('all');
 
-  const handleToggleTag = useCallback((tag: string) => {
-    setSelectedTags((current) =>
-      current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag],
-    );
+  const handleToggleTag = useCallback((tag: string, forceExclude?: boolean) => {
+    setTagSelection((current) => toggleTagSelection(current, tag, forceExclude));
   }, []);
-  const handleClearTags = useCallback(() => setSelectedTags([]), []);
+  const handleClearTags = useCallback(() => setTagSelection(EMPTY_TAG_SELECTION), []);
 
   // Cada faceta (estado, tag) conta sobre o resultado das outras: o número num chip/aba é
-  // quanto sobra se você clicar nele.
+  // o que o clique mudaria.
   const searchResult = filteredEndpoints?.listEndpoints;
   const tagFilteredEndpoints = useMemo(
-    () => (searchResult ?? []).filter((ep) => matchesTags(ep, selectedTags, tagMode)),
-    [searchResult, selectedTags, tagMode],
+    () => (searchResult ?? []).filter((ep) => matchesTags(ep, tagSelection, tagMode)),
+    [searchResult, tagSelection, tagMode],
   );
   const statusCounts = useMemo(() => countByStatus(tagFilteredEndpoints), [tagFilteredEndpoints]);
-  const tagCounts = useMemo(
-    () =>
-      countByTag(
-        endpoints?.listEndpoints ?? [],
-        // "Todas" afunila: o número de uma tag é quanto sobra ao somá-la às já marcadas.
-        // "Qualquer" amplia, então a contagem parte só da busca e do estado.
-        (tagMode === 'all' ? tagFilteredEndpoints : (searchResult ?? [])).filter((ep) =>
-          matchesStatus(ep, statusFilter),
-        ),
-      ),
-    [endpoints, searchResult, tagFilteredEndpoints, tagMode, statusFilter],
+  const tagCounts = useMemo(() => {
+    // "Todas" afunila: o número de uma tag é quanto sobra ao somá-la às já incluídas. "Qualquer" e
+    // "Sem tag" (que substitui a seleção) não somam, então a contagem parte só da busca e do estado.
+    // As exclusões ficam de fora do escopo: countByTag as aplica tag a tag.
+    const isNarrowing = tagMode === 'all' && !isUntaggedSelected(tagSelection);
+    const scope = (searchResult ?? []).filter(
+      (ep) =>
+        matchesStatus(ep, statusFilter) &&
+        (!isNarrowing ||
+          matchesTags(ep, { included: tagSelection.included, excluded: [] }, tagMode)),
+    );
+    return countByTag(endpoints?.listEndpoints ?? [], scope, tagSelection.excluded);
+  }, [endpoints, searchResult, tagSelection, tagMode, statusFilter]);
+  const untaggedTotal = useMemo(() => countUntagged(endpoints?.listEndpoints ?? []), [endpoints]);
+  const untaggedCount = useMemo(
+    () => countUntagged((searchResult ?? []).filter((ep) => matchesStatus(ep, statusFilter))),
+    [searchResult, statusFilter],
   );
   const visibleEndpoints = useMemo(
     () => (filteredEndpoints ? { listEndpoints: tagFilteredEndpoints } : null),
@@ -99,7 +113,8 @@ export default function App() {
         />
         <TagFilter
           tags={tagCounts}
-          selectedTags={selectedTags}
+          untagged={untaggedTotal > 0 ? { count: untaggedCount } : null}
+          selection={tagSelection}
           mode={tagMode}
           onToggleTag={handleToggleTag}
           onModeChange={setTagMode}
@@ -118,8 +133,8 @@ export default function App() {
           <ListEndpoints
             endpoints={visibleEndpoints}
             statusFilter={statusFilter}
-            selectedTags={selectedTags}
-            hasActiveSearch={filterText.trim() !== '' || selectedTags.length > 0}
+            tagSelection={tagSelection}
+            hasActiveSearch={filterText.trim() !== '' || countSelectedTags(tagSelection) > 0}
             onToggleTag={handleToggleTag}
             isLoading={isBusy}
             pendingChanges={pendingChangeKeys}

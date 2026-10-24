@@ -89,10 +89,34 @@
   background: var(--color-surface-hover);
 }
 
-.chip[aria-pressed='true'] {
+.chip[data-state='included'] {
   border-color: var(--color-accent);
   background: var(--color-accent-bg);
   color: var(--color-accent);
+}
+
+/* Excluída: vermelho + risco + "não". A cor sozinha não basta (daltonismo), por isso o texto */
+.chip[data-state='excluded'] {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.chip[data-state='excluded'] .chipName {
+  text-decoration: line-through;
+}
+
+.chipNot {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* "Sem tag" não é uma tag: borda tracejada e itálico a separam das tags reais */
+.chip[data-kind='untagged'] {
+  border-style: dashed;
+  font-style: italic;
 }
 
 /* Sem resultado com os outros filtros: continua clicável, só recua visualmente */
@@ -115,9 +139,14 @@
   text-align: center;
 }
 
-.chip[aria-pressed='true'] .chipCount {
+.chip[data-state='included'] .chipCount {
   background: var(--color-accent-bg);
   color: var(--color-accent);
+}
+
+.chip[data-state='excluded'] .chipCount {
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .chipClose {
@@ -172,4 +201,10 @@
 .mode button[aria-pressed='true'] {
   background: var(--color-accent-bg);
   color: var(--color-accent);
+}
+
+.help {
+  margin: 0;
+  color: var(--color-text-dim);
+  font-size: 0.75rem;
 }

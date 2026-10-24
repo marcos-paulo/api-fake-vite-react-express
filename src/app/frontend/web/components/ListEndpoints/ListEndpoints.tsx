@@ -4,12 +4,13 @@ import { EndpointItem } from './EndpointItem';
 import { EndpointSection } from './EndpointSection';
 import styles from './ListEndpoints.module.css';
 import { matchesStatus, type StatusFilter } from './statusFilter';
+import type { TagSelection } from './tagFilter';
 
 type ListEndpointsProps = {
   endpoints: Endpoints | null;
   statusFilter: StatusFilter;
-  selectedTags: string[];
-  onToggleTag: (tag: string) => void;
+  tagSelection: TagSelection;
+  onToggleTag: (tag: string, forceExclude?: boolean) => void;
   hasActiveSearch: boolean;
   pendingChanges?: Set<string>;
   pendingHandlerChanges?: Record<string, string>;
@@ -24,7 +25,7 @@ type ListEndpointsProps = {
 export const ListEndpoints = ({
   endpoints,
   statusFilter,
-  selectedTags,
+  tagSelection,
   onToggleTag,
   hasActiveSearch,
   isLoading = false,
@@ -61,7 +62,7 @@ export const ListEndpoints = ({
         onChangeActiveHandler={onChangeActiveHandler}
         onRevertAgentHandler={onRevertAgentHandler}
         onRevokeAgentApproval={onRevokeAgentApproval}
-        selectedTags={selectedTags}
+        tagSelection={tagSelection}
         onToggleTag={onToggleTag}
         isLoading={isLoading}
       />

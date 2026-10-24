@@ -4,6 +4,7 @@ import { MethodBadge } from '../MethodBadge';
 import { Switch } from '../Switch';
 import styles from './EndpointItem.module.css';
 import { HandlerPicker } from './HandlerPicker';
+import { getTagState, type TagSelection } from './tagFilter';
 
 type EndpointItemProps = {
   endpoint: Endpoint;
@@ -11,8 +12,8 @@ type EndpointItemProps = {
   isPending: boolean;
   pendingHandlerKey?: string;
   isLoading: boolean;
-  selectedTags: string[];
-  onToggleTag: (tag: string) => void;
+  tagSelection: TagSelection;
+  onToggleTag: (tag: string, forceExclude?: boolean) => void;
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
   onOpenEndpointFile: (fileName: string) => void;
   onChangeActiveHandler: (fileName: string, handlerKey: string) => void;
@@ -26,7 +27,7 @@ export const EndpointItem = ({
   isPending,
   pendingHandlerKey,
   isLoading,
-  selectedTags,
+  tagSelection,
   onToggleTag,
   onAddPendingEndpoint,
   onOpenEndpointFile,
@@ -106,9 +107,9 @@ export const EndpointItem = ({
                 <button
                   type="button"
                   className={styles.tag}
-                  aria-pressed={selectedTags.includes(tag)}
-                  title={`Filtrar pela tag ${tag}`}
-                  onClick={() => onToggleTag(tag)}
+                  data-state={getTagState(tagSelection, tag)}
+                  title={`Filtrar pela tag ${tag} (Shift+clique exclui)`}
+                  onClick={(event) => onToggleTag(tag, event.shiftKey)}
                 >
                   #{tag}
                 </button>

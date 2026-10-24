@@ -127,10 +127,17 @@
   color: var(--color-accent);
 }
 
-.tag[aria-pressed='true'] {
+.tag[data-state='included'] {
   border-color: var(--color-accent);
   background: var(--color-accent-bg);
   color: var(--color-accent);
+}
+
+.tag[data-state='excluded'] {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  text-decoration: line-through;
 }
 
 .chip {
