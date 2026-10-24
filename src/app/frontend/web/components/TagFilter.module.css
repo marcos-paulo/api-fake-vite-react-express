@@ -1,0 +1,134 @@
+.root {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.label {
+  padding-top: 4px;
+  color: var(--color-text-dim);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.chips {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 2px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.chip:hover {
+  border-color: var(--color-accent);
+  background: var(--color-surface-hover);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+/* Sem resultado com os outros filtros: continua clicável, só recua visualmente */
+.chip[data-empty] {
+  opacity: 0.5;
+}
+
+.chipName {
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.chipCount {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-raised);
+  color: var(--color-text-dim);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.chip[aria-pressed='true'] .chipCount {
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}
+
+.chipClose {
+  margin-left: -2px;
+}
+
+.more,
+.clear {
+  padding: 2px 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-dim);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.more:hover,
+.clear:hover {
+  color: var(--color-accent);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mode {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.mode button {
+  padding: 2px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.mode button:hover {
+  background: var(--color-surface-hover);
+}
+
+.mode button[aria-pressed='true'] {
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
+}

@@ -111,6 +111,7 @@
 }
 
 .tag {
+  border: 1px solid transparent;
   max-width: 100%;
   overflow-wrap: anywhere;
   padding: 1px 8px;
@@ -119,6 +120,17 @@
   color: var(--color-text-muted);
   font-size: 0.75rem;
   font-weight: 600;
+}
+
+.tag:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.tag[aria-pressed='true'] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-bg);
+  color: var(--color-accent);
 }
 
 .chip {

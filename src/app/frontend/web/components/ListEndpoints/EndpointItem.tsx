@@ -11,6 +11,8 @@ type EndpointItemProps = {
   isPending: boolean;
   pendingHandlerKey?: string;
   isLoading: boolean;
+  selectedTags: string[];
+  onToggleTag: (tag: string) => void;
   onAddPendingEndpoint: (endpoint: Endpoint) => void;
   onOpenEndpointFile: (fileName: string) => void;
   onChangeActiveHandler: (fileName: string, handlerKey: string) => void;
@@ -24,6 +26,8 @@ export const EndpointItem = ({
   isPending,
   pendingHandlerKey,
   isLoading,
+  selectedTags,
+  onToggleTag,
   onAddPendingEndpoint,
   onOpenEndpointFile,
   onChangeActiveHandler,
@@ -98,8 +102,16 @@ export const EndpointItem = ({
         {!isError && endpoint.tags.length > 0 && (
           <ul className={styles.tagsRow} aria-label="Tags">
             {endpoint.tags.map((tag) => (
-              <li key={`${endpoint.fileName}-${tag}`} className={styles.tag}>
-                #{tag}
+              <li key={`${endpoint.fileName}-${tag}`}>
+                <button
+                  type="button"
+                  className={styles.tag}
+                  aria-pressed={selectedTags.includes(tag)}
+                  title={`Filtrar pela tag ${tag}`}
+                  onClick={() => onToggleTag(tag)}
+                >
+                  #{tag}
+                </button>
               </li>
             ))}
           </ul>

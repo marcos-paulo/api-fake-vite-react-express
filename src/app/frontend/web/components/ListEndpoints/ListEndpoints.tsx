@@ -8,6 +8,8 @@ import { matchesStatus, type StatusFilter } from './statusFilter';
 type ListEndpointsProps = {
   endpoints: Endpoints | null;
   statusFilter: StatusFilter;
+  selectedTags: string[];
+  onToggleTag: (tag: string) => void;
   hasActiveSearch: boolean;
   pendingChanges?: Set<string>;
   pendingHandlerChanges?: Record<string, string>;
@@ -22,6 +24,8 @@ type ListEndpointsProps = {
 export const ListEndpoints = ({
   endpoints,
   statusFilter,
+  selectedTags,
+  onToggleTag,
   hasActiveSearch,
   isLoading = false,
   pendingChanges = new Set(),
@@ -57,6 +61,8 @@ export const ListEndpoints = ({
         onChangeActiveHandler={onChangeActiveHandler}
         onRevertAgentHandler={onRevertAgentHandler}
         onRevokeAgentApproval={onRevokeAgentApproval}
+        selectedTags={selectedTags}
+        onToggleTag={onToggleTag}
         isLoading={isLoading}
       />
     );
