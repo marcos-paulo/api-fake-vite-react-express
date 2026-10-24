@@ -20,6 +20,8 @@ export type EndpointHandlerEntry = {
 export type EndpointHandlersMap = Record<string, EndpointHandlerEntry>;
 
 type EndpointBase = {
+  /** Nome curto (até ~60 caracteres) que diz o que o endpoint faz. Opcional; aparece como título do card. */
+  title?: string;
   description: string;
   /** Endereço completo interceptado no proxy do host (ex: "/api/usuarios"). */
   serverAddress: string;
@@ -64,6 +66,7 @@ function isEndpoint(
     !!endpoint.method &&
     ['get', 'post', 'put', 'delete'].includes(endpoint.method) &&
     hasValidTags &&
+    (endpoint.title === undefined || typeof endpoint.title === 'string') &&
     isValidAgentControl(endpoint.agentControl) &&
     isValidHandlersShape(endpoint.handler, endpoint.handlers)
   );

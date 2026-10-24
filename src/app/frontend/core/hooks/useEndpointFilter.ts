@@ -45,6 +45,7 @@ export function useEndpointFilter(
               const tagsText = ep.tags.join(' ');
               return filterRegexes.some(
                 (regex) =>
+                  regex.test(ep.title) ||
                   regex.test(ep.description) ||
                   regex.test(ep.localhostAddress) ||
                   regex.test(ep.method) ||

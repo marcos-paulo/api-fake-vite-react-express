@@ -38,6 +38,7 @@ export const EndpointItem = ({
   return (
     <li
       className={styles.item}
+      data-has-title={!isError && !!endpoint.title}
       data-state={isError ? 'error' : isPending ? 'pending' : displayEnabled ? 'on' : 'off'}
     >
       <Switch
@@ -49,6 +50,12 @@ export const EndpointItem = ({
       />
 
       <div className={styles.body}>
+        {endpoint.title && !isError && (
+          <h3 className={styles.title} title={endpoint.title}>
+            {endpoint.title}
+          </h3>
+        )}
+
         <div className={styles.titleRow}>
           {!isError && <MethodBadge method={endpoint.method} />}
           <span className={styles.address} title={endpoint.serverAddress}>

@@ -51,6 +51,17 @@
   gap: 8px;
 }
 
+.title {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
 .address {
   min-width: 0;
   overflow: hidden;
@@ -60,6 +71,13 @@
   font-size: 0.93rem;
   font-weight: 600;
   color: var(--color-text-secondary);
+}
+
+/* Com título, o endereço vira informação secundária */
+.item[data-has-title='true'] .address {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-text-dim);
 }
 
 .description {

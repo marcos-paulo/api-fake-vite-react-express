@@ -423,6 +423,7 @@ class ServerEndpoints {
         // A seleção salva em activeHandlerSelections[fileName] (se houver) NÃO é apagada
         // aqui — volta a valer assim que o arquivo carregar sem erro novamente.
         this.endpoints.listEndpoints.push({
+          title: '',
           description: '',
           serverAddress: '',
           localhostAddress: '',
@@ -505,6 +506,7 @@ class ServerEndpoints {
       }
 
       this.endpoints.listEndpoints.push({
+        title: endpoint.title?.trim() ?? '',
         description,
         serverAddress,
         localhostAddress,

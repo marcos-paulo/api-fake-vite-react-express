@@ -20,6 +20,8 @@ export type HandlerOption = {
 };
 
 export type Endpoint = {
+  /** Vazio quando o autor não definiu `title`. */
+  title: string;
   description: string;
   serverAddress: string;
   localhostAddress: string;

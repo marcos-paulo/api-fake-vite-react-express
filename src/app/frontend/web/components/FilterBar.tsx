@@ -53,7 +53,7 @@ export const FilterBar = ({
           className={styles.input}
           type="search"
           aria-label="Filtrar endpoints"
-          placeholder="Filtrar por descrição, endereço, método ou tag…"
+          placeholder="Filtrar por título, descrição, endereço, método ou tag…"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => e.key === 'Escape' && onChange('')}
