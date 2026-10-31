@@ -6,6 +6,8 @@
 export const PANEL_MUTATING_PATHS = [
   '/api/changeStateEndpoint',
   '/api/changeActiveHandler',
+  '/api/changeControlValue',
+  '/api/resetControlValues',
   '/api/open-endpoint-file',
   '/api/shutdown',
   '/api/approvals/approve',

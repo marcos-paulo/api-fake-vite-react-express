@@ -1,19 +1,27 @@
+import type { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 
 import { configValidators, getConfig, getWorkDir } from '../../shared/config';
 import {
+  type ControlValue,
   type EnabledEndpointRecord,
+  type EndpointControl,
+  type EndpointControlsMap,
   type EndpointHandlerEntry,
-  type EndpointHandlerFn,
   type EndpointObject,
+  getAgentControlBlockReason,
+  getEffectiveControls,
   getEndpointHandlersMap,
   isEndpointObject,
   type LoadedModule,
   type ModuleEndpoint,
+  parseControlValue,
+  validateControlValue,
 } from '../../types/dynamic-endpoints.types';
 import type {
   AgentHandlerState,
+  ControlState,
   Endpoint,
   Endpoints,
   HandlerOption,
@@ -24,6 +32,7 @@ import {
   AgentSelectionStore,
   readHandlerSource,
 } from './agent-control';
+import { ControlValuesStore } from './control-values';
 import { registerEndpointModuleResolver } from './endpoint-module-resolver';
 import { LoadingGate } from './loading-gate';
 import { appLogger } from './logging/logger-app';
@@ -41,7 +50,11 @@ class ServerEndpoints {
 
   loadedModules: LoadedModule[] = [];
 
-  enabledEndpointModules: { endpoint: EndpointObject; activeHandler: EndpointHandlerFn }[] = [];
+  enabledEndpointModules: {
+    endpoint: EndpointObject;
+    // já com `ctx.controls` aplicado: quem chama só passa req e res
+    activeHandler: (req: Request, res: Response) => void;
+  }[] = [];
 
   activeHandlerSelections: Record<string, string> = {};
 
@@ -95,6 +108,10 @@ class ServerEndpoints {
 
   private readonly agentSelections = new AgentSelectionStore(
     path.join(this.workspaceConfigDir, 'agentSelections.json'),
+  );
+
+  private readonly controlValues = new ControlValuesStore(
+    path.join(this.workspaceConfigDir, 'controlValues.json'),
   );
 
   private logger = appLogger;
@@ -437,6 +454,7 @@ class ServerEndpoints {
           handlerOptions: [],
           activeHandlerKey: '',
           activeHandlerByAgent: false,
+          controls: [],
         });
 
         if (enabled) {
@@ -496,10 +514,26 @@ class ServerEndpoints {
         this.activeHandlerSelections[fileName] = activeHandlerKey;
       }
 
+      const effectiveControls = getEffectiveControls(endpoint, activeHandlerKey);
+      this.controlValues.prune(fileName, collectControlKeys(endpoint));
+      const currentValues = this.controlValues.resolve(fileName, effectiveControls);
+      const controls: ControlState[] = Object.entries(effectiveControls).map(([key, control]) => ({
+        key,
+        control,
+        value: currentValues[key],
+        isDefault: currentValues[key] === control.default,
+        agentBlockReason: getAgentControlBlockReason(control),
+      }));
+
       if (enabled) {
+        const { handler } = handlersMap[activeHandlerKey];
         this.enabledEndpointModules.push({
           endpoint,
-          activeHandler: handlersMap[activeHandlerKey].handler,
+          // os valores são lidos a cada request: mudar um controle vale na hora
+          activeHandler: (req, res) =>
+            handler(req, res, {
+              controls: this.controlValues.resolve(fileName, effectiveControls),
+            }),
         });
         this.jsonConfig[serverAddress] = localhostAddress;
         newEnabledAddresses.push({ fileName });
@@ -520,6 +554,7 @@ class ServerEndpoints {
         handlerOptions,
         activeHandlerKey,
         activeHandlerByAgent: this.agentSelections.has(fileName),
+        controls,
       });
     }
 
@@ -594,6 +629,7 @@ class ServerEndpoints {
       fs.writeFileSync(this.activeHandlersFilePath, JSON.stringify(activeHandlers, null, 2));
 
       this.agentSelections.save();
+      this.controlValues.save();
     } catch (error) {
       log.error(`Erro ao salvar os arquivos de configuração: ${this.envs.proxyConfigFile}`, error);
     }
@@ -661,6 +697,123 @@ class ServerEndpoints {
     log.endSection();
   }
 
+  /** Controles que o painel mostra para o endpoint: os do handler ativo. */
+  private getActiveControls(fileName: string): {
+    endpoint: EndpointObject;
+    controls: EndpointControlsMap;
+  } {
+    const { endpoint } = this.findLoadedEndpoint(fileName);
+    const handlerKeys = Object.keys(getEndpointHandlersMap(endpoint));
+    const stored = this.activeHandlerSelections[fileName];
+    const activeKey = handlerKeys.includes(stored) ? stored : handlerKeys[0];
+
+    return { endpoint, controls: getEffectiveControls(endpoint, activeKey) };
+  }
+
+  private requireControl(fileName: string, key: string) {
+    const { controls } = this.getActiveControls(fileName);
+    const control = controls[key];
+
+    if (!control) {
+      throw new AgentControlError(
+        `Controle "${key}" não existe no handler ativo de ${fileName} (existentes: ${Object.keys(controls).join(', ') || 'nenhum'})`,
+        404,
+      );
+    }
+
+    return control;
+  }
+
+  private requireValidValue(control: EndpointControl, key: string, value: unknown): ControlValue {
+    const check = validateControlValue(control, value);
+
+    if (!check.ok) {
+      throw new AgentControlError(`Valor recusado para "${key}": ${check.reason}`, 400);
+    }
+
+    return check.value;
+  }
+
+  /** Alteração humana (painel). Valida tudo antes de aplicar qualquer item. */
+  changeControlValues(changes: { fileName: string; key: string; value: unknown }[]) {
+    const log = this.logger.startSection('changeControlValues');
+
+    try {
+      const validated = changes.map(({ fileName, key, value }) => {
+        const control = this.requireControl(fileName, key);
+        return { fileName, key, value: this.requireValidValue(control, key, value) };
+      });
+
+      for (const { fileName, key, value } of validated) {
+        this.controlValues.set(fileName, key, value);
+        log.info(`[PAINEL] ${fileName}: ${key} = ${JSON.stringify(value)}`);
+      }
+
+      this.buildEnabledEndpointList();
+      this.saveConfigFile();
+      this.notifyReload();
+    } finally {
+      log.endSection();
+    }
+  }
+
+  /** Volta ao `default` declarado: um controle (`key`) ou todos os do endpoint. */
+  resetControlValues(fileName: string, key?: string) {
+    const log = this.logger.startSection('resetControlValues');
+
+    try {
+      if (key !== undefined) this.requireControl(fileName, key);
+      else this.getActiveControls(fileName);
+
+      this.controlValues.reset(fileName, key);
+      log.info(`[PAINEL] ${fileName}: ${key ?? 'todos os controles'} restaurado(s)`);
+
+      this.buildEnabledEndpointList();
+      this.saveConfigFile();
+      this.notifyReload();
+    } finally {
+      log.endSection();
+    }
+  }
+
+  async agentSetControl(target: string, key: string, rawValue: unknown) {
+    const log = this.logger.startSection('agentSetControl');
+
+    try {
+      await this.loadingGate.wait();
+
+      const { fileName } = this.findLoadedEndpoint(target);
+
+      if (!this.enabledAddresses.some((record) => record.fileName === fileName)) {
+        throw new AgentControlError(
+          `Endpoint ${fileName} está desligado. Ligar endpoint é decisão humana: peça para ligar no painel.`,
+          409,
+        );
+      }
+
+      const control = this.requireControl(fileName, key);
+      const blockReason = getAgentControlBlockReason(control);
+
+      if (blockReason) {
+        throw new AgentControlError(
+          `O agente não pode alterar "${key}" de ${fileName}: ${blockReason}. Peça a um humano para alterar no painel.`,
+          403,
+        );
+      }
+
+      const value = this.requireValidValue(control, key, parseControlValue(control, rawValue));
+
+      this.controlValues.set(fileName, key, value);
+      log.warn(`[AGENTE] ${fileName}: ${key} = ${JSON.stringify(value)}`);
+
+      this.buildEnabledEndpointList();
+      this.saveConfigFile();
+      this.notifyReload();
+    } finally {
+      log.endSection();
+    }
+  }
+
   private getAgentHandlerState(
     fileName: string,
     handlerKey: string,
@@ -715,6 +868,18 @@ class ServerEndpoints {
         state: option.agentState,
         // handler bloqueado: o agente sabe que existe, mas não vê detalhes
         ...(option.agentState === 'blocked' ? {} : { description: option.description }),
+      })),
+      controls: endpoint.controls.map(({ key, control, value, agentBlockReason }) => ({
+        name: key,
+        type: control.type,
+        label: control.label,
+        value,
+        default: control.default,
+        changeable: agentBlockReason === null,
+        // controle bloqueado: o agente sabe que existe e por quê, mas não vê as regras
+        ...(agentBlockReason === null
+          ? describeControlConstraints(control)
+          : { blockedReason: agentBlockReason }),
       })),
     }));
   }
@@ -1020,6 +1185,32 @@ class ServerEndpoints {
     this.loadedModules = listImportedModules;
 
     this.logger.endSection();
+  }
+}
+
+/** Todas as chaves de controle que o arquivo declara, em qualquer handler. */
+function collectControlKeys(endpoint: EndpointObject): Set<string> {
+  const keys = new Set(Object.keys(endpoint.controls ?? {}));
+
+  for (const entry of Object.values(getEndpointHandlersMap(endpoint))) {
+    Object.keys(entry.controls ?? {}).forEach((key) => keys.add(key));
+  }
+
+  return keys;
+}
+
+/** Regras que o agente precisa conhecer para propor um valor aceito. */
+function describeControlConstraints(control: EndpointControl): Record<string, unknown> {
+  switch (control.type) {
+    case 'number':
+    case 'slider':
+      return { min: control.min, max: control.max };
+    case 'select':
+      return { options: control.options.map((option) => option.value) };
+    case 'text':
+      return { maxLength: control.maxLength, pattern: control.pattern };
+    default:
+      return {};
   }
 }
 

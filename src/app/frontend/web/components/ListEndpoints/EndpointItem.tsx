@@ -1,7 +1,9 @@
+import type { ControlValue } from '../../../../../types/dynamic-endpoints.types';
 import type { Endpoint } from '../../../../../types/endpoints.types';
 import { Icon } from '../Icon';
 import { MethodBadge } from '../MethodBadge';
 import { Switch } from '../Switch';
+import { EndpointControls } from './EndpointControls';
 import styles from './EndpointItem.module.css';
 import { HandlerPicker } from './HandlerPicker';
 import { getTagState, type TagSelection } from './tagFilter';
@@ -19,6 +21,8 @@ type EndpointItemProps = {
   onChangeActiveHandler: (fileName: string, handlerKey: string) => void;
   onRevertAgentHandler: (fileName: string) => void;
   onRevokeAgentApproval: (fileName: string, handlerKey: string) => void;
+  onChangeControlValue: (fileName: string, key: string, value: ControlValue) => void;
+  onResetControlValues: (fileName: string, key?: string) => void;
 };
 
 export const EndpointItem = ({
@@ -34,6 +38,8 @@ export const EndpointItem = ({
   onChangeActiveHandler,
   onRevertAgentHandler,
   onRevokeAgentApproval,
+  onChangeControlValue,
+  onResetControlValues,
 }: EndpointItemProps) => {
   const isError = endpoint.loadError;
   const selectedHandlerKey = pendingHandlerKey ?? endpoint.activeHandlerKey;
@@ -129,6 +135,13 @@ export const EndpointItem = ({
             onRevoke={(handlerKey) => onRevokeAgentApproval(endpoint.fileName, handlerKey)}
           />
         )}
+
+        <EndpointControls
+          endpoint={endpoint}
+          disabled={isLoading || !endpoint.enabled}
+          onChange={onChangeControlValue}
+          onReset={onResetControlValues}
+        />
       </div>
 
       <button

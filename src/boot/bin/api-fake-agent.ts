@@ -16,6 +16,21 @@ type AgentHandler = {
   description?: string;
 };
 
+type AgentControl = {
+  name: string;
+  type: string;
+  label: string;
+  value: boolean | number | string;
+  default: boolean | number | string;
+  changeable: boolean;
+  blockedReason?: string;
+  min?: number;
+  max?: number;
+  options?: string[];
+  maxLength?: number;
+  pattern?: string;
+};
+
 type AgentEndpoint = {
   endpoint: string;
   serverAddress: string;
@@ -25,6 +40,7 @@ type AgentEndpoint = {
   activeHandler: string;
   activeHandlerByAgent: boolean;
   handlers: AgentHandler[];
+  controls: AgentControl[];
 };
 
 const STATE_LABEL: Record<AgentHandler['state'], string> = {
@@ -39,12 +55,17 @@ Uso:
   api-fake-agent list [--json]                 Lista endpoints e handlers (com o estado de cada um)
   api-fake-agent status <endpoint> [--json]    Handler ativo de um endpoint
   api-fake-agent set <endpoint> <handler>      Troca o handler ativo (só handlers "aprovado")
+  api-fake-agent set-control <endpoint> <controle> <valor>
+                                               Muda o valor de um controle (só os "alteráveis")
 
 <endpoint> é o fileName (ex: users.ts) ou o serverAddress, se for único.
 
 Regras:
   - Só handlers "aprovado" podem ser ativados. "pendente" e "bloqueado" exigem um humano.
   - Ligar/desligar endpoint e aprovar handlers é sempre decisão humana, pelo painel.
+  - Controle só é alterável se o autor declarou agent: true. Controle de texto exige também
+    maxLength e pattern. Sem isso, só um humano altera, pelo painel.
+  - O valor precisa respeitar as regras do controle (limites, opções, padrão). Veja em "list".
   - Código novo ou alterado volta a "pendente" até um humano aprovar de novo.
 
 Saída de erro: código 1 = recusado ou erro; 2 = api-fake não está acessível.`;
@@ -113,6 +134,26 @@ function findEndpoint(endpoints: AgentEndpoint[], target: string): AgentEndpoint
   return matches[0];
 }
 
+function formatConstraints(control: AgentControl): string {
+  const parts = [
+    control.min !== undefined ? `min ${control.min}` : null,
+    control.max !== undefined ? `max ${control.max}` : null,
+    control.options ? `opções: ${control.options.join(' | ')}` : null,
+    control.maxLength !== undefined ? `até ${control.maxLength} caracteres` : null,
+    control.pattern !== undefined ? `padrão ${control.pattern}` : null,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? ` [${parts.join('; ')}]` : '';
+}
+
+function formatControl(control: AgentControl): string {
+  const state = control.changeable
+    ? `alterável${formatConstraints(control)}`
+    : `bloqueado (${control.blockedReason ?? 'só humano altera'})`;
+
+  return `    ${control.name} (${control.type}) = ${JSON.stringify(control.value)}, padrão ${JSON.stringify(control.default)} — ${control.label}: ${state}`;
+}
+
 function formatEndpoint(item: AgentEndpoint): string {
   const header = `${item.endpoint}  (${item.method.toUpperCase()} ${item.serverAddress})`;
   const power = item.enabled ? 'ligado' : 'DESLIGADO (só humano liga)';
@@ -126,7 +167,10 @@ function formatEndpoint(item: AgentEndpoint): string {
     return `  ${mark} ${handler.name}: ${STATE_LABEL[handler.state]}${description}`;
   });
 
-  return [header, `  ${power}; handler ativo: ${active}`, ...handlers].join('\n');
+  const controls =
+    item.controls.length > 0 ? ['  controles:', ...item.controls.map(formatControl)] : [];
+
+  return [header, `  ${power}; handler ativo: ${active}`, ...handlers, ...controls].join('\n');
 }
 
 function printResult(endpoints: AgentEndpoint[], asJson: boolean) {
@@ -164,6 +208,20 @@ async function run(args: string[]) {
       asJson
         ? JSON.stringify({ ok: true, endpoint: rest[0], handler: rest[1] })
         : `ok: ${rest[0]} agora usa o handler "${rest[1]}"`,
+    );
+    return;
+  }
+
+  if (command === 'set-control') {
+    const [target, key, value] = rest;
+    if (!target || !key || value === undefined) {
+      throw new CliError('Uso: api-fake-agent set-control <endpoint> <controle> <valor>', 1);
+    }
+    await callApi('POST', '/api/agent/set-control', { endpoint: target, key, value });
+    console.log(
+      asJson
+        ? JSON.stringify({ ok: true, endpoint: target, key, value })
+        : `ok: ${target} → ${key} = ${value}`,
     );
     return;
   }

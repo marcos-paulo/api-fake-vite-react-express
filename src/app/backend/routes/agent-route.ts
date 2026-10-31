@@ -40,4 +40,26 @@ export function registerAgentRoutes(app: Express) {
       log.endSection();
     }
   });
+
+  app.post('/api/agent/set-control', async (req, res, next) => {
+    const log = startRouteLog('POST /api/agent/set-control');
+    try {
+      const { endpoint, key, value } = (req.body ?? {}) as {
+        endpoint?: string;
+        key?: string;
+        value?: unknown;
+      };
+
+      if (!endpoint || !key || value === undefined) {
+        return next(toHttpError(new Error('endpoint, key e value são obrigatórios')));
+      }
+
+      await endpointsServer.agentSetControl(endpoint, key, value);
+      res.status(200).json({ ok: true, endpoint, key, value });
+    } catch (error) {
+      next(toHttpError(error));
+    } finally {
+      log.endSection();
+    }
+  });
 }

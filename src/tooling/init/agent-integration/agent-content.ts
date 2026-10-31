@@ -15,10 +15,10 @@ export const BLOCK_MARKER_END = '<!-- api-fake:agent:end -->';
 export const alwaysOnBlock = `${BLOCK_MARKER_START}
 ## api-fake: handlers de mock
 
-- Para trocar o handler de um endpoint do api-fake, use só o CLI: \`${AGENT_SCRIPT_COMMAND} <list|status|set>\`.
+- Para trocar o handler ou mudar um controle de um endpoint do api-fake, use só o CLI: \`${AGENT_SCRIPT_COMMAND} <list|status|set|set-control>\`.
 - Nunca chame as rotas do api-fake por \`curl\` ou \`fetch\`.
 - Não leia nem edite \`.config/api-fake/\` nem \`~/.config/api-fake/\`. Lá ficam as aprovações e o token de humano.
-- Handler "pendente" ou "bloqueado": peça a um humano. Não tente contornar.
+- Handler "pendente" ou "bloqueado", ou controle "bloqueado": peça a um humano. Não tente contornar.
 - O passo a passo está na skill \`${SKILL_NAME}\`.
 ${BLOCK_MARKER_END}
 `;
@@ -31,6 +31,7 @@ export const skillMarkdown = `---
 name: api-fake
 description: >-
   Use quando precisar trocar o handler (a função que responde) de um endpoint de mock do api-fake.
+  Use também para mudar os controles de um endpoint (botão, switch, número, texto) que alteram a resposta.
   Use também para investigar por que uma chamada recebeu certa resposta.
   Use ao criar ou editar handlers na pasta endpoints/ e ao simular respostas.
   Não use para ligar ou desligar endpoints. Isso é decisão de um humano.
@@ -59,6 +60,7 @@ Só um handler fica ativo por endpoint.
 npm run api-fake:agent -- list                      # endpoints, handlers e o estado de cada um
 npm run api-fake:agent -- status <endpoint>         # handler ativo de um endpoint
 npm run api-fake:agent -- set <endpoint> <handler>  # troca o handler ativo
+npm run api-fake:agent -- set-control <endpoint> <controle> <valor>  # muda um controle
 \`\`\`
 
 - \`<endpoint>\` é o nome do arquivo (exemplo: \`users.ts\`) ou o endereço, se for único.
@@ -69,6 +71,18 @@ npm run api-fake:agent -- set <endpoint> <handler>  # troca o handler ativo
 - **aprovado**: um humano aprovou o código. Você pode ativar.
 - **pendente**: o código é novo ou mudou. Um humano precisa aprovar no painel.
 - **bloqueado**: o handler não declara \`agentControl: 'allowed'\`. Só um humano ativa.
+
+## Controles de um endpoint
+
+- Controle é um botão, switch, número ou texto que muda o valor devolvido pelo handler.
+- O \`list\` mostra os controles de cada endpoint, o valor atual e se você pode alterar.
+- **alterável**: o autor declarou \`agent: true\`. Use o \`set-control\`.
+- **bloqueado**: só um humano altera, no painel. O \`list\` diz o motivo.
+- Controle de texto só é alterável com \`agent: true\`, \`maxLength\` e \`pattern\` juntos.
+- O valor precisa respeitar as regras mostradas no \`list\` (mínimo, máximo, opções, padrão do texto).
+- Valor recusado: leia a mensagem e corrija. Não tente contornar.
+- O endpoint precisa estar ligado. Ligar é decisão humana.
+- Para simular uma resposta, prefira um controle alterável a editar o arquivo do endpoint.
 
 ## O que está respondendo agora
 

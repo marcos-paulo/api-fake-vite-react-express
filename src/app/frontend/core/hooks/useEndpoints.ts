@@ -1,6 +1,7 @@
 import type { AxiosInstance, AxiosResponse } from 'axios';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import type { ControlValue } from '../../../../types/dynamic-endpoints.types';
 import type { Endpoint, Endpoints } from '../../../../types/endpoints.types';
 
 export type LoadingState = 'idle' | 'fetching' | 'saving';
@@ -14,6 +15,12 @@ export type FeedbackMessage = {
 };
 
 const FEEDBACK_AUTO_HIDE_MS = 3000;
+
+// O servidor responde { error: "mensagem" } nas recusas; mostra essa mensagem em vez de um texto genérico
+function readServerErrorMessage(error: unknown, fallback: string): string {
+  const data = (error as { response?: { data?: { error?: unknown } } })?.response?.data;
+  return typeof data?.error === 'string' && data.error ? data.error : fallback;
+}
 
 export type UseEndpointsOptions = {
   apiClient: AxiosInstance;
@@ -45,7 +52,11 @@ export function useEndpoints({
   const handleFetchSuccess = useCallback((response: AxiosResponse<Endpoints>) => {
     if (response.status === 200) {
       setEndpoints(response.data);
-      setFeedbackMessage({ text: 'Endpoints carregados com sucesso!', type: 'success', quiet: true });
+      setFeedbackMessage({
+        text: 'Endpoints carregados com sucesso!',
+        type: 'success',
+        quiet: true,
+      });
     }
   }, []);
 
@@ -117,6 +128,59 @@ export function useEndpoints({
       });
     },
     [endpoints],
+  );
+
+  // Controles valem na hora (não passam pelo "salvar"): a tela atualiza antes da resposta e
+  // volta ao valor do servidor se ele recusar.
+  const changeControlValue = useCallback(
+    async (fileName: string, key: string, value: ControlValue) => {
+      setEndpoints((prev) =>
+        prev
+          ? {
+              listEndpoints: prev.listEndpoints.map((endpoint) =>
+                endpoint.fileName === fileName
+                  ? {
+                      ...endpoint,
+                      controls: endpoint.controls.map((state) =>
+                        state.key === key
+                          ? { ...state, value, isDefault: value === state.control.default }
+                          : state,
+                      ),
+                    }
+                  : endpoint,
+              ),
+            }
+          : prev,
+      );
+
+      try {
+        await apiClient.post('/api/changeControlValue', [{ fileName, key, value }]);
+      } catch (error) {
+        setFeedbackMessage({
+          text: readServerErrorMessage(error, `Erro ao alterar ${key}`),
+          type: 'error',
+        });
+        setTimeout(() => setFeedbackMessage(null), FEEDBACK_AUTO_HIDE_MS);
+        await fetchEndpoints();
+      }
+    },
+    [apiClient, fetchEndpoints],
+  );
+
+  const resetControlValues = useCallback(
+    async (fileName: string, key?: string) => {
+      try {
+        await apiClient.post('/api/resetControlValues', { fileName, key });
+        await fetchEndpoints();
+      } catch (error) {
+        setFeedbackMessage({
+          text: readServerErrorMessage(error, 'Erro ao restaurar os padrões'),
+          type: 'error',
+        });
+        setTimeout(() => setFeedbackMessage(null), FEEDBACK_AUTO_HIDE_MS);
+      }
+    },
+    [apiClient, fetchEndpoints],
   );
 
   const handleSaveStart = useCallback(() => {
@@ -202,6 +266,8 @@ export function useEndpoints({
     onAddPendingEndpoint,
     onAddPendingHandlerChange,
     onOpenEndpointFile,
+    changeControlValue,
+    resetControlValues,
     discardChanges,
     saveChanges,
   };

@@ -1,4 +1,9 @@
-import type { AgentControl, EndpointMethod } from './dynamic-endpoints.types';
+import type {
+  AgentControl,
+  ControlValue,
+  EndpointControl,
+  EndpointMethod,
+} from './dynamic-endpoints.types';
 
 export type Endpoints = {
   listEndpoints: Endpoint[];
@@ -19,6 +24,17 @@ export type HandlerOption = {
   agentState: AgentHandlerState;
 };
 
+/** Um controle do handler ativo, já com o valor atual, como o painel recebe. */
+export type ControlState = {
+  key: string;
+  control: EndpointControl;
+  value: ControlValue;
+  /** Valor igual ao `default` declarado no arquivo. */
+  isDefault: boolean;
+  /** `null` = o agente pode alterar. Texto = motivo de ele não poder. */
+  agentBlockReason: string | null;
+};
+
 export type Endpoint = {
   /** Vazio quando o autor não definiu `title`. */
   title: string;
@@ -36,4 +52,6 @@ export type Endpoint = {
   activeHandlerKey: string;
   /** O handler ativo foi escolhido por um agente (não por um humano no painel). */
   activeHandlerByAgent: boolean;
+  /** Controles do handler ativo (os do endpoint + os do próprio handler). */
+  controls: ControlState[];
 };

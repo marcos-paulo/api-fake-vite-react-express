@@ -53,6 +53,8 @@ export default function App() {
     onAddPendingEndpoint,
     onAddPendingHandlerChange,
     onOpenEndpointFile,
+    changeControlValue,
+    resetControlValues,
     discardChanges,
     saveChanges,
   } = useEndpoints();
@@ -84,12 +86,16 @@ export default function App() {
     isTagMatchMode,
   );
 
-  const handleToggleTag = useCallback((tag: string, forceExclude?: boolean) => {
-    setTagSelection((current) => toggleTagSelection(current, tag, forceExclude));
-  }, [setTagSelection]);
-  const handleClearTags = useCallback(() => setTagSelection(EMPTY_TAG_SELECTION), [
-    setTagSelection,
-  ]);
+  const handleToggleTag = useCallback(
+    (tag: string, forceExclude?: boolean) => {
+      setTagSelection((current) => toggleTagSelection(current, tag, forceExclude));
+    },
+    [setTagSelection],
+  );
+  const handleClearTags = useCallback(
+    () => setTagSelection(EMPTY_TAG_SELECTION),
+    [setTagSelection],
+  );
 
   const getEndpointLabel = useCallback(
     (fileName: string) => {
@@ -254,6 +260,8 @@ export default function App() {
             onChangeActiveHandler={onAddPendingHandlerChange}
             onRevertAgentHandler={revertAgentHandler}
             onRevokeAgentApproval={revokeHandler}
+            onChangeControlValue={changeControlValue}
+            onResetControlValues={resetControlValues}
           />
         </div>
       </main>

@@ -1,3 +1,4 @@
+import type { ControlValue } from '../../../../../types/dynamic-endpoints.types';
 import type { Endpoint, Endpoints } from '../../../../../types/endpoints.types';
 import { EmptyMessage } from './EmptyMessage';
 import { EndpointItem } from './EndpointItem';
@@ -22,6 +23,8 @@ type ListEndpointsProps = {
   onChangeActiveHandler: (fileName: string, handlerKey: string) => void;
   onRevertAgentHandler: (fileName: string) => void;
   onRevokeAgentApproval: (fileName: string, handlerKey: string) => void;
+  onChangeControlValue: (fileName: string, key: string, value: ControlValue) => void;
+  onResetControlValues: (fileName: string, key?: string) => void;
 };
 
 export const ListEndpoints = ({
@@ -39,6 +42,8 @@ export const ListEndpoints = ({
   onChangeActiveHandler,
   onRevertAgentHandler,
   onRevokeAgentApproval,
+  onChangeControlValue,
+  onResetControlValues,
 }: ListEndpointsProps) => {
   const visible = sortEndpoints(
     (endpoints?.listEndpoints ?? []).filter((ep) => matchesStatus(ep, statusFilter)),
@@ -69,6 +74,8 @@ export const ListEndpoints = ({
         onChangeActiveHandler={onChangeActiveHandler}
         onRevertAgentHandler={onRevertAgentHandler}
         onRevokeAgentApproval={onRevokeAgentApproval}
+        onChangeControlValue={onChangeControlValue}
+        onResetControlValues={onResetControlValues}
         tagSelection={tagSelection}
         onToggleTag={onToggleTag}
         isLoading={isLoading}
