@@ -4,6 +4,9 @@ export type StatusFilter = 'all' | 'enabled' | 'disabled' | 'problem';
 
 // Usa o estado salvo (endpoint.enabled), não o pendente: a linha não pula de grupo ao alternar
 // o switch, só ao salvar.
+export const isStatusFilter = (value: unknown): value is StatusFilter =>
+  value === 'all' || value === 'enabled' || value === 'disabled' || value === 'problem';
+
 const statusMatchers: Record<StatusFilter, (endpoint: Endpoint) => boolean> = {
   all: () => true,
   enabled: (endpoint) => endpoint.enabled,

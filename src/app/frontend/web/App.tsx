@@ -13,6 +13,7 @@ import {
 } from './components/ListEndpoints/sortEndpoints';
 import {
   countByStatus,
+  isStatusFilter,
   matchesStatus,
   STATUS_TABS,
   type StatusFilter,
@@ -22,6 +23,8 @@ import {
   countSelectedTags,
   countUntagged,
   EMPTY_TAG_SELECTION,
+  isTagMatchMode,
+  isTagSelection,
   isUntaggedSelected,
   matchesTags,
   removeTagFromSelection,
@@ -37,6 +40,7 @@ import { useAgentApprovals } from './hooks/useAgentApprovals';
 import { useEndpointFilter } from './hooks/useEndpointFilter';
 import { useEndpoints } from './hooks/useEndpoints';
 import { useMediaQuery } from './hooks/useMediaQuery';
+import { useStoredState } from './hooks/useStoredState';
 
 export default function App() {
   const {
@@ -57,7 +61,11 @@ export default function App() {
     useAgentApprovals(endpoints);
 
   const { filterText, setFilterText, filteredEndpoints } = useEndpointFilter(endpoints);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [statusFilter, setStatusFilter] = useStoredState<StatusFilter>(
+    'api-fake:status-filter',
+    'all',
+    isStatusFilter,
+  );
   const [sort, setSort] = useState<SortState>(readStoredSort);
 
   const handleSortChange = useCallback((next: SortState) => {
@@ -65,13 +73,23 @@ export default function App() {
     storeSort(next);
   }, []);
 
-  const [tagSelection, setTagSelection] = useState<TagSelection>(EMPTY_TAG_SELECTION);
-  const [tagMode, setTagMode] = useState<TagMatchMode>('all');
+  const [tagSelection, setTagSelection] = useStoredState<TagSelection>(
+    'api-fake:tag-selection',
+    EMPTY_TAG_SELECTION,
+    isTagSelection,
+  );
+  const [tagMode, setTagMode] = useStoredState<TagMatchMode>(
+    'api-fake:tag-mode',
+    'all',
+    isTagMatchMode,
+  );
 
   const handleToggleTag = useCallback((tag: string, forceExclude?: boolean) => {
     setTagSelection((current) => toggleTagSelection(current, tag, forceExclude));
-  }, []);
-  const handleClearTags = useCallback(() => setTagSelection(EMPTY_TAG_SELECTION), []);
+  }, [setTagSelection]);
+  const handleClearTags = useCallback(() => setTagSelection(EMPTY_TAG_SELECTION), [
+    setTagSelection,
+  ]);
 
   const getEndpointLabel = useCallback(
     (fileName: string) => {
@@ -110,7 +128,7 @@ export default function App() {
         if (revealed) reveal(revealed);
       }, 100);
     },
-    [setFilterText, handleClearTags],
+    [setFilterText, setStatusFilter, handleClearTags],
   );
 
   // Cada faceta (estado, tag) conta sobre o resultado das outras: o número num chip/aba é
@@ -165,12 +183,12 @@ export default function App() {
       });
     }
     return filters;
-  }, [statusFilter, tagSelection]);
+  }, [statusFilter, tagSelection, setStatusFilter, setTagSelection]);
 
   const handleClearFilters = useCallback(() => {
     setStatusFilter('all');
     handleClearTags();
-  }, [handleClearTags]);
+  }, [setStatusFilter, handleClearTags]);
 
   const isBusy = loadingState !== 'idle';
 

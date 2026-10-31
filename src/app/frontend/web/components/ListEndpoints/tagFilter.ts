@@ -13,6 +13,18 @@ export type TagSelection = {
 
 export type TagCount = { tag: string; count: number };
 
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === 'string');
+
+export const isTagSelection = (value: unknown): value is TagSelection =>
+  typeof value === 'object' &&
+  value !== null &&
+  isStringArray((value as TagSelection).included) &&
+  isStringArray((value as TagSelection).excluded);
+
+export const isTagMatchMode = (value: unknown): value is TagMatchMode =>
+  value === 'all' || value === 'any';
+
 export const EMPTY_TAG_SELECTION: TagSelection = { included: [], excluded: [] };
 
 /**

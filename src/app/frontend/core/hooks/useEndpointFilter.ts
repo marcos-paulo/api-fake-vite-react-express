@@ -7,19 +7,24 @@ export type UseEndpointFilterOptions = {
   // precisa descartar caracteres de controle que o input do terminal pode colar
   // junto com o texto digitado.
   sanitizeFilterText?: (value: string) => string;
+  // Texto inicial (ex.: a web restaura o último filtro) e aviso a cada mudança (pra guardar).
+  initialFilterText?: string;
+  onFilterTextChange?: (value: string) => void;
 };
 
 export function useEndpointFilter(
   endpoints: Endpoints | null,
-  { sanitizeFilterText }: UseEndpointFilterOptions = {},
+  { sanitizeFilterText, initialFilterText = '', onFilterTextChange }: UseEndpointFilterOptions = {},
 ) {
-  const [filterText, setFilterTextRaw] = useState('');
+  const [filterText, setFilterTextRaw] = useState(initialFilterText);
 
   const setFilterText = useCallback(
     (value: string) => {
-      setFilterTextRaw(sanitizeFilterText ? sanitizeFilterText(value) : value);
+      const next = sanitizeFilterText ? sanitizeFilterText(value) : value;
+      setFilterTextRaw(next);
+      onFilterTextChange?.(next);
     },
-    [sanitizeFilterText],
+    [sanitizeFilterText, onFilterTextChange],
   );
 
   // Compilado apenas quando filterText muda, não a cada endpoint iterado
